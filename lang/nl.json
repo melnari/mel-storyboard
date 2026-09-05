@@ -1,0 +1,17 @@
+{
+  "MEL_STORYBOARD": {
+    "SETTINGS": { "ProjectStore": { "Name": "Projectgegevens", "Hint": "Interne opslag voor projecten die door de spelleider worden beheerd." }, "OpenDesigner": { "Name": "Storyboard", "Label": "Storyboard openen", "Hint": "De storyflow-ontwerper voor de spelleider openen." } },
+    "KEYBINDINGS": { "OpenDesigner": { "Name": "Storyboard openen", "Hint": "De storyflow-ontwerper openen." } },
+    "UI": { "Subtitle": "Visuele planning van vertakkende avonturen" },
+    "ACTIONS": { "NewProject": "Nieuw project", "NewMap": "Nieuwe kaart", "NewScene": "Nieuwe scène", "Duplicate": "Dupliceren", "Connect": "Verbinden", "Delete": "Verwijderen", "Undo": "Ongedaan maken", "Redo": "Opnieuw uitvoeren", "ExportJson": "JSON", "ImportJson": "JSON importeren", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Opslaan" },
+    "LABELS": { "Project": "Project", "Map": "Kaart", "Scenes": "Scènes", "SceneDetails": "Scènedetails", "Title": "Titel", "Status": "Status", "Description": "Beschrijving", "SearchScenes": "Scènes zoeken" },
+    "ACCESSIBILITY": { "Projects": "Projectnavigatie", "MapCanvas": "Storyflowkaart", "Inspector": "Inspector" },
+    "EMPTY": { "NoScenes": "Nog geen scènes.", "SelectElement": "Selecteer een element om het te bekijken." },
+    "DEFAULTS": { "ProjectTitle": "Nieuw Storyboard-project", "MapTitle": "Overzichtskaart" },
+    "NOTIFICATIONS": { "Saved": "Project opgeslagen." },
+    "EXPORT": { "StoryScenes": "Storyscènes" },
+    "TEMPLATES": { "GENERAL": { "Name": "Algemene scène", "Situation": "Situatie", "Objective": "Doel", "Options": "Opties en reacties", "Success": "Succes", "PartialSuccess": "Gedeeltelijk succes", "Failure": "Mislukking", "Notes": "Notities" } },
+    "ELEMENT_TYPES": { "SCENE": "Scène", "DECISION": "Beslissing", "SPLIT": "Splitsing", "MERGE": "Samenvoeging", "START": "Start", "END": "Einde", "ACTOR": "Actor", "PLACE": "Plaats", "EVENT": "Gebeurtenis", "INFORMATION": "Informatie", "NOTE": "Notitie", "PHASE": "Fase", "SWIMLANE": "Swimlane", "FREEFORM": "Vrije vorm" },
+    "STATUS": { "OPEN": "Open", "ACTIVE": "Actief", "SUCCESS": "Succes", "PARTIAL_SUCCESS": "Gedeeltelijk succes", "FAILURE": "Mislukking", "SKIPPED": "Overgeslagen" }
+  }
+}

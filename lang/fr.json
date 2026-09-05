@@ -1,0 +1,17 @@
+{
+  "MEL_STORYBOARD": {
+    "SETTINGS": { "ProjectStore": { "Name": "Données du projet", "Hint": "Stockage interne des projets gérés par le MJ." }, "OpenDesigner": { "Name": "Storyboard", "Label": "Ouvrir le storyboard", "Hint": "Ouvrir le concepteur de flux narratif du MJ." } },
+    "KEYBINDINGS": { "OpenDesigner": { "Name": "Ouvrir le storyboard", "Hint": "Ouvrir le concepteur de flux narratif." } },
+    "UI": { "Subtitle": "Planification visuelle des aventures à embranchements" },
+    "ACTIONS": { "NewProject": "Nouveau projet", "NewMap": "Nouvelle carte", "NewScene": "Nouvelle scène", "Duplicate": "Dupliquer", "Connect": "Relier", "Delete": "Supprimer", "Undo": "Annuler", "Redo": "Rétablir", "ExportJson": "JSON", "ImportJson": "Importer JSON", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Enregistrer" },
+    "LABELS": { "Project": "Projet", "Map": "Carte", "Scenes": "Scènes", "SceneDetails": "Détails de la scène", "Title": "Titre", "Status": "Statut", "Description": "Description", "SearchScenes": "Rechercher des scènes" },
+    "ACCESSIBILITY": { "Projects": "Navigation du projet", "MapCanvas": "Carte du flux narratif", "Inspector": "Inspecteur" },
+    "EMPTY": { "NoScenes": "Aucune scène pour le moment.", "SelectElement": "Sélectionnez un élément à inspecter." },
+    "DEFAULTS": { "ProjectTitle": "Nouveau projet Storyboard", "MapTitle": "Carte générale" },
+    "NOTIFICATIONS": { "Saved": "Projet enregistré." },
+    "EXPORT": { "StoryScenes": "Scènes narratives" },
+    "TEMPLATES": { "GENERAL": { "Name": "Scène générale", "Situation": "Situation", "Objective": "Objectif", "Options": "Options et réactions", "Success": "Réussite", "PartialSuccess": "Réussite partielle", "Failure": "Échec", "Notes": "Notes" } },
+    "ELEMENT_TYPES": { "SCENE": "Scène", "DECISION": "Décision", "SPLIT": "Division", "MERGE": "Fusion", "START": "Début", "END": "Fin", "ACTOR": "Acteur", "PLACE": "Lieu", "EVENT": "Événement", "INFORMATION": "Information", "NOTE": "Note", "PHASE": "Phase", "SWIMLANE": "Couloir", "FREEFORM": "Forme libre" },
+    "STATUS": { "OPEN": "Ouvert", "ACTIVE": "Actif", "SUCCESS": "Réussite", "PARTIAL_SUCCESS": "Réussite partielle", "FAILURE": "Échec", "SKIPPED": "Ignoré" }
+  }
+}

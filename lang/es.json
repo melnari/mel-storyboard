@@ -1,0 +1,17 @@
+{
+  "MEL_STORYBOARD": {
+    "SETTINGS": { "ProjectStore": { "Name": "Datos del proyecto", "Hint": "Almacenamiento interno de proyectos gestionados por el DJ." }, "OpenDesigner": { "Name": "Storyboard", "Label": "Abrir Storyboard", "Hint": "Abrir el diseñador de flujo narrativo del DJ." } },
+    "KEYBINDINGS": { "OpenDesigner": { "Name": "Abrir Storyboard", "Hint": "Abrir el diseñador de flujo narrativo." } },
+    "UI": { "Subtitle": "Planificación visual de aventuras ramificadas" },
+    "ACTIONS": { "NewProject": "Nuevo proyecto", "NewMap": "Nuevo mapa", "NewScene": "Nueva escena", "Duplicate": "Duplicar", "Connect": "Conectar", "Delete": "Eliminar", "Undo": "Deshacer", "Redo": "Rehacer", "ExportJson": "JSON", "ImportJson": "Importar JSON", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Guardar" },
+    "LABELS": { "Project": "Proyecto", "Map": "Mapa", "Scenes": "Escenas", "SceneDetails": "Detalles de la escena", "Title": "Título", "Status": "Estado", "Description": "Descripción", "SearchScenes": "Buscar escenas" },
+    "ACCESSIBILITY": { "Projects": "Navegación del proyecto", "MapCanvas": "Mapa del flujo narrativo", "Inspector": "Inspector" },
+    "EMPTY": { "NoScenes": "Aún no hay escenas.", "SelectElement": "Selecciona un elemento para inspeccionarlo." },
+    "DEFAULTS": { "ProjectTitle": "Nuevo proyecto Storyboard", "MapTitle": "Mapa general" },
+    "NOTIFICATIONS": { "Saved": "Proyecto guardado." },
+    "EXPORT": { "StoryScenes": "Escenas narrativas" },
+    "TEMPLATES": { "GENERAL": { "Name": "Escena general", "Situation": "Situación", "Objective": "Objetivo", "Options": "Opciones y reacciones", "Success": "Éxito", "PartialSuccess": "Éxito parcial", "Failure": "Fracaso", "Notes": "Notas" } },
+    "ELEMENT_TYPES": { "SCENE": "Escena", "DECISION": "Decisión", "SPLIT": "División", "MERGE": "Convergencia", "START": "Inicio", "END": "Fin", "ACTOR": "Actor", "PLACE": "Lugar", "EVENT": "Evento", "INFORMATION": "Información", "NOTE": "Nota", "PHASE": "Fase", "SWIMLANE": "Carril", "FREEFORM": "Forma libre" },
+    "STATUS": { "OPEN": "Abierto", "ACTIVE": "Activo", "SUCCESS": "Éxito", "PARTIAL_SUCCESS": "Éxito parcial", "FAILURE": "Fracaso", "SKIPPED": "Omitido" }
+  }
+}

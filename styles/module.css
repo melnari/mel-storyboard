@@ -1,0 +1,152 @@
+.mel-storyboard {
+  min-width: 900px;
+}
+
+.mel-storyboard-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #17191f;
+  color: #edf2f7;
+}
+
+.mel-storyboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid #3a4350;
+}
+
+.mel-storyboard-toolbar h1,
+.mel-storyboard-toolbar p,
+.mel-storyboard-inspector h2,
+.mel-storyboard-sidebar h2 {
+  margin: 0;
+}
+
+.mel-storyboard-subtitle,
+.mel-storyboard-display-id,
+.mel-storyboard-empty {
+  color: #aeb8c5;
+}
+
+.mel-storyboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .35rem;
+}
+
+.mel-storyboard-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  flex: 1;
+  min-height: 0;
+}
+
+.mel-storyboard-sidebar,
+.mel-storyboard-inspector {
+  overflow: auto;
+  padding: 1rem;
+  background: #20242c;
+}
+
+.mel-storyboard-sidebar {
+  border-right: 1px solid #3a4350;
+}
+
+.mel-storyboard-inspector {
+  border-left: 1px solid #3a4350;
+}
+
+.mel-storyboard-sidebar label,
+.mel-storyboard-inspector label {
+  display: block;
+  margin: .75rem 0 .25rem;
+  font-weight: 600;
+}
+
+.mel-storyboard-sidebar select,
+.mel-storyboard-inspector input,
+.mel-storyboard-inspector textarea,
+.mel-storyboard-inspector select {
+  width: 100%;
+}
+
+.mel-storyboard-scene-list {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-storyboard-scene-list button {
+  width: 100%;
+  text-align: left;
+}
+
+.mel-storyboard-canvas-region {
+  min-width: 0;
+  min-height: 0;
+  background: #111318;
+}
+
+.mel-storyboard-canvas-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.mel-storyboard-canvas {
+  display: block;
+  min-width: 100%;
+  min-height: 100%;
+  color: #9aa4b2;
+  cursor: default;
+}
+
+.mel-storyboard-element {
+  color: #9aa4b2;
+  outline: none;
+  cursor: grab;
+}
+
+.mel-storyboard-element:active {
+  cursor: grabbing;
+}
+
+.mel-storyboard-element rect {
+  fill: #313846;
+  stroke: #9aa4b2;
+  stroke-width: 2;
+}
+
+.mel-storyboard-element:hover rect,
+.mel-storyboard-element:focus rect,
+.mel-storyboard-element.is-selected rect {
+  stroke: #f6c453;
+  stroke-width: 3;
+}
+
+.mel-storyboard-element text {
+  fill: #f0f3f7;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.mel-storyboard-element-type,
+.mel-storyboard-element-status {
+  fill: #aeb8c5 !important;
+  font-size: 11px !important;
+}
+
+.mel-storyboard-connection {
+  stroke: #9aa4b2;
+  stroke-width: 3;
+  fill: none;
+}
+

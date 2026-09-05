@@ -1,0 +1,20 @@
+{
+  "MEL_STORYBOARD": {
+    "SETTINGS": {
+      "ProjectStore": { "Name": "Project data", "Hint": "Internal GM-managed Storyboard project storage." },
+      "OpenDesigner": { "Name": "Storyboard", "Label": "Open Storyboard", "Hint": "Open the GM story-flow designer." }
+    },
+    "KEYBINDINGS": { "OpenDesigner": { "Name": "Open Storyboard", "Hint": "Open the GM story-flow designer." } },
+    "UI": { "Subtitle": "Visual planning for branching adventures" },
+    "ACTIONS": { "NewProject": "New project", "NewMap": "New map", "NewScene": "New scene", "Duplicate": "Duplicate", "Connect": "Connect", "Delete": "Delete", "Undo": "Undo", "Redo": "Redo", "ExportJson": "JSON", "ImportJson": "Import JSON", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Save" },
+    "LABELS": { "Project": "Project", "Map": "Map", "Scenes": "Scenes", "SceneDetails": "Scene details", "Title": "Title", "Status": "Status", "Description": "Description", "SearchScenes": "Search scenes" },
+    "ACCESSIBILITY": { "Projects": "Project navigation", "MapCanvas": "Story flow map", "Inspector": "Inspector" },
+    "EMPTY": { "NoScenes": "No scenes yet.", "SelectElement": "Select an element to inspect it." },
+    "DEFAULTS": { "ProjectTitle": "New Storyboard project", "MapTitle": "Overview map" },
+    "NOTIFICATIONS": { "Saved": "Project saved." },
+    "EXPORT": { "StoryScenes": "Story scenes" },
+    "TEMPLATES": { "GENERAL": { "Name": "General scene", "Situation": "Situation", "Objective": "Objective", "Options": "Options and reactions", "Success": "Success", "PartialSuccess": "Partial success", "Failure": "Failure", "Notes": "Notes" } },
+    "ELEMENT_TYPES": { "SCENE": "Scene", "DECISION": "Decision", "SPLIT": "Split", "MERGE": "Merge", "START": "Start", "END": "End", "ACTOR": "Actor", "PLACE": "Place", "EVENT": "Event", "INFORMATION": "Information", "NOTE": "Note", "PHASE": "Phase", "SWIMLANE": "Swimlane", "FREEFORM": "Free form" },
+    "STATUS": { "OPEN": "Open", "ACTIVE": "Active", "SUCCESS": "Success", "PARTIAL_SUCCESS": "Partial success", "FAILURE": "Failure", "SKIPPED": "Skipped" }
+  }
+}
