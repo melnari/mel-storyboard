@@ -33,6 +33,11 @@
       "EditConnection": "Edit connection label",
       "ZoomOut": "Zoom out",
       "ZoomIn": "Zoom in",
+      "CopyTemplate": "Copy template",
+      "AddTemplateField": "Add template field",
+      "AddObject": "Add object",
+      "AssignObject": "Assign object",
+      "RemoveObject": "Remove object",
       "Connect": "Connect",
       "Undo": "Undo",
       "Redo": "Redo",
@@ -47,6 +52,17 @@
     "Story": "Story",
     "Scenes": "Scenes",
       "SceneDetails": "Scene details",
+      "Template": "Template",
+      "TemplateVersion": "Template version",
+      "TemplateFields": "Template fields",
+      "GlobalTemplate": "Global",
+      "BoardTemplate": "Board copy",
+      "Objects": "Objects",
+      "ObjectType": "Object type",
+      "ObjectTitle": "Object name",
+      "FoundryUuid": "Foundry UUID",
+      "ExistingObject": "Existing object",
+      "Copy": "Copy",
       "Title": "Title",
       "Status": "Status",
       "Description": "Description",
@@ -63,6 +79,7 @@
     "EMPTY": {
       "NoScenes": "No scenes yet.",
       "SelectScene": "Select a scene to inspect it."
+      ,"NoObjects": "No objects are assigned to this scene yet."
     },
     "DEFAULTS": {
       "SceneTitle": "New scene"
@@ -73,11 +90,16 @@
       "DeleteScene": "Delete scene \"{title}\"?",
       "DeleteConnection": "Delete this connection?",
       "ConnectionLabel": "Connection label"
+      ,"TemplateCopyName": "Template copy name"
+      ,"TemplateFieldKey": "Stable key for the new template field"
+      ,"TemplateFieldLabel": "Display label for the new template field"
+      ,"TemplateMigration": "Apply template version {to} over version {from}?\nNew fields: {added}\nRemoved fields: {removed}\nChanged fields: {changed}"
     },
     "NOTIFICATIONS": {
       "Saved": "Scene board saved.",
       "SelectConnectionTarget": "Select the target scene for this connection.",
       "Copied": "Scene copied."
+      ,"ActorUuidRequired": "Actor objects require a Foundry UUID."
     },
     "EXPORT": {
       "Scenes": "Scenes"
@@ -96,6 +118,16 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Scene"
+    },
+    "OBJECT_TYPES": {
+      "PLAYER_CHARACTER": "Player character",
+      "NPC": "NPC",
+      "GROUP": "Group",
+      "FACTION": "Faction",
+      "PLACE": "Place",
+      "ITEM": "Item",
+      "INFORMATION": "Information",
+      "EVENT": "Event"
     },
     "STATUS": {
       "OFFEN": "Open",

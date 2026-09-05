@@ -1,19 +1,41 @@
 import { MODULE_ID, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
-import { clone, createSceneBoard } from "./model.js";
+import { clone, createDefaultTemplate, createSceneBoard } from "./model.js";
 import { validateSceneBoard } from "./validation.js";
 
 function normalizeSceneBoard(stored) {
   if (!stored || typeof stored !== "object") return createSceneBoard();
-  if (stored.schemaVersion === STORE_SCHEMA_VERSION) return stored;
-  if (stored.schemaVersion === 2 && Array.isArray(stored.scenes) && Array.isArray(stored.elements)) {
+  let board = clone(stored);
+  if (board.schemaVersion === 2 && Array.isArray(board.scenes) && Array.isArray(board.elements)) {
     const statusMap = { OPEN: "OFFEN", ACTIVE: "AKTIV", SUCCESS: "ERFOLG", PARTIAL_SUCCESS: "TEILERFOLG", FAILURE: "FEHLSCHLAG", SKIPPED: "UEBERSPRUNGEN" };
-    return {
-      ...stored,
-      schemaVersion: STORE_SCHEMA_VERSION,
-      scenes: stored.scenes.map(scene => ({ ...scene, status: statusMap[scene.status] ?? scene.status, parentId: scene.parentId ?? null }))
-    };
+    board.scenes = board.scenes.map(scene => ({ ...scene, status: statusMap[scene.status] ?? scene.status, parentId: scene.parentId ?? null }));
+    board.schemaVersion = 3;
   }
-  return createSceneBoard();
+  if (board.schemaVersion !== 3 && board.schemaVersion !== STORE_SCHEMA_VERSION) return createSceneBoard();
+  const defaultTemplate = createDefaultTemplate();
+  board.templates = (Array.isArray(board.templates) && board.templates.length ? board.templates : [defaultTemplate]).map(template => ({
+    ...template,
+    name: template.name ?? "",
+    scope: template.scope ?? "global",
+    sourceTemplateId: template.sourceTemplateId ?? null,
+    targetType: template.targetType ?? "SCENE",
+    version: template.version ?? 1,
+    fields: template.fields ?? []
+  }));
+  board.objects = Array.isArray(board.objects) ? board.objects : [];
+  board.scenes = (board.scenes ?? []).map(scene => {
+    const template = board.templates.find(candidate => candidate.id === scene.templateId) ?? board.templates.find(candidate => candidate.active) ?? board.templates[0];
+    return {
+      ...scene,
+      parentId: scene.parentId ?? null,
+      templateId: scene.templateId ?? template?.id ?? null,
+      templateVersion: scene.templateVersion ?? template?.version ?? 1,
+      fieldValues: scene.fieldValues ?? {},
+      actorAssignments: scene.actorAssignments ?? [],
+      objectAssignments: scene.objectAssignments ?? []
+    };
+  });
+  board.schemaVersion = STORE_SCHEMA_VERSION;
+  return board;
 }
 
 export function registerSceneBoardSetting() {
@@ -54,8 +76,9 @@ export class SceneBoardStore {
 
   async import(board) {
     this.#assertGM();
-    const result = validateSceneBoard(board);
+    const normalized = normalizeSceneBoard(board);
+    const result = validateSceneBoard(normalized);
     if (!result.valid) throw new Error(`Scene board validation failed: ${result.errors.join(" ")}`);
-    return this.save(board);
+    return this.save(normalized);
   }
 }

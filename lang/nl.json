@@ -33,6 +33,11 @@
       "EditConnection": "Verbindingslabel bewerken",
       "ZoomOut": "Uitzoomen",
       "ZoomIn": "Inzoomen",
+      "CopyTemplate": "Sjabloon kopiëren",
+      "AddTemplateField": "Sjabloonveld toevoegen",
+      "AddObject": "Object toevoegen",
+      "AssignObject": "Object toewijzen",
+      "RemoveObject": "Object verwijderen",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
       "Redo": "Opnieuw",
@@ -47,6 +52,17 @@
     "Story": "Story",
     "Scenes": "Scènes",
       "SceneDetails": "Scènedetails",
+      "Template": "Sjabloon",
+      "TemplateVersion": "Sjabloonversie",
+      "TemplateFields": "Sjabloonvelden",
+      "GlobalTemplate": "Globaal",
+      "BoardTemplate": "Bordkopie",
+      "Objects": "Objecten",
+      "ObjectType": "Objecttype",
+      "ObjectTitle": "Objectnaam",
+      "FoundryUuid": "Foundry-UUID",
+      "ExistingObject": "Bestaand object",
+      "Copy": "Kopie",
       "Title": "Titel",
       "Status": "Status",
       "Description": "Beschrijving",
@@ -63,6 +79,7 @@
     "EMPTY": {
       "NoScenes": "Nog geen scènes.",
       "SelectScene": "Selecteer een scène om deze te bekijken."
+      ,"NoObjects": "Aan deze scène zijn nog geen objecten toegewezen."
     },
     "DEFAULTS": {
       "SceneTitle": "Nieuwe scène"
@@ -73,11 +90,16 @@
       "DeleteScene": "Scène \"{title}\" verwijderen?",
       "DeleteConnection": "Deze verbinding verwijderen?",
       "ConnectionLabel": "Verbindingslabel"
+      ,"TemplateCopyName": "Naam van sjabloonkopie"
+      ,"TemplateFieldKey": "Stabiele sleutel voor het nieuwe sjabloonveld"
+      ,"TemplateFieldLabel": "Weergavelabel voor het nieuwe sjabloonveld"
+      ,"TemplateMigration": "Sjabloonversie {to} toepassen op versie {from}?\nNieuwe velden: {added}\nVerwijderde velden: {removed}\nGewijzigde velden: {changed}"
     },
     "NOTIFICATIONS": {
       "Saved": "Scènebord opgeslagen.",
       "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
       "Copied": "Scène gekopieerd."
+      ,"ActorUuidRequired": "Actor-objecten vereisen een Foundry-UUID."
     },
     "EXPORT": {
       "Scenes": "Scènes"
@@ -96,6 +118,16 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Scène"
+    },
+    "OBJECT_TYPES": {
+      "PLAYER_CHARACTER": "Spelerpersonage",
+      "NPC": "NPC",
+      "GROUP": "Groep",
+      "FACTION": "Factie",
+      "PLACE": "Plaats",
+      "ITEM": "Voorwerp",
+      "INFORMATION": "Informatie",
+      "EVENT": "Gebeurtenis"
     },
     "STATUS": {
       "OFFEN": "Open",

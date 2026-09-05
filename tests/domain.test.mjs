@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, copySceneElements, createConnection, createScene, createSceneBoard, createSceneElement, duplicateSceneElements, pasteSceneElements, removeConnection } from "../scripts/domain/model.js";
+import { assignActorToScene, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
@@ -30,6 +30,37 @@ test("scene status values use the approved domain keys", () => {
   const scene = createScene(board);
   assert.deepEqual(Object.values(STATUS), ["OFFEN", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN"]);
   assert.equal(scene.status, STATUS.OFFEN);
+});
+
+test("templates support board copies, versions, previews, and confirmed migrations", () => {
+  const board = createSceneBoard();
+  const scene = createScene(board);
+  const source = board.templates[0];
+  const copy = createBoardTemplate(board, source.id, { name: "Board scene" });
+  const version = createTemplateVersion(board, copy.id, { fields: [...copy.fields, { stableKey: "newField", labelKey: "MEL_STORYBOARD.TEMPLATES.GENERAL.Notes", fieldType: "rich-text", required: false, sortOrder: 80 }] });
+  const preview = previewTemplateMigration(scene, source, version);
+  assert.equal(copy.scope, "board");
+  assert.equal(version.version, 2);
+  assert.deepEqual(preview.added, ["newField"]);
+  assert.throws(() => migrateSceneTemplate(board, scene.id, version.id), /explicit confirmation/);
+  migrateSceneTemplate(board, scene.id, version.id, { confirmed: true });
+  assert.equal(scene.templateId, version.id);
+  assert.equal(scene.templateVersion, version.version);
+  assert.equal(scene.fieldValues.newField, "");
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("scene objects use typed records and Foundry UUID references", () => {
+  const board = createSceneBoard();
+  const scene = createScene(board);
+  const actor = createBoardObject(board, { objectType: "NPC", title: "Keeper", foundryUuid: "Actor.keeper" });
+  const assignment = assignObjectToScene(scene, actor.id);
+  assert.equal(actor.foundryUuid, "Actor.keeper");
+  assert.equal(scene.objectAssignments[0].objectId, actor.id);
+  assert.throws(() => createBoardObject(board, { objectType: "NPC", title: "Missing UUID" }), /Actor UUID/);
+  removeObjectAssignment(scene, assignment.id);
+  assert.equal(scene.objectAssignments.length, 0);
+  assert.equal(validateSceneBoard(board).valid, true);
 });
 
 test("duplicating scenes creates new scene and element records", () => {

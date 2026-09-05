@@ -1,6 +1,6 @@
 export const MODULE_ID = "mel-storyboard";
 export const STORE_KEY = "sceneBoard";
-export const STORE_SCHEMA_VERSION = 3;
+export const STORE_SCHEMA_VERSION = 4;
 
 export const STATUS = Object.freeze({
   OFFEN: "OFFEN",

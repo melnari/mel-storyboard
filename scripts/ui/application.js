@@ -1,5 +1,5 @@
-import { MODULE_ID, STATUS } from "../domain/constants.js";
-import { clone, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, removeSceneElements, removeConnection } from "../domain/model.js";
+import { MODULE_ID, OBJECT_TYPES, STATUS } from "../domain/constants.js";
+import { assignObjectToScene, clone, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneElement, createTemplateVersion, duplicateSceneElements, copySceneElements, pasteSceneElements, migrateSceneTemplate, previewTemplateMigration, removeObjectAssignment, removeSceneElements, removeConnection } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
@@ -18,6 +18,19 @@ function notifyError(error) {
   console.error(`[${MODULE_ID}]`, error);
   ui.notifications.error(error.message ?? String(error));
 }
+
+const OBJECT_ICONS = Object.freeze({
+  PLAYER_CHARACTER: "fa-user",
+  NPC: "fa-user-gear",
+  GROUP: "fa-users",
+  FACTION: "fa-flag",
+  PLACE: "fa-location-dot",
+  ITEM: "fa-cube",
+  INFORMATION: "fa-circle-info",
+  EVENT: "fa-calendar-day"
+});
+
+const ACTOR_OBJECT_TYPES = new Set(["PLAYER_CHARACTER", "NPC", "GROUP", "FACTION"]);
 
 function buildSceneTree(scenes) {
   const childrenByParent = new Map();
@@ -80,6 +93,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       return { ...element, label: scene?.title || element.title || localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), typeLabel: scene?.displayId ?? "", statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "", isSelected: this.selectedElementIds.includes(element.id) };
     });
     const byId = new Map(elements.map(element => [element.id, element]));
+    const objects = (this.board.objects ?? []).map(object => ({
+      ...object,
+      typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
+      icon: OBJECT_ICONS[object.objectType] ?? "fa-cube"
+    }));
+    const objectsById = new Map(objects.map(object => [object.id, object]));
     const connections = this.board.connections.map(connection => {
       const sourceElement = byId.get(connection.sourceElementId);
       const targetElement = byId.get(connection.targetElementId);
@@ -90,9 +109,27 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     });
     const selectedElement = this.board.elements.find(element => this.selectedElementIds.includes(element.id));
     const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
+    const selectedObjects = (selectedSceneRecord?.objectAssignments ?? []).map(assignment => {
+      const object = objectsById.get(assignment.objectId);
+      return object ? { ...object, assignmentId: assignment.id, role: assignment.role, assignmentNotes: assignment.notes } : null;
+    }).filter(Boolean);
+    const templateOptions = (this.board.templates ?? []).filter(template => (template.targetType ?? "SCENE") === "SCENE").map(template => ({
+      id: template.id,
+      label: template.name?.trim() || localize(template.nameKey),
+      version: template.version,
+      scopeLabel: localize(`MEL_STORYBOARD.LABELS.${template.scope === "board" ? "BoardTemplate" : "GlobalTemplate"}`),
+      selected: template.id === selectedSceneRecord?.templateId
+    }));
+    const selectedTemplateRecord = this.board.templates.find(template => template.id === selectedSceneRecord?.templateId);
+    const selectedTemplateFields = (selectedTemplateRecord?.fields ?? []).map(field => ({
+      ...field,
+      label: field.label?.trim() || localize(field.labelKey),
+      value: selectedSceneRecord?.fieldValues?.[field.stableKey] ?? ""
+    }));
     const selectedScene = selectedSceneRecord ? {
       ...selectedSceneRecord,
       statusLabel: localize(`MEL_STORYBOARD.STATUS.${selectedSceneRecord.status}`),
+      templateLabel: templateOptions.find(template => template.selected)?.label ?? "",
       incomingCount: this.board.connections.filter(connection => connection.targetElementId === selectedElement.id).length,
       outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement.id).length
     } : null;
@@ -101,12 +138,18 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80));
     const maxY = Math.max(800, ...elements.map(element => element.position.y + element.size.height + 80));
     return {
-      board: { ...this.board, elements, connections },
+      board: { ...this.board, elements, connections, objects },
       sceneTree,
       selectedElement,
       selectedScene,
       canConnect: this.selectedElementIds.length === 2,
       hasScenes: this.board.scenes.length > 0,
+      objects,
+      selectedObjects,
+      availableObjects: objects.filter(object => !selectedObjects.some(selected => selected.id === object.id)),
+      objectTypes: OBJECT_TYPES.map(value => ({ value, label: localize(`MEL_STORYBOARD.OBJECT_TYPES.${value}`), icon: OBJECT_ICONS[value] ?? "fa-cube" })),
+      templateOptions,
+      selectedTemplateFields,
       statuses,
       canvas: { width: maxX, height: maxY },
       canUndo: this.history.canUndo,
@@ -131,6 +174,20 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         sceneCanvas: localize("MEL_STORYBOARD.ACCESSIBILITY.SceneCanvas"),
         inspector: localize("MEL_STORYBOARD.ACCESSIBILITY.Inspector"),
         sceneDetails: localize("MEL_STORYBOARD.LABELS.SceneDetails"),
+        template: localize("MEL_STORYBOARD.LABELS.Template"),
+        templateVersion: localize("MEL_STORYBOARD.LABELS.TemplateVersion"),
+        templateFields: localize("MEL_STORYBOARD.LABELS.TemplateFields"),
+        copyTemplate: localize("MEL_STORYBOARD.ACTIONS.CopyTemplate"),
+        addTemplateField: localize("MEL_STORYBOARD.ACTIONS.AddTemplateField"),
+        objects: localize("MEL_STORYBOARD.LABELS.Objects"),
+        objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
+        objectTitle: localize("MEL_STORYBOARD.LABELS.ObjectTitle"),
+        foundryUuid: localize("MEL_STORYBOARD.LABELS.FoundryUuid"),
+        existingObject: localize("MEL_STORYBOARD.LABELS.ExistingObject"),
+        addObject: localize("MEL_STORYBOARD.ACTIONS.AddObject"),
+        assignObject: localize("MEL_STORYBOARD.ACTIONS.AssignObject"),
+        removeObject: localize("MEL_STORYBOARD.ACTIONS.RemoveObject"),
+        noObjects: localize("MEL_STORYBOARD.EMPTY.NoObjects"),
         titleField: localize("MEL_STORYBOARD.LABELS.Title"),
         status: localize("MEL_STORYBOARD.LABELS.Status"),
         description: localize("MEL_STORYBOARD.LABELS.Description"),
@@ -424,6 +481,108 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
+  async #changeSceneTemplate(templateId) {
+    const scene = this.#selectedScene();
+    const nextTemplate = this.board.templates.find(template => template.id === templateId);
+    if (!scene || !nextTemplate || scene.templateId === nextTemplate.id) return;
+    const currentTemplate = this.board.templates.find(template => template.id === scene.templateId);
+    const preview = previewTemplateMigration(scene, currentTemplate, nextTemplate);
+    const confirmed = window.confirm(format("MEL_STORYBOARD.PROMPTS.TemplateMigration", {
+      from: preview.fromVersion,
+      to: preview.toVersion,
+      added: preview.added.join(", ") || "—",
+      removed: preview.removed.join(", ") || "—",
+      changed: preview.changed.join(", ") || "—"
+    }));
+    if (!confirmed) {
+      await this.render({ force: true });
+      return;
+    }
+    this.history.capture(this.board);
+    migrateSceneTemplate(this.board, scene.id, nextTemplate.id, { confirmed: true });
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #copySelectedTemplate() {
+    const scene = this.#selectedScene();
+    const source = this.board.templates.find(template => template.id === scene?.templateId);
+    if (!scene || !source) return;
+    const sourceName = source.name?.trim() || localize(source.nameKey);
+    const name = window.prompt(localize("MEL_STORYBOARD.PROMPTS.TemplateCopyName"), `${sourceName} (${localize("MEL_STORYBOARD.LABELS.Copy")})`);
+    if (name === null || !name.trim()) return;
+    this.history.capture(this.board);
+    const copy = createBoardTemplate(this.board, source.id, { name });
+    scene.templateId = copy.id;
+    scene.templateVersion = copy.version;
+    scene.updatedAt = new Date().toISOString();
+    this.board = await this.store.save(this.board);
+  }
+
+  async #addTemplateField() {
+    const scene = this.#selectedScene();
+    const source = this.board.templates.find(template => template.id === scene?.templateId);
+    if (!scene || !source) return;
+    const key = window.prompt(localize("MEL_STORYBOARD.PROMPTS.TemplateFieldKey"));
+    if (key === null || !key.trim()) return;
+    const stableKey = key.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (!stableKey || source.fields.some(field => field.stableKey === stableKey)) return;
+    const label = window.prompt(localize("MEL_STORYBOARD.PROMPTS.TemplateFieldLabel"), key.trim());
+    if (label === null || !label.trim()) return;
+    this.history.capture(this.board);
+    createTemplateVersion(this.board, source.id, {
+      fields: [...source.fields, { stableKey, label: label.trim(), fieldType: "rich-text", required: false, sortOrder: (source.fields.length + 1) * 10 }]
+    });
+    this.board = await this.store.save(this.board);
+  }
+
+  async #saveTemplateFields() {
+    const scene = this.#selectedScene();
+    if (!scene) return;
+    this.history.capture(this.board);
+    scene.fieldValues ??= {};
+    for (const field of this.element.querySelectorAll("[data-template-field]")) {
+      const editor = field.querySelector("prose-mirror, textarea, input");
+      if (editor) scene.fieldValues[field.dataset.templateField] = editor.value ?? editor.textContent ?? "";
+    }
+    scene.updatedAt = new Date().toISOString();
+    this.board = await this.store.save(this.board);
+  }
+
+  async #addObjectToScene() {
+    const scene = this.#selectedScene();
+    if (!scene) return;
+    const objectType = this.element.querySelector("[data-object-field='objectType']")?.value ?? "INFORMATION";
+    const title = this.element.querySelector("[data-object-field='title']")?.value ?? "";
+    const foundryUuid = this.element.querySelector("[data-object-field='foundryUuid']")?.value ?? "";
+    if (!title.trim()) return;
+    if (ACTOR_OBJECT_TYPES.has(objectType) && !foundryUuid.trim()) {
+      ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.ActorUuidRequired"));
+      return;
+    }
+    this.history.capture(this.board);
+    const object = createBoardObject(this.board, { objectType, title, foundryUuid });
+    assignObjectToScene(scene, object.id);
+    this.board = await this.store.save(this.board);
+  }
+
+  async #assignExistingObject() {
+    const scene = this.#selectedScene();
+    const objectId = this.element.querySelector("[data-existing-object]")?.value;
+    if (!scene || !objectId) return;
+    this.history.capture(this.board);
+    assignObjectToScene(scene, objectId);
+    this.board = await this.store.save(this.board);
+  }
+
+  async #removeObjectFromScene(assignmentId) {
+    const scene = this.#selectedScene();
+    if (!scene || !assignmentId) return;
+    this.history.capture(this.board);
+    removeObjectAssignment(scene, assignmentId);
+    this.board = await this.store.save(this.board);
+  }
+
   async #handleAction(event) {
     const action = event.currentTarget.dataset.action;
     try {
@@ -435,7 +594,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       } else if (action === "zoom-in") {
         this.#changeZoom(0.1);
         return;
-      } else if (action === "duplicate-selected") await this.#duplicateSelected();
+      } else if (action === "copy-template") await this.#copySelectedTemplate();
+      else if (action === "add-template-field") await this.#addTemplateField();
+      else if (action === "save-template-fields") await this.#saveTemplateFields();
+      else if (action === "add-object") await this.#addObjectToScene();
+      else if (action === "assign-object") await this.#assignExistingObject();
+      else if (action === "remove-object") await this.#removeObjectFromScene(event.currentTarget.dataset.assignmentId);
+      else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
         if (this.selectedElementIds.length !== 2) return;
         this.history.capture(this.board);
@@ -465,6 +630,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async #updateSceneField(event) {
     const scene = this.#selectedScene();
     if (!scene) return;
+    if (event.currentTarget.dataset.sceneField === "templateId") {
+      await this.#changeSceneTemplate(event.currentTarget.value);
+      return;
+    }
     this.history.capture(this.board);
     scene[event.currentTarget.dataset.sceneField] = event.currentTarget.value;
     scene.updatedAt = new Date().toISOString();

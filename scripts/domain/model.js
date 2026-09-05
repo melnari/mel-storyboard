@@ -1,4 +1,4 @@
-import { ELEMENT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
+import { ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
 import { nextDisplayId, uuid } from "./ids.js";
 
 export function clone(value) {
@@ -13,6 +13,10 @@ export function createDefaultTemplate() {
   return {
     id: uuid(),
     nameKey: "MEL_STORYBOARD.TEMPLATES.GENERAL.Name",
+    name: "",
+    scope: "global",
+    sourceTemplateId: null,
+    targetType: "SCENE",
     version: 1,
     active: true,
     fields: [
@@ -37,7 +41,8 @@ export function createSceneBoard() {
     templates: [createDefaultTemplate()],
     scenes: [],
     elements: [],
-    connections: []
+    connections: [],
+    objects: []
   };
 }
 
@@ -51,6 +56,7 @@ export function createScene(board, { title = "New scene", description = "" } = {
     description,
     status: STATUS.OFFEN,
     templateId: board.templates.find(template => template.active)?.id ?? null,
+    templateVersion: board.templates.find(template => template.active)?.version ?? 1,
     fieldValues: {},
     actorAssignments: [],
     objectAssignments: [],
@@ -79,6 +85,115 @@ export function createSceneElement(board, { sceneId = null, title = "" } = {}) {
   board.elements.push(element);
   board.updatedAt = now;
   return element;
+}
+
+export function createBoardObject(board, { objectType = "INFORMATION", title = "New object", description = "", foundryUuid = "" } = {}) {
+  if (!OBJECT_TYPES.includes(objectType)) throw new Error(`Unsupported object type: ${objectType}`);
+  const actorTypes = new Set(["PLAYER_CHARACTER", "NPC", "GROUP", "FACTION"]);
+  if (actorTypes.has(objectType) && !foundryUuid?.trim()) throw new Error("An Actor UUID is required for this object type.");
+  const now = timestamp();
+  const object = {
+    id: uuid(),
+    displayId: nextDisplayId(board.objects ?? [], "O"),
+    objectType,
+    title: title.trim() || "New object",
+    description,
+    foundryUuid: foundryUuid.trim(),
+    visualConfig: {},
+    createdAt: now,
+    updatedAt: now
+  };
+  board.objects ??= [];
+  board.objects.push(object);
+  board.updatedAt = now;
+  return object;
+}
+
+export function assignObjectToScene(scene, objectId, role = "", notes = "") {
+  if (!objectId?.trim()) throw new Error("An object ID is required.");
+  scene.objectAssignments ??= [];
+  if (scene.objectAssignments.some(assignment => assignment.objectId === objectId)) throw new Error("This object is already assigned to the scene.");
+  const now = timestamp();
+  const assignment = { id: uuid(), objectId, role: role.trim(), notes, createdAt: now, updatedAt: now };
+  scene.objectAssignments.push(assignment);
+  scene.updatedAt = now;
+  return assignment;
+}
+
+export function removeObjectAssignment(scene, assignmentId) {
+  const previousLength = scene.objectAssignments?.length ?? 0;
+  scene.objectAssignments = (scene.objectAssignments ?? []).filter(assignment => assignment.id !== assignmentId);
+  if (scene.objectAssignments.length === previousLength) throw new Error("The scene object assignment does not exist.");
+  scene.updatedAt = timestamp();
+}
+
+export function createBoardTemplate(board, sourceTemplateId, { name = "" } = {}) {
+  const source = board.templates.find(template => template.id === sourceTemplateId);
+  if (!source) throw new Error("The source template does not exist.");
+  const now = timestamp();
+  const template = {
+    ...clone(source),
+    id: uuid(),
+    name: name.trim() || "",
+    scope: "board",
+    sourceTemplateId: source.id,
+    version: 1,
+    createdAt: now,
+    updatedAt: now
+  };
+  board.templates.push(template);
+  board.updatedAt = now;
+  return template;
+}
+
+export function createTemplateVersion(board, templateId, { fields = null, name = null } = {}) {
+  const source = board.templates.find(template => template.id === templateId);
+  if (!source) throw new Error("The source template does not exist.");
+  const familyId = source.sourceTemplateId ?? source.id;
+  const version = Math.max(...board.templates.filter(template => (template.sourceTemplateId ?? template.id) === familyId).map(template => template.version ?? 1)) + 1;
+  const now = timestamp();
+  const template = {
+    ...clone(source),
+    id: uuid(),
+    sourceTemplateId: familyId,
+    version,
+    fields: fields ? clone(fields) : clone(source.fields),
+    name: name === null ? source.name ?? "" : name.trim(),
+    createdAt: now,
+    updatedAt: now
+  };
+  board.templates.push(template);
+  board.updatedAt = now;
+  return template;
+}
+
+export function previewTemplateMigration(scene, currentTemplate, nextTemplate) {
+  const currentFields = new Map((currentTemplate?.fields ?? []).map(field => [field.stableKey, field]));
+  const nextFields = new Map((nextTemplate?.fields ?? []).map(field => [field.stableKey, field]));
+  return {
+    fromVersion: scene.templateVersion ?? currentTemplate?.version ?? 0,
+    toVersion: nextTemplate?.version ?? 0,
+    added: [...nextFields.keys()].filter(key => !currentFields.has(key)),
+    removed: [...currentFields.keys()].filter(key => !nextFields.has(key)),
+    retained: [...nextFields.keys()].filter(key => currentFields.has(key)),
+    changed: [...nextFields.keys()].filter(key => currentFields.has(key) && JSON.stringify(currentFields.get(key)) !== JSON.stringify(nextFields.get(key)))
+  };
+}
+
+export function migrateSceneTemplate(board, sceneId, templateId, { confirmed = false } = {}) {
+  if (!confirmed) throw new Error("Template migration requires explicit confirmation.");
+  const scene = board.scenes.find(candidate => candidate.id === sceneId);
+  const nextTemplate = board.templates.find(template => template.id === templateId);
+  if (!scene || !nextTemplate) throw new Error("The scene or target template does not exist.");
+  const currentTemplate = board.templates.find(template => template.id === scene.templateId);
+  const preview = previewTemplateMigration(scene, currentTemplate, nextTemplate);
+  scene.templateId = nextTemplate.id;
+  scene.templateVersion = nextTemplate.version;
+  scene.fieldValues ??= {};
+  for (const field of nextTemplate.fields ?? []) scene.fieldValues[field.stableKey] ??= "";
+  scene.updatedAt = timestamp();
+  board.updatedAt = scene.updatedAt;
+  return preview;
 }
 
 export function createConnection(board, sourceElementId, targetElementId, connectionType = "FLOW", label = "") {

@@ -33,6 +33,11 @@
       "EditConnection": "Modifier le libellé",
       "ZoomOut": "Réduire",
       "ZoomIn": "Agrandir",
+      "CopyTemplate": "Copier le modèle",
+      "AddTemplateField": "Ajouter un champ au modèle",
+      "AddObject": "Ajouter un objet",
+      "AssignObject": "Associer l’objet",
+      "RemoveObject": "Retirer l’objet",
       "Connect": "Relier",
       "Undo": "Annuler",
       "Redo": "Rétablir",
@@ -47,6 +52,17 @@
     "Story": "Story",
     "Scenes": "Scènes",
       "SceneDetails": "Détails de la scène",
+      "Template": "Modèle",
+      "TemplateVersion": "Version du modèle",
+      "TemplateFields": "Champs du modèle",
+      "GlobalTemplate": "Global",
+      "BoardTemplate": "Copie du tableau",
+      "Objects": "Objets",
+      "ObjectType": "Type d’objet",
+      "ObjectTitle": "Nom de l’objet",
+      "FoundryUuid": "UUID Foundry",
+      "ExistingObject": "Objet existant",
+      "Copy": "Copie",
       "Title": "Titre",
       "Status": "Statut",
       "Description": "Description",
@@ -63,6 +79,7 @@
     "EMPTY": {
       "NoScenes": "Aucune scène pour le moment.",
       "SelectScene": "Sélectionnez une scène à inspecter."
+      ,"NoObjects": "Aucun objet n’est encore associé à cette scène."
     },
     "DEFAULTS": {
       "SceneTitle": "Nouvelle scène"
@@ -73,11 +90,16 @@
       "DeleteScene": "Supprimer la scène « {title} » ?",
       "DeleteConnection": "Supprimer cette relation ?",
       "ConnectionLabel": "Libellé de la relation"
+      ,"TemplateCopyName": "Nom de la copie du modèle"
+      ,"TemplateFieldKey": "Clé stable du nouveau champ du modèle"
+      ,"TemplateFieldLabel": "Libellé affiché du nouveau champ du modèle"
+      ,"TemplateMigration": "Appliquer la version {to} sur la version {from} ?\nChamps ajoutés : {added}\nChamps supprimés : {removed}\nChamps modifiés : {changed}"
     },
     "NOTIFICATIONS": {
       "Saved": "Tableau de scènes enregistré.",
       "SelectConnectionTarget": "Sélectionnez la scène cible de cette relation.",
       "Copied": "Scène copiée."
+      ,"ActorUuidRequired": "Les objets Actor nécessitent un UUID Foundry."
     },
     "EXPORT": {
       "Scenes": "Scènes"
@@ -96,6 +118,16 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Scène"
+    },
+    "OBJECT_TYPES": {
+      "PLAYER_CHARACTER": "Personnage joueur",
+      "NPC": "PNJ",
+      "GROUP": "Groupe",
+      "FACTION": "Faction",
+      "PLACE": "Lieu",
+      "ITEM": "Objet",
+      "INFORMATION": "Information",
+      "EVENT": "Événement"
     },
     "STATUS": {
       "OFFEN": "Ouvert",

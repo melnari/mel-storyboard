@@ -33,6 +33,11 @@
       "EditConnection": "Editar etiqueta de conexión",
       "ZoomOut": "Alejar",
       "ZoomIn": "Acercar",
+      "CopyTemplate": "Copiar plantilla",
+      "AddTemplateField": "Añadir campo de plantilla",
+      "AddObject": "Añadir objeto",
+      "AssignObject": "Asignar objeto",
+      "RemoveObject": "Quitar objeto",
       "Connect": "Conectar",
       "Undo": "Deshacer",
       "Redo": "Rehacer",
@@ -47,6 +52,17 @@
     "Story": "Story",
     "Scenes": "Escenas",
       "SceneDetails": "Detalles de la escena",
+      "Template": "Plantilla",
+      "TemplateVersion": "Versión de plantilla",
+      "TemplateFields": "Campos de plantilla",
+      "GlobalTemplate": "Global",
+      "BoardTemplate": "Copia del tablero",
+      "Objects": "Objetos",
+      "ObjectType": "Tipo de objeto",
+      "ObjectTitle": "Nombre del objeto",
+      "FoundryUuid": "UUID de Foundry",
+      "ExistingObject": "Objeto existente",
+      "Copy": "Copia",
       "Title": "Título",
       "Status": "Estado",
       "Description": "Descripción",
@@ -63,6 +79,7 @@
     "EMPTY": {
       "NoScenes": "Aún no hay escenas.",
       "SelectScene": "Selecciona una escena para inspeccionarla."
+      ,"NoObjects": "Todavía no hay objetos asignados a esta escena."
     },
     "DEFAULTS": {
       "SceneTitle": "Nueva escena"
@@ -73,11 +90,16 @@
       "DeleteScene": "¿Eliminar la escena \"{title}\"?",
       "DeleteConnection": "¿Eliminar esta conexión?",
       "ConnectionLabel": "Etiqueta de conexión"
+      ,"TemplateCopyName": "Nombre de la copia de plantilla"
+      ,"TemplateFieldKey": "Clave estable del nuevo campo de plantilla"
+      ,"TemplateFieldLabel": "Etiqueta visible del nuevo campo de plantilla"
+      ,"TemplateMigration": "¿Aplicar la versión {to} sobre la versión {from}?\nCampos nuevos: {added}\nCampos eliminados: {removed}\nCampos modificados: {changed}"
     },
     "NOTIFICATIONS": {
       "Saved": "Tablero de escenas guardado.",
       "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
       "Copied": "Escena copiada."
+      ,"ActorUuidRequired": "Los objetos Actor requieren un UUID de Foundry."
     },
     "EXPORT": {
       "Scenes": "Escenas"
@@ -96,6 +118,16 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Escena"
+    },
+    "OBJECT_TYPES": {
+      "PLAYER_CHARACTER": "Personaje jugador",
+      "NPC": "PNJ",
+      "GROUP": "Grupo",
+      "FACTION": "Facción",
+      "PLACE": "Lugar",
+      "ITEM": "Objeto",
+      "INFORMATION": "Información",
+      "EVENT": "Evento"
     },
     "STATUS": {
       "OFFEN": "Abierto",

@@ -2,7 +2,7 @@
   "id": "mel-storyboard",
   "title": "Mel Storyboard",
   "description": "A GM-focused visual scene board for planning and documenting branching roleplaying adventures.",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "compatibility": {
     "minimum": "14",
     "verified": "14.360"

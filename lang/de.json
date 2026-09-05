@@ -33,6 +33,11 @@
       "EditConnection": "Verbindung beschriften",
       "ZoomOut": "Verkleinern",
       "ZoomIn": "Vergrößern",
+      "CopyTemplate": "Vorlage kopieren",
+      "AddTemplateField": "Vorlagenfeld hinzufügen",
+      "AddObject": "Objekt hinzufügen",
+      "AssignObject": "Objekt zuordnen",
+      "RemoveObject": "Objekt entfernen",
       "Connect": "Verbinden",
       "Undo": "Rückgängig",
       "Redo": "Wiederholen",
@@ -47,6 +52,17 @@
     "Story": "Story",
     "Scenes": "Szenen",
       "SceneDetails": "Szenendetails",
+      "Template": "Vorlage",
+      "TemplateVersion": "Vorlagenversion",
+      "TemplateFields": "Vorlagenfelder",
+      "GlobalTemplate": "Global",
+      "BoardTemplate": "Board-Kopie",
+      "Objects": "Objekte",
+      "ObjectType": "Objekttyp",
+      "ObjectTitle": "Objektname",
+      "FoundryUuid": "Foundry-UUID",
+      "ExistingObject": "Vorhandenes Objekt",
+      "Copy": "Kopie",
       "Title": "Titel",
       "Status": "Status",
       "Description": "Beschreibung",
@@ -63,6 +79,7 @@
     "EMPTY": {
       "NoScenes": "Noch keine Szenen.",
       "SelectScene": "Szene zur Anzeige auswählen."
+      ,"NoObjects": "Der Szene sind noch keine Objekte zugeordnet."
     },
     "DEFAULTS": {
       "SceneTitle": "Neue Szene"
@@ -73,11 +90,16 @@
     "DeleteScene": "Szene „{title}“ löschen?",
     "DeleteConnection": "Verbindung wirklich löschen?",
       "ConnectionLabel": "Bezeichner der Verbindung"
+      ,"TemplateCopyName": "Name der Vorlagenkopie"
+      ,"TemplateFieldKey": "Stabiler Schlüssel des neuen Vorlagenfelds"
+      ,"TemplateFieldLabel": "Anzeigename des neuen Vorlagenfelds"
+      ,"TemplateMigration": "Vorlage von Version {from} auf Version {to} übernehmen?\nNeue Felder: {added}\nEntfernte Felder: {removed}\nGeänderte Felder: {changed}"
     },
     "NOTIFICATIONS": {
       "Saved": "Szenenboard gespeichert.",
       "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.",
       "Copied": "Szene kopiert."
+      ,"ActorUuidRequired": "Für Actor-Objekte ist eine Foundry-UUID erforderlich."
     },
     "EXPORT": {
       "Scenes": "Szenen"
@@ -96,6 +118,16 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Szene"
+    },
+    "OBJECT_TYPES": {
+      "PLAYER_CHARACTER": "Spielercharakter",
+      "NPC": "NPC",
+      "GROUP": "Gruppe",
+      "FACTION": "Fraktion",
+      "PLACE": "Ort",
+      "ITEM": "Gegenstand",
+      "INFORMATION": "Information",
+      "EVENT": "Ereignis"
     },
     "STATUS": {
       "OFFEN": "Offen",

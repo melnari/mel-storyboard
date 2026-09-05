@@ -92,6 +92,76 @@
           <textarea id="mel-storyboard-scene-description" rows="8" data-scene-field="description">{{selectedScene.description}}</textarea>
           <button type="button" data-action="save-scene"><i class="fas fa-save"></i> {{labels.save}}</button>
         </section>
+        <section class="mel-storyboard-inspector-section">
+          <h3>{{labels.template}}</h3>
+          <label for="mel-storyboard-scene-template">{{labels.template}}</label>
+          <select id="mel-storyboard-scene-template" data-scene-field="templateId">
+            {{#each templateOptions}}
+              <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}} · v{{version}} · {{scopeLabel}}</option>
+            {{/each}}
+          </select>
+          <p class="mel-storyboard-field-hint">{{labels.templateVersion}}: {{selectedScene.templateVersion}}</p>
+          <button type="button" data-action="copy-template"><i class="fas fa-copy"></i> {{labels.copyTemplate}}</button>
+          <h4>{{labels.templateFields}}</h4>
+          <ul class="mel-storyboard-template-fields">
+            {{#each selectedTemplateFields}}
+              <li><span>{{label}}</span><small>{{fieldType}}</small></li>
+            {{/each}}
+          </ul>
+          <button type="button" data-action="add-template-field"><i class="fas fa-plus"></i> {{labels.addTemplateField}}</button>
+          <div class="mel-storyboard-template-values">
+            {{#each selectedTemplateFields}}
+              <label for="mel-storyboard-template-field-{{stableKey}}">{{label}}</label>
+              <div class="mel-storyboard-template-editor" id="mel-storyboard-template-field-{{stableKey}}" data-template-field="{{stableKey}}">
+                {{editor value target=stableKey button=false engine="prosemirror" collaborate=false}}
+              </div>
+            {{/each}}
+          </div>
+          <button type="button" data-action="save-template-fields"><i class="fas fa-save"></i> {{labels.save}}</button>
+        </section>
+        <section class="mel-storyboard-inspector-section mel-storyboard-object-section">
+          <h3>{{labels.objects}}</h3>
+          {{#if selectedObjects.length}}
+            <div class="mel-storyboard-object-list">
+              {{#each selectedObjects}}
+                <article class="mel-storyboard-object-card">
+                  <i class="fas {{icon}}" aria-hidden="true"></i>
+                  <div>
+                    <strong>{{title}}</strong>
+                    <span>{{typeLabel}}</span>
+                    {{#if foundryUuid}}<small>{{foundryUuid}}</small>{{/if}}
+                  </div>
+                  <button type="button" class="icon-button" data-action="remove-object" data-assignment-id="{{assignmentId}}" title="{{@root.labels.removeObject}}" aria-label="{{@root.labels.removeObject}}"><i class="fas fa-xmark"></i></button>
+                </article>
+              {{/each}}
+            </div>
+          {{else}}
+            <p class="mel-storyboard-empty">{{labels.noObjects}}</p>
+          {{/if}}
+          {{#if availableObjects.length}}
+            <label for="mel-storyboard-existing-object">{{labels.existingObject}}</label>
+            <select id="mel-storyboard-existing-object" data-existing-object>
+              <option value="">—</option>
+              {{#each availableObjects}}
+                <option value="{{id}}">{{title}} · {{typeLabel}}</option>
+              {{/each}}
+            </select>
+            <button type="button" data-action="assign-object"><i class="fas fa-link"></i> {{labels.assignObject}}</button>
+          {{/if}}
+          <div class="mel-storyboard-object-create">
+            <label for="mel-storyboard-object-type">{{labels.objectType}}</label>
+            <select id="mel-storyboard-object-type" data-object-field="objectType">
+              {{#each objectTypes}}
+                <option value="{{value}}">{{label}}</option>
+              {{/each}}
+            </select>
+            <label for="mel-storyboard-object-title">{{labels.objectTitle}}</label>
+            <input id="mel-storyboard-object-title" type="text" data-object-field="title" />
+            <label for="mel-storyboard-object-uuid">{{labels.foundryUuid}}</label>
+            <input id="mel-storyboard-object-uuid" type="text" data-object-field="foundryUuid" placeholder="Actor.… / Item.…" />
+            <button type="button" data-action="add-object"><i class="fas fa-plus"></i> {{labels.addObject}}</button>
+          </div>
+        </section>
         <section class="mel-storyboard-inspector-section mel-storyboard-connection-summary">
           <h3>{{labels.connections}}</h3>
           <div class="mel-storyboard-connection-counts">
