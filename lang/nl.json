@@ -29,6 +29,7 @@
       "DuplicateScene": "Scène dupliceren",
       "ConnectScene": "Scène verbinden",
       "DeleteScene": "Scène verwijderen",
+      "DeleteConnection": "Verbinding verwijderen",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
       "Redo": "Opnieuw",
@@ -66,7 +67,8 @@
     "PROMPTS": {
       "SceneTitle": "Scènetitel",
       "RenameScene": "Scène hernoemen",
-      "DeleteScene": "Scène \"{title}\" verwijderen?"
+      "DeleteScene": "Scène \"{title}\" verwijderen?",
+      "DeleteConnection": "Deze verbinding verwijderen?"
     },
     "NOTIFICATIONS": {
       "Saved": "Scènebord opgeslagen.",

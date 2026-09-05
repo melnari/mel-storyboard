@@ -29,6 +29,7 @@
       "DuplicateScene": "Duplicar escena",
       "ConnectScene": "Conectar escena",
       "DeleteScene": "Eliminar escena",
+      "DeleteConnection": "Eliminar conexión",
       "Connect": "Conectar",
       "Undo": "Deshacer",
       "Redo": "Rehacer",
@@ -66,7 +67,8 @@
     "PROMPTS": {
       "SceneTitle": "Título de la escena",
       "RenameScene": "Renombrar escena",
-      "DeleteScene": "¿Eliminar la escena \"{title}\"?"
+      "DeleteScene": "¿Eliminar la escena \"{title}\"?",
+      "DeleteConnection": "¿Eliminar esta conexión?"
     },
     "NOTIFICATIONS": {
       "Saved": "Tablero de escenas guardado.",

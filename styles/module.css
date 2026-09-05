@@ -131,20 +131,12 @@
   border: 1px solid #59687a;
   border-radius: 4px;
   background: #20242c;
-  color: #f6c453;
+  color: var(--color-text-light-primary, #f0f0f0);
   cursor: pointer;
 }
 
-.mel-storyboard-toggle svg {
-  display: block;
-  width: 22px;
-  height: 22px;
-  margin: auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.mel-storyboard-toggle i {
+  font-size: 1rem;
 }
 
 .mel-storyboard-layout {
@@ -361,6 +353,8 @@
   fill: none;
   marker-end: url("#mel-storyboard-arrow");
   stroke-linecap: round;
+  pointer-events: stroke;
+  cursor: context-menu;
 }
 
 .mel-storyboard-connection-status {

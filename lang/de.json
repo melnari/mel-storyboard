@@ -27,8 +27,9 @@
       "EditScene": "Ändern",
       "RenameScene": "Szene umbenennen",
       "DuplicateScene": "Szene duplizieren",
-      "ConnectScene": "Szene verknüpfen",
-      "DeleteScene": "Szene löschen",
+    "ConnectScene": "Szene verknüpfen",
+    "DeleteScene": "Szene löschen",
+    "DeleteConnection": "Verbindung löschen",
       "Connect": "Verbinden",
       "Undo": "Rückgängig",
       "Redo": "Wiederholen",
@@ -65,8 +66,9 @@
     },
     "PROMPTS": {
       "SceneTitle": "Name der Szene",
-      "RenameScene": "Szene umbenennen",
-      "DeleteScene": "Szene „{title}“ löschen?"
+    "RenameScene": "Szene umbenennen",
+    "DeleteScene": "Szene „{title}“ löschen?",
+    "DeleteConnection": "Verbindung wirklich löschen?"
     },
     "NOTIFICATIONS": {
       "Saved": "Szenenboard gespeichert.",

@@ -29,6 +29,7 @@
       "DuplicateScene": "Duplicate scene",
       "ConnectScene": "Connect scene",
       "DeleteScene": "Delete scene",
+      "DeleteConnection": "Delete connection",
       "Connect": "Connect",
       "Undo": "Undo",
       "Redo": "Redo",
@@ -66,7 +67,8 @@
     "PROMPTS": {
       "SceneTitle": "Scene title",
       "RenameScene": "Rename scene",
-      "DeleteScene": "Delete scene \"{title}\"?"
+      "DeleteScene": "Delete scene \"{title}\"?",
+      "DeleteConnection": "Delete this connection?"
     },
     "NOTIFICATIONS": {
       "Saved": "Scene board saved.",

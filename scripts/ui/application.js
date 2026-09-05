@@ -1,5 +1,5 @@
 import { MODULE_ID, STATUS } from "../domain/constants.js";
-import { clone, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, removeSceneElements } from "../domain/model.js";
+import { clone, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, removeSceneElements, removeConnection } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { HistoryStack } from "../domain/history.js";
 
@@ -191,21 +191,28 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #onContextMenu(event) {
     const target = event.target instanceof Element ? event.target : null;
+    const connectionTarget = target?.closest("[data-connection-id]");
     const sceneTarget = target?.closest("[data-scene-element]");
     const canvasTarget = target?.closest("[data-storyboard-canvas]");
-    if (!sceneTarget && !canvasTarget) return;
+    if (!connectionTarget && !sceneTarget && !canvasTarget) return;
     event.preventDefault();
     event.stopPropagation();
-    this.#openContextMenu(event, sceneTarget?.dataset.elementId ?? null);
+    this.#openContextMenu(event, {
+      connectionId: connectionTarget?.dataset.connectionId ?? null,
+      elementId: sceneTarget?.dataset.elementId ?? null
+    });
   }
 
-  #openContextMenu(event, elementId) {
+  #openContextMenu(event, { connectionId = null, elementId = null } = {}) {
     this.#closeContextMenu();
     const sceneMenu = Boolean(elementId);
+    const connectionMenu = Boolean(connectionId);
     const menu = document.createElement("menu");
     menu.className = "mel-storyboard-context-menu";
     menu.setAttribute("role", "menu");
-    const entries = sceneMenu ? [
+    const entries = connectionMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteConnection"), icon: "×", action: () => this.#deleteConnection(connectionId) }
+    ] : sceneMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "✎", action: () => this.#renameScene(elementId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "×", action: async () => { this.selectedElementIds = [elementId]; await this.#deleteSelected(); } }
@@ -244,6 +251,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     };
     document.addEventListener("pointerdown", this.contextMenuOutsideHandler, true);
     document.addEventListener("keydown", this.contextMenuKeyHandler, true);
+  }
+
+  async #deleteConnection(connectionId) {
+    if (!window.confirm(localize("MEL_STORYBOARD.PROMPTS.DeleteConnection"))) return;
+    this.history.capture(this.board);
+    removeConnection(this.board, connectionId);
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
   }
 
   #closeContextMenu() {

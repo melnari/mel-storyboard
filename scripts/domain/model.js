@@ -93,6 +93,13 @@ export function createConnection(board, sourceElementId, targetElementId, connec
   return connection;
 }
 
+export function removeConnection(board, connectionId) {
+  const previousLength = board.connections.length;
+  board.connections = board.connections.filter(connection => connection.id !== connectionId);
+  if (board.connections.length === previousLength) throw new Error("The scene connection does not exist.");
+  board.updatedAt = timestamp();
+}
+
 export function assignActorToScene(scene, actorUuid, role = "PRESENT", notes = "") {
   if (!actorUuid?.trim()) throw new Error("An Actor UUID is required.");
   const now = timestamp();

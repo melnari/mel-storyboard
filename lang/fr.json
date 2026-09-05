@@ -29,6 +29,7 @@
       "DuplicateScene": "Dupliquer la scène",
       "ConnectScene": "Relier la scène",
       "DeleteScene": "Supprimer la scène",
+      "DeleteConnection": "Supprimer la relation",
       "Connect": "Relier",
       "Undo": "Annuler",
       "Redo": "Rétablir",
@@ -66,7 +67,8 @@
     "PROMPTS": {
       "SceneTitle": "Titre de la scène",
       "RenameScene": "Renommer la scène",
-      "DeleteScene": "Supprimer la scène « {title} » ?"
+      "DeleteScene": "Supprimer la scène « {title} » ?",
+      "DeleteConnection": "Supprimer cette relation ?"
     },
     "NOTIFICATIONS": {
       "Saved": "Tableau de scènes enregistré.",
