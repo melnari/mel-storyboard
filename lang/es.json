@@ -17,12 +17,13 @@
     }
   },
   "UI": {
-    "Title": "Tablero de escenas",
-    "Subtitle": "Planificación visual de escenas y su flujo",
+    "Title": "Mel-Storyboard",
+    "ImportExport": "Importar/Exportar",
     "MoreActions": "Más"
   },
   "ACTIONS": {
     "NewScene": "Nueva escena",
+    "EditScene": "Modificar",
     "RenameScene": "Renombrar escena",
     "DuplicateScene": "Duplicar escena",
     "ConnectScene": "Conectar escena",
@@ -43,7 +44,10 @@
     "Title": "Título",
     "Status": "Estado",
     "Description": "Descripción",
-    "SearchScenes": "Buscar escenas"
+    "SearchScenes": "Buscar escenas",
+    "Connections": "Conexiones",
+    "Incoming": "Entrantes",
+    "Outgoing": "Salientes"
   },
   "ACCESSIBILITY": {
     "Scenes": "Navegación de escenas",
@@ -86,11 +90,11 @@
     "SCENE": "Escena"
   },
   "STATUS": {
-    "OPEN": "Abierto",
-    "ACTIVE": "Activo",
-    "SUCCESS": "Éxito",
-    "PARTIAL_SUCCESS": "Éxito parcial",
-    "FAILURE": "Fracaso",
-    "SKIPPED": "Omitido"
+    "OFFEN": "Abierto",
+    "AKTIV": "Activo",
+    "ERFOLG": "Éxito",
+    "TEILERFOLG": "Éxito parcial",
+    "FEHLSCHLAG": "Fracaso",
+    "UEBERSPRUNGEN": "Omitido"
   }
 }

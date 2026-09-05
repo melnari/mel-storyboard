@@ -1,14 +1,14 @@
 export const MODULE_ID = "mel-storyboard";
 export const STORE_KEY = "sceneBoard";
-export const STORE_SCHEMA_VERSION = 2;
+export const STORE_SCHEMA_VERSION = 3;
 
 export const STATUS = Object.freeze({
-  OPEN: "OPEN",
-  ACTIVE: "ACTIVE",
-  SUCCESS: "SUCCESS",
-  PARTIAL_SUCCESS: "PARTIAL_SUCCESS",
-  FAILURE: "FAILURE",
-  SKIPPED: "SKIPPED"
+  OFFEN: "OFFEN",
+  AKTIV: "AKTIV",
+  ERFOLG: "ERFOLG",
+  TEILERFOLG: "TEILERFOLG",
+  FEHLSCHLAG: "FEHLSCHLAG",
+  UEBERSPRUNGEN: "UEBERSPRUNGEN"
 });
 
 export const ELEMENT_TYPES = Object.freeze(["SCENE"]);

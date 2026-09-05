@@ -17,12 +17,13 @@
     }
   },
   "UI": {
-    "Title": "Scene Board",
-    "Subtitle": "Visual planning for scenes and their flow",
+    "Title": "Mel-Storyboard",
+    "ImportExport": "Import/Export",
     "MoreActions": "More"
   },
   "ACTIONS": {
     "NewScene": "New scene",
+    "EditScene": "Edit",
     "RenameScene": "Rename scene",
     "DuplicateScene": "Duplicate scene",
     "ConnectScene": "Connect scene",
@@ -43,7 +44,10 @@
     "Title": "Title",
     "Status": "Status",
     "Description": "Description",
-    "SearchScenes": "Search scenes"
+    "SearchScenes": "Search scenes",
+    "Connections": "Connections",
+    "Incoming": "Incoming",
+    "Outgoing": "Outgoing"
   },
   "ACCESSIBILITY": {
     "Scenes": "Scene navigation",
@@ -86,11 +90,11 @@
     "SCENE": "Scene"
   },
   "STATUS": {
-    "OPEN": "Open",
-    "ACTIVE": "Active",
-    "SUCCESS": "Success",
-    "PARTIAL_SUCCESS": "Partial success",
-    "FAILURE": "Failure",
-    "SKIPPED": "Skipped"
+    "OFFEN": "Open",
+    "AKTIV": "Active",
+    "ERFOLG": "Success",
+    "TEILERFOLG": "Partial success",
+    "FEHLSCHLAG": "Failure",
+    "UEBERSPRUNGEN": "Skipped"
   }
 }

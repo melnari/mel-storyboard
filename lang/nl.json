@@ -17,12 +17,13 @@
     }
   },
   "UI": {
-    "Title": "Scènebord",
-    "Subtitle": "Visuele planning van scènes en hun verloop",
+    "Title": "Mel-Storyboard",
+    "ImportExport": "Importeren/Exporteren",
     "MoreActions": "Meer"
   },
   "ACTIONS": {
     "NewScene": "Nieuwe scène",
+    "EditScene": "Wijzigen",
     "RenameScene": "Scène hernoemen",
     "DuplicateScene": "Scène dupliceren",
     "ConnectScene": "Scène verbinden",
@@ -43,7 +44,10 @@
     "Title": "Titel",
     "Status": "Status",
     "Description": "Beschrijving",
-    "SearchScenes": "Scènes zoeken"
+    "SearchScenes": "Scènes zoeken",
+    "Connections": "Verbindingen",
+    "Incoming": "Inkomend",
+    "Outgoing": "Uitgaand"
   },
   "ACCESSIBILITY": {
     "Scenes": "Scènenavigatie",
@@ -86,11 +90,11 @@
     "SCENE": "Scène"
   },
   "STATUS": {
-    "OPEN": "Open",
-    "ACTIVE": "Actief",
-    "SUCCESS": "Succes",
-    "PARTIAL_SUCCESS": "Gedeeltelijk succes",
-    "FAILURE": "Mislukking",
-    "SKIPPED": "Overgeslagen"
+    "OFFEN": "Open",
+    "AKTIV": "Actief",
+    "ERFOLG": "Succes",
+    "TEILERFOLG": "Gedeeltelijk succes",
+    "FEHLSCHLAG": "Mislukking",
+    "UEBERSPRUNGEN": "Overgeslagen"
   }
 }

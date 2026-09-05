@@ -46,9 +46,10 @@ export function createScene(board, { title = "New scene", description = "" } = {
   const scene = {
     id: uuid(),
     displayId: nextDisplayId(board.scenes, "S"),
+    parentId: null,
     title: title.trim() || "New scene",
     description,
-    status: STATUS.OPEN,
+    status: STATUS.OFFEN,
     templateId: board.templates.find(template => template.active)?.id ?? null,
     fieldValues: {},
     actorAssignments: [],

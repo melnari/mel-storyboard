@@ -19,6 +19,34 @@ function notifyError(error) {
   ui.notifications.error(error.message ?? String(error));
 }
 
+function buildSceneTree(scenes, query = "") {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const matches = scene => !normalizedQuery || `${scene.displayId} ${scene.title} ${scene.description}`.toLocaleLowerCase().includes(normalizedQuery);
+  const childrenByParent = new Map();
+  for (const scene of scenes) {
+    const parentId = scene.parentId ?? null;
+    const children = childrenByParent.get(parentId) ?? [];
+    children.push(scene);
+    childrenByParent.set(parentId, children);
+  }
+  const tree = [];
+  const hasMatchingDescendant = sceneId => (childrenByParent.get(sceneId) ?? []).some(child => matches(child) || hasMatchingDescendant(child.id));
+  const visit = (parentId, depth) => {
+    for (const scene of childrenByParent.get(parentId) ?? []) {
+      const children = childrenByParent.get(scene.id) ?? [];
+      if (matches(scene) || hasMatchingDescendant(scene.id)) {
+        tree.push({ ...scene, treeDepth: depth, hasChildren: children.length > 0, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
+      }
+      visit(scene.id, depth + 1);
+    }
+  };
+  visit(null, 0);
+  for (const scene of scenes) {
+    if (!tree.some(item => item.id === scene.id)) tree.push({ ...scene, treeDepth: 0, hasChildren: false, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
+  }
+  return tree;
+}
+
 export class StoryboardApplication extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "mel-storyboard-application",
@@ -55,15 +83,21 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       target: { x: (byId.get(connection.targetElementId)?.position.x ?? 0) + 90, y: (byId.get(connection.targetElementId)?.position.y ?? 0) + 40 }
     }));
     const selectedElement = this.board.elements.find(element => this.selectedElementIds.includes(element.id));
-    const selectedScene = scenesById.get(selectedElement?.sceneId);
+    const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
+    const selectedScene = selectedSceneRecord ? {
+      ...selectedSceneRecord,
+      statusLabel: localize(`MEL_STORYBOARD.STATUS.${selectedSceneRecord.status}`),
+      incomingCount: this.board.connections.filter(connection => connection.targetElementId === selectedElement.id).length,
+      outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement.id).length
+    } : null;
     const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: selectedScene?.status === value }));
     const query = this.searchQuery.trim().toLocaleLowerCase();
-    const scenes = query ? this.board.scenes.filter(scene => `${scene.displayId} ${scene.title} ${scene.description}`.toLocaleLowerCase().includes(query)) : this.board.scenes;
+    const sceneTree = buildSceneTree(this.board.scenes, query);
     const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80));
     const maxY = Math.max(800, ...elements.map(element => element.position.y + element.size.height + 80));
     return {
       board: { ...this.board, elements, connections },
-      scenes,
+      sceneTree,
       selectedElement,
       selectedScene,
       canConnect: this.selectedElementIds.length === 2,
@@ -74,13 +108,38 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       canRedo: this.history.canRedo,
       searchQuery: this.searchQuery,
       connectionStatus: this.connectionSourceId ? localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget") : "",
-      localize
+      labels: {
+        title: localize("MEL_STORYBOARD.UI.Title"),
+        undo: localize("MEL_STORYBOARD.ACTIONS.Undo"),
+        redo: localize("MEL_STORYBOARD.ACTIONS.Redo"),
+        importExport: localize("MEL_STORYBOARD.UI.ImportExport"),
+        importJson: localize("MEL_STORYBOARD.ACTIONS.ImportJson"),
+        exportJson: localize("MEL_STORYBOARD.ACTIONS.ExportJson"),
+        exportSvg: localize("MEL_STORYBOARD.ACTIONS.ExportSvg"),
+        exportPng: localize("MEL_STORYBOARD.ACTIONS.ExportPng"),
+        exportPdf: localize("MEL_STORYBOARD.ACTIONS.ExportPdf"),
+        newScene: localize("MEL_STORYBOARD.ACTIONS.NewScene"),
+        scenes: localize("MEL_STORYBOARD.LABELS.Scenes"),
+        searchScenes: localize("MEL_STORYBOARD.LABELS.SearchScenes"),
+        noScenes: localize("MEL_STORYBOARD.EMPTY.NoScenes"),
+        sceneCanvas: localize("MEL_STORYBOARD.ACCESSIBILITY.SceneCanvas"),
+        inspector: localize("MEL_STORYBOARD.ACCESSIBILITY.Inspector"),
+        sceneDetails: localize("MEL_STORYBOARD.LABELS.SceneDetails"),
+        titleField: localize("MEL_STORYBOARD.LABELS.Title"),
+        status: localize("MEL_STORYBOARD.LABELS.Status"),
+        description: localize("MEL_STORYBOARD.LABELS.Description"),
+        save: localize("MEL_STORYBOARD.ACTIONS.Save"),
+        connections: localize("MEL_STORYBOARD.LABELS.Connections"),
+        incoming: localize("MEL_STORYBOARD.LABELS.Incoming"),
+        outgoing: localize("MEL_STORYBOARD.LABELS.Outgoing"),
+        selectScene: localize("MEL_STORYBOARD.EMPTY.SelectScene")
+      }
     };
   }
 
   _onRender() {
     this.contextMenu?.close({ animate: false });
-    this.contextMenu = new ContextMenu(this.element, "[data-scene-element]", this.#contextMenuEntries(), { fixed: true, relative: "cursor" });
+    this.contextMenu = new ContextMenu(this.element, "[data-scene-element], [data-storyboard-canvas]", this.#contextMenuEntries(), { fixed: true, relative: "cursor" });
     this.element.tabIndex = 0;
     if (!this.keyboardBound) {
       this.element.addEventListener("keydown", event => this.#onKeyDown(event));
@@ -131,17 +190,34 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #contextMenuEntries() {
     const sceneTarget = target => Boolean(target?.dataset?.elementId);
+    const canvasTarget = target => target?.hasAttribute?.("data-storyboard-canvas") === true;
     const selectTarget = target => {
       const elementId = target?.dataset?.elementId;
       if (elementId) this.selectedElementIds = [elementId];
       return elementId;
     };
     return [
-      { label: localize("MEL_STORYBOARD.ACTIONS.RenameScene"), icon: "fas fa-pen", visible: sceneTarget, onClick: (_event, target) => this.#renameScene(selectTarget(target)) },
-      { label: localize("MEL_STORYBOARD.ACTIONS.DuplicateScene"), icon: "fas fa-copy", visible: sceneTarget, onClick: (_event, target) => { selectTarget(target); return this.#duplicateSelected(); } },
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "fas fa-plus", visible: canvasTarget, onClick: event => this.#createScene(event) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "fas fa-pen", visible: sceneTarget, onClick: (_event, target) => this.#renameScene(selectTarget(target)) },
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "fas fa-arrow-right", visible: sceneTarget, onClick: async (_event, target) => { this.connectionSourceId = selectTarget(target); ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "fas fa-trash", visible: sceneTarget, onClick: () => this.#deleteSelected() }
     ];
+  }
+
+  async #createScene(event = null) {
+    const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.SceneTitle"), localize("MEL_STORYBOARD.DEFAULTS.SceneTitle"));
+    if (!title?.trim()) return;
+    this.history.capture(this.board);
+    const scene = createScene(this.board, { title });
+    const element = createSceneElement(this.board, { sceneId: scene.id, title: scene.title });
+    const svg = this.element.querySelector("[data-storyboard-canvas]");
+    if (event && svg) {
+      const point = this.#svgPoint(svg, event);
+      element.position = { x: Math.max(0, point.x - element.size.width / 2), y: Math.max(0, point.y - element.size.height / 2) };
+    }
+    this.board = await this.store.save(this.board);
+    this.selectedElementIds = [element.id];
+    await this.render({ force: true });
   }
 
   async #renameScene(elementId) {
@@ -216,13 +292,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const action = event.currentTarget.dataset.action;
     try {
       if (action === "add-scene") {
-        this.history.capture(this.board);
-        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.SceneTitle"), localize("MEL_STORYBOARD.DEFAULTS.SceneTitle"));
-        if (!title?.trim()) return;
-        const scene = createScene(this.board, { title });
-        const element = createSceneElement(this.board, { sceneId: scene.id, title: scene.title });
-        this.board = await this.store.save(this.board);
-        this.selectedElementIds = [element.id];
+        await this.#createScene();
       } else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
         if (this.selectedElementIds.length !== 2) return;

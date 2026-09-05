@@ -17,12 +17,13 @@
     }
   },
   "UI": {
-    "Title": "Szenenboard",
-    "Subtitle": "Visuelle Planung von Szenen und ihrem Ablauf",
+    "Title": "Mel-Storyboard",
+    "ImportExport": "Import/Export",
     "MoreActions": "Mehr"
   },
   "ACTIONS": {
     "NewScene": "Neue Szene",
+    "EditScene": "Ändern",
     "RenameScene": "Szene umbenennen",
     "DuplicateScene": "Szene duplizieren",
     "ConnectScene": "Szene verknüpfen",
@@ -43,7 +44,10 @@
     "Title": "Titel",
     "Status": "Status",
     "Description": "Beschreibung",
-    "SearchScenes": "Szenen suchen"
+    "SearchScenes": "Szenen suchen",
+    "Connections": "Verbindungen",
+    "Incoming": "Eingehend",
+    "Outgoing": "Ausgehend"
   },
   "ACCESSIBILITY": {
     "Scenes": "Szenennavigation",
@@ -86,11 +90,11 @@
     "SCENE": "Szene"
   },
   "STATUS": {
-    "OPEN": "Offen",
-    "ACTIVE": "Aktiv",
-    "SUCCESS": "Erfolg",
-    "PARTIAL_SUCCESS": "Teilerfolg",
-    "FAILURE": "Fehlschlag",
-    "SKIPPED": "Übersprungen"
+    "OFFEN": "Offen",
+    "AKTIV": "Aktiv",
+    "ERFOLG": "Erfolg",
+    "TEILERFOLG": "Teilerfolg",
+    "FEHLSCHLAG": "Fehlschlag",
+    "UEBERSPRUNGEN": "Übersprungen"
   }
 }

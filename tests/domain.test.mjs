@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CONNECTION_TYPES } from "../scripts/domain/constants.js";
+import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
 import { assignActorToScene, copySceneElements, createConnection, createScene, createSceneBoard, createSceneElement, duplicateSceneElements, pasteSceneElements } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
@@ -22,6 +22,13 @@ test("scenes get stable UUIDs and unique visible IDs", () => {
   const second = createScene(board, { title: "Second" });
   assert.notEqual(first.id, second.id);
   assert.deepEqual([first.displayId, second.displayId], ["S-001", "S-002"]);
+});
+
+test("scene status values use the approved domain keys", () => {
+  const board = createSceneBoard();
+  const scene = createScene(board);
+  assert.deepEqual(Object.values(STATUS), ["OFFEN", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN"]);
+  assert.equal(scene.status, STATUS.OFFEN);
 });
 
 test("duplicating scenes creates new scene and element records", () => {
