@@ -28,6 +28,7 @@
       "RenameScene": "Rename scene",
       "DuplicateScene": "Duplicate scene",
       "ConnectScene": "Connect scene",
+      "EditConnection": "Edit connection label",
       "DeleteScene": "Delete scene",
       "DeleteConnection": "Delete connection",
       "Connect": "Connect",
@@ -68,6 +69,7 @@
       "SceneTitle": "Scene title",
       "RenameScene": "Rename scene",
       "DeleteScene": "Delete scene \"{title}\"?",
+      "ConnectionLabel": "Connection label",
       "DeleteConnection": "Delete this connection?"
     },
     "NOTIFICATIONS": {

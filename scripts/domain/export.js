@@ -1,3 +1,5 @@
+import { connectionGeometry } from "./geometry.js";
+
 function escapeXml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character]);
 }
@@ -17,11 +19,9 @@ export function sceneBoardToSvg(board, labels = {}) {
     const source = elementById.get(connection.sourceElementId);
     const target = elementById.get(connection.targetElementId);
     if (!source || !target) return "";
-    const x1 = source.position.x + source.size.width / 2;
-    const y1 = source.position.y + source.size.height / 2;
-    const x2 = target.position.x + target.size.width / 2;
-    const y2 = target.position.y + target.size.height / 2;
-    return `<line class="connection" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" marker-end="url(#arrow)" />`;
+    const geometry = connectionGeometry(source, target);
+    const label = connection.label?.trim() ? `<text class="connection-label" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>` : "";
+    return `<line class="connection" x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" marker-end="url(#arrow)" />${label}`;
   }).join("");
   const elements = board.elements.map(element => {
     const scene = sceneById.get(element.sceneId);
@@ -29,7 +29,7 @@ export function sceneBoardToSvg(board, labels = {}) {
     const status = labels.status?.(scene?.status) ?? scene?.status ?? "";
     return `<g class="element" transform="translate(${element.position.x},${element.position.y})"><rect width="${element.size.width}" height="${element.size.height}" rx="8" /><text x="12" y="28">${escapeXml(title)}</text><text class="type" x="12" y="50">${escapeXml(scene?.displayId ?? "")}</text><text class="status" x="12" y="68">${escapeXml(status)}</text></g>`;
   }).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.connection{stroke:#f6c453;stroke-width:3;fill:none;marker-end:url(#arrow)}.element rect{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element text{fill:#f0f0f0;font-size:16px}.element text.type,.element text.status{fill:#aeb8c5;font-size:11px}</style><defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0,0 L0,8 L11,4 z" fill="#f6c453" /></marker></defs>${lines}${elements}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.connection{stroke:#f6c453;stroke-width:3;fill:none;marker-end:url(#arrow)}.connection-label{fill:#f6c453;font-size:13px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:5px;stroke-linejoin:round}.element rect{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element text{fill:#f0f0f0;font-size:16px}.element text.type,.element text.status{fill:#aeb8c5;font-size:11px}</style><defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0,0 L0,8 L11,4 z" fill="#f6c453" /></marker></defs>${lines}${elements}</svg>`;
 }
 
 export function sceneBoardToJson(board) {

@@ -28,6 +28,7 @@
       "RenameScene": "Renombrar escena",
       "DuplicateScene": "Duplicar escena",
       "ConnectScene": "Conectar escena",
+      "EditConnection": "Editar etiqueta de conexión",
       "DeleteScene": "Eliminar escena",
       "DeleteConnection": "Eliminar conexión",
       "Connect": "Conectar",
@@ -68,6 +69,7 @@
       "SceneTitle": "Título de la escena",
       "RenameScene": "Renombrar escena",
       "DeleteScene": "¿Eliminar la escena \"{title}\"?",
+      "ConnectionLabel": "Etiqueta de conexión",
       "DeleteConnection": "¿Eliminar esta conexión?"
     },
     "NOTIFICATIONS": {

@@ -357,6 +357,19 @@
   cursor: context-menu;
 }
 
+.mel-storyboard-connection-label {
+  fill: #f6c453;
+  font-size: 12px;
+  font-weight: 600;
+  paint-order: stroke;
+  pointer-events: all;
+  stroke: #111318;
+  stroke-linejoin: round;
+  stroke-width: 5px;
+  text-anchor: middle;
+  cursor: context-menu;
+}
+
 .mel-storyboard-connection-status {
   position: absolute;
   right: 1rem;

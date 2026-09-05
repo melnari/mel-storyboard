@@ -28,6 +28,7 @@
       "RenameScene": "Szene umbenennen",
       "DuplicateScene": "Szene duplizieren",
     "ConnectScene": "Szene verknüpfen",
+    "EditConnection": "Verbindung beschriften",
     "DeleteScene": "Szene löschen",
     "DeleteConnection": "Verbindung löschen",
       "Connect": "Verbinden",
@@ -68,6 +69,7 @@
       "SceneTitle": "Name der Szene",
     "RenameScene": "Szene umbenennen",
     "DeleteScene": "Szene „{title}“ löschen?",
+    "ConnectionLabel": "Bezeichner der Verbindung",
     "DeleteConnection": "Verbindung wirklich löschen?"
     },
     "NOTIFICATIONS": {

@@ -55,6 +55,7 @@
           <rect width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
           {{#each board.connections}}
             <line class="mel-storyboard-connection" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" marker-end="url(#mel-storyboard-arrow)" />
+            {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each board.elements}}
             <g class="mel-storyboard-element {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{label}}">

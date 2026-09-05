@@ -2,6 +2,7 @@ import { MODULE_ID, STATUS } from "../domain/constants.js";
 import { clone, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, removeSceneElements, removeConnection } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { HistoryStack } from "../domain/history.js";
+import { connectionGeometry } from "../domain/geometry.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -78,11 +79,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       return { ...element, label: scene?.title || element.title || localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), typeLabel: scene?.displayId ?? "", statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "", isSelected: this.selectedElementIds.includes(element.id) };
     });
     const byId = new Map(elements.map(element => [element.id, element]));
-    const connections = this.board.connections.map(connection => ({
-      ...connection,
-      source: { x: (byId.get(connection.sourceElementId)?.position.x ?? 0) + 90, y: (byId.get(connection.sourceElementId)?.position.y ?? 0) + 40 },
-      target: { x: (byId.get(connection.targetElementId)?.position.x ?? 0) + 90, y: (byId.get(connection.targetElementId)?.position.y ?? 0) + 40 }
-    }));
+    const connections = this.board.connections.map(connection => {
+      const sourceElement = byId.get(connection.sourceElementId);
+      const targetElement = byId.get(connection.targetElementId);
+      const geometry = sourceElement && targetElement ? connectionGeometry(sourceElement, targetElement) : { source: { x: 0, y: 0 }, target: { x: 0, y: 0 }, label: { x: 0, y: 0 } };
+      return { ...connection, source: geometry.source, target: geometry.target, labelPosition: geometry.label, hasLabel: Boolean(connection.label?.trim()) };
+    });
     const selectedElement = this.board.elements.find(element => this.selectedElementIds.includes(element.id));
     const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
     const selectedScene = selectedSceneRecord ? {
@@ -215,6 +217,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     menu.className = "mel-storyboard-context-menu";
     menu.setAttribute("role", "menu");
     const entries = connectionMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.EditConnection"), icon: "✎", action: () => this.#editConnection(connectionId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteConnection"), icon: "×", action: () => this.#deleteConnection(connectionId) }
     ] : sceneMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "✎", action: () => this.#renameScene(elementId) },
@@ -261,6 +264,18 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!window.confirm(localize("MEL_STORYBOARD.PROMPTS.DeleteConnection"))) return;
     this.history.capture(this.board);
     removeConnection(this.board, connectionId);
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #editConnection(connectionId) {
+    const connection = this.board.connections.find(candidate => candidate.id === connectionId);
+    if (!connection) return;
+    const label = window.prompt(localize("MEL_STORYBOARD.PROMPTS.ConnectionLabel"), connection.label ?? "");
+    if (label === null || label === connection.label) return;
+    this.history.capture(this.board);
+    connection.label = label.trim();
+    connection.updatedAt = new Date().toISOString();
     this.board = await this.store.save(this.board);
     await this.render({ force: true });
   }

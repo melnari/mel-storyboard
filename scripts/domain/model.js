@@ -81,13 +81,13 @@ export function createSceneElement(board, { sceneId = null, title = "" } = {}) {
   return element;
 }
 
-export function createConnection(board, sourceElementId, targetElementId, connectionType = "FLOW") {
+export function createConnection(board, sourceElementId, targetElementId, connectionType = "FLOW", label = "") {
   if (!board.elements.some(element => element.id === sourceElementId)) throw new Error("The source scene does not exist.");
   if (!board.elements.some(element => element.id === targetElementId)) throw new Error("The target scene does not exist.");
   if (sourceElementId === targetElementId) throw new Error("A scene cannot connect to itself.");
   if (board.connections.some(connection => connection.sourceElementId === sourceElementId && connection.targetElementId === targetElementId)) throw new Error("This scene connection already exists.");
   const now = timestamp();
-  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType, label: "", description: "", visualConfig: {}, createdAt: now, updatedAt: now };
+  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType, label: label.trim(), description: "", visualConfig: {}, createdAt: now, updatedAt: now };
   board.connections.push(connection);
   board.updatedAt = now;
   return connection;

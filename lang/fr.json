@@ -28,6 +28,7 @@
       "RenameScene": "Renommer la scène",
       "DuplicateScene": "Dupliquer la scène",
       "ConnectScene": "Relier la scène",
+      "EditConnection": "Modifier le libellé",
       "DeleteScene": "Supprimer la scène",
       "DeleteConnection": "Supprimer la relation",
       "Connect": "Relier",
@@ -68,6 +69,7 @@
       "SceneTitle": "Titre de la scène",
       "RenameScene": "Renommer la scène",
       "DeleteScene": "Supprimer la scène « {title} » ?",
+      "ConnectionLabel": "Libellé de la relation",
       "DeleteConnection": "Supprimer cette relation ?"
     },
     "NOTIFICATIONS": {
