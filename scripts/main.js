@@ -7,7 +7,19 @@ Hooks.once("init", () => {
   const store = new ProjectStore();
   game.melStoryboard = {
     store,
-    open: options => new StoryboardApplication(options).render({ force: true })
+    application: null,
+    open: options => {
+      if (game.melStoryboard.application?.element?.isConnected) return game.melStoryboard.application;
+      game.melStoryboard.application = new StoryboardApplication(options);
+      game.melStoryboard.application.render({ force: true });
+      return game.melStoryboard.application;
+    },
+    toggle: () => {
+      if (game.melStoryboard.application?.element?.isConnected) {
+        game.melStoryboard.application.close();
+        game.melStoryboard.application = null;
+      } else game.melStoryboard.open();
+    }
   };
   game.settings.registerMenu(MODULE_ID, "openDesigner", {
     name: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Name",
@@ -43,3 +55,17 @@ Hooks.on("getSceneControlButtons", controls => {
   });
 });
 
+function mountStoryboardToggle() {
+  if (!game.user?.isGM || document.querySelector("[data-mel-storyboard-toggle]")) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.melStoryboardToggle = "true";
+  button.className = "mel-storyboard-toggle fas fa-diagram-project";
+  button.title = game.i18n.localize("MEL_STORYBOARD.SETTINGS.OpenDesigner.Label");
+  button.setAttribute("aria-label", button.title);
+  button.addEventListener("click", () => game.melStoryboard.toggle());
+  document.body.append(button);
+}
+
+Hooks.once("ready", mountStoryboardToggle);
+Hooks.on("renderSceneControls", mountStoryboardToggle);

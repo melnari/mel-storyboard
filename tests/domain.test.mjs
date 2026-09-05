@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, createConnection, createMapElement, createProject, createStoryScene, duplicateMapElements } from "../scripts/domain/model.js";
+import { assignActorToScene, copyMapElements, createConnection, createMapElement, createProject, createStoryScene, duplicateMapElements, pasteMapElements } from "../scripts/domain/model.js";
 import { projectToJson, projectToSvg } from "../scripts/domain/export.js";
 import { validateProject } from "../scripts/domain/validation.js";
 
@@ -35,6 +35,21 @@ test("duplicating elements copies only internal connections", () => {
   assert.equal(result.copiedConnections.length, 1);
   assert.equal(map.connections.length, 3);
   assert.equal(validateProject(project).valid, true);
+});
+
+test("copy and paste assigns new map element UUIDs and keeps internal links", () => {
+  const project = createProject({ title: "Clipboard project" });
+  const sourceMap = project.maps[0];
+  const targetMap = { ...project.maps[0], id: "target-map", elements: [], connections: [] };
+  const first = createMapElement(sourceMap, { title: "First" });
+  const second = createMapElement(sourceMap, { title: "Second" });
+  createConnection(sourceMap, first.id, second.id);
+  const payload = copyMapElements(sourceMap, [first.id, second.id]);
+  const result = pasteMapElements(targetMap, payload);
+  assert.equal(result.duplicates.length, 2);
+  assert.equal(result.copiedConnections.length, 1);
+  assert.ok(result.duplicates.every(element => element.mapId === targetMap.id));
+  assert.ok(result.copiedConnections.every(connection => connection.mapId === targetMap.id));
 });
 
 test("validation reports broken scene references", () => {

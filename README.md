@@ -4,7 +4,7 @@ Mel Storyboard is a Foundry VTT 14.x add-on module for the GM-focused visual pla
 
 ## Current status
 
-The project is in early development. Version `0.1.0` provides the module foundation and an initial workspace for projects, maps, story scenes, connections, templates, and notes.
+The project is in early development. Version `0.1.0` provides the module foundation and an initial workspace for Storylines, Stories, scenes, connections, templates, and notes.
 
 ## Requirements
 
@@ -12,6 +12,8 @@ The project is in early development. Version `0.1.0` provides the module foundat
 - A GM user for project editing.
 
 The module is system-independent and uses Foundry users and document permissions. It does not provide a separate login or external server.
+
+The designer can be opened from the Settings menu, the left-side Storyboard toggle, or `Ctrl+Alt+S`. Right-clicking the map opens context actions for creating, renaming, duplicating, deleting, and connecting scene elements. During connection mode, click the target scene to define the direction.
 
 ## Development
 
@@ -33,4 +35,3 @@ The module ships English (`en`) as the default and fallback language, plus Germa
 Code and project material are distributed under the Apache License 2.0. See [LICENSE](LICENSE).
 
 Parts of this module were created with AI assistance. The maintainer reviews, tests, maintains, develops, and supports the code and is responsible for its quality, compatibility, licensing, and continued development.
-

@@ -1,5 +1,5 @@
 import { MODULE_ID, STATUS } from "../domain/constants.js";
-import { createConnection, createMap, createMapElement, createStoryScene, duplicateMapElements, clone } from "../domain/model.js";
+import { copyMapElements, createConnection, createMap, createMapElement, createStoryScene, duplicateMapElements, pasteMapElements, clone } from "../domain/model.js";
 import { downloadProjectJson, downloadProjectPng, downloadProjectSvg, printProjectAsPdf, projectFromJson } from "../domain/export.js";
 import { HistoryStack } from "../domain/history.js";
 
@@ -7,6 +7,10 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 function localize(key) {
   return game.i18n?.localize(key) ?? key;
+}
+
+function format(key, data) {
+  return game.i18n?.format(key, data) ?? key;
 }
 
 function notifyError(error) {
@@ -36,17 +40,16 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.history = new HistoryStack();
     this.drag = null;
     this.searchQuery = "";
+    this.clipboard = null;
+    this.connectionSourceId = null;
   }
 
   async _prepareContext() {
     let projects = this.store.list();
-    if (!projects.length && game.user.isGM) {
-      const project = await this.store.create(localize("MEL_STORYBOARD.DEFAULTS.ProjectTitle"));
-      projects = [project];
-      this.projectId = project.id;
-    }
     const currentProject = projects.find(project => project.id === this.projectId) ?? projects[0] ?? null;
-    if (!currentProject) return { projects: [], currentProject: { maps: [], scenes: [] }, currentMap: { elements: [], connections: [] }, canvas: { width: 1200, height: 800 }, statuses: [] };
+    if (!currentProject) {
+      return { projects: [], currentProject: { title: localize("MEL_STORYBOARD.EMPTY.NoStorylines"), maps: [], scenes: [] }, currentMap: { elements: [], connections: [] }, canvas: { width: 1200, height: 800 }, statuses: [], hasProject: false, hasMap: false, canConnect: false, canUndo: this.history.canUndo, canRedo: this.history.canRedo, connectionStatus: "", searchQuery: this.searchQuery, localize };
+    }
     this.projectId = currentProject.id;
     const currentMap = currentProject.maps.find(map => map.id === this.mapId) ?? currentProject.maps[0];
     this.mapId = currentMap?.id ?? null;
@@ -64,7 +67,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const maxY = Math.max(800, ...mapElements.map(element => element.position.y + element.size.height + 80));
     const query = this.searchQuery.trim().toLocaleLowerCase();
     const visibleScenes = query ? currentProject.scenes.filter(scene => `${scene.displayId} ${scene.title} ${scene.description}`.toLocaleLowerCase().includes(query)) : currentProject.scenes;
-    return { projects: projects.map(project => ({ ...project, isCurrent: project.id === currentProject.id })), currentProject: { ...currentProject, scenes: visibleScenes, maps: currentProject.maps.map(map => ({ ...map, isCurrent: map.id === currentMap?.id })) }, currentMap: currentMap ? { ...currentMap, elements: mapElements, connections } : { elements: [], connections: [] }, selectedElement, selectedScene, canConnect: this.selectedElementIds.length === 2, statuses, canvas: { width: maxX, height: maxY }, canUndo: this.history.canUndo, canRedo: this.history.canRedo, searchQuery: this.searchQuery, localize };
+    return { projects: projects.map(project => ({ ...project, isCurrent: project.id === currentProject.id })), currentProject: { ...currentProject, scenes: visibleScenes, maps: currentProject.maps.map(map => ({ ...map, isCurrent: map.id === currentMap?.id })) }, currentMap: currentMap ? { ...currentMap, elements: mapElements, connections } : { elements: [], connections: [] }, selectedElement, selectedScene, canConnect: this.selectedElementIds.length === 2, hasProject: true, hasMap: Boolean(currentMap), statuses, canvas: { width: maxX, height: maxY }, canUndo: this.history.canUndo, canRedo: this.history.canRedo, searchQuery: this.searchQuery, connectionStatus: this.connectionSourceId ? localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget") : "", localize };
   }
 
   _onRender() {
@@ -73,8 +76,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.element.querySelectorAll("[data-action]").forEach(element => element.addEventListener("click", event => this.#handleAction(event)));
     this.element.querySelectorAll("[data-element-id]").forEach(element => {
       element.addEventListener("pointerdown", event => this.#startDrag(event));
-      element.addEventListener("click", event => {
+      element.addEventListener("contextmenu", event => this.#openContextMenu(event, element.dataset.elementId));
+      element.addEventListener("click", async event => {
         event.stopPropagation();
+        if (this.connectionSourceId && this.connectionSourceId !== element.dataset.elementId) {
+          await this.#connectTo(element.dataset.elementId);
+          return;
+        }
         if (event.ctrlKey || event.metaKey) {
           this.selectedElementIds = this.selectedElementIds.includes(element.dataset.elementId)
             ? this.selectedElementIds.filter(id => id !== element.dataset.elementId)
@@ -88,10 +96,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     });
     this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("click", event => {
       if (event.target === event.currentTarget) {
+        this.#closeContextMenu();
+        if (this.connectionSourceId) return;
         this.selectedElementId = null;
         this.selectedElementIds = [];
         this.render({ force: true });
       }
+    });
+    this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("contextmenu", event => {
+      if (event.target === event.currentTarget) this.#openContextMenu(event, null);
     });
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
     this.element.querySelector("[data-search-scenes]")?.addEventListener("input", event => {
@@ -105,10 +118,93 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #currentMap(project = this.#currentProject()) { return project?.maps.find(map => map.id === this.mapId) ?? project?.maps[0]; }
   #exportLabels() { return { sceneHeading: localize("MEL_STORYBOARD.EXPORT.StoryScenes"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`) }; }
 
+  #openContextMenu(event, elementId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const menu = this.element.querySelector("[data-context-menu]");
+    if (!menu) return;
+    menu.replaceChildren();
+    const project = this.#currentProject();
+    const map = this.#currentMap(project);
+    const element = map?.elements.find(candidate => candidate.id === elementId);
+    const scene = element?.entityId ? project?.scenes.find(candidate => candidate.id === element.entityId) : null;
+    const entries = [
+      ["add-scene", "MEL_STORYBOARD.ACTIONS.NewScene"],
+      ...(scene ? [
+        ["rename-scene", "MEL_STORYBOARD.ACTIONS.RenameScene"],
+        ["duplicate-selected", "MEL_STORYBOARD.ACTIONS.DuplicateScene"],
+        ["connect-scene", "MEL_STORYBOARD.ACTIONS.ConnectScene"],
+        ["delete-selected", "MEL_STORYBOARD.ACTIONS.DeleteMapElement"]
+      ] : [])
+    ];
+    for (const [action, labelKey] of entries) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = localize(labelKey);
+      button.addEventListener("click", async () => {
+        this.#closeContextMenu();
+        if (elementId) {
+          this.selectedElementId = elementId;
+          this.selectedElementIds = [elementId];
+        }
+        if (action === "rename-scene") await this.#renameScene(elementId);
+        else if (action === "connect-scene") {
+          this.connectionSourceId = elementId;
+          ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget"));
+          await this.render({ force: true });
+        } else await this.#handleAction({ currentTarget: { dataset: { action } } });
+      });
+      menu.append(button);
+    }
+    const shellRect = this.element.querySelector(".mel-storyboard-shell")?.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, event.clientX - (shellRect?.left ?? 0))}px`;
+    menu.style.top = `${Math.max(8, event.clientY - (shellRect?.top ?? 0))}px`;
+    menu.hidden = false;
+  }
+
+  #closeContextMenu() {
+    const menu = this.element.querySelector("[data-context-menu]");
+    if (menu) menu.hidden = true;
+  }
+
+  async #renameScene(elementId) {
+    const project = this.#currentProject();
+    const map = this.#currentMap(project);
+    const element = map?.elements.find(candidate => candidate.id === elementId);
+    const scene = project?.scenes.find(candidate => candidate.id === element?.entityId);
+    if (!scene) return;
+    const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.RenameScene"), scene.title);
+    if (!title || title === scene.title) return;
+    this.history.capture(project);
+    scene.title = title;
+    scene.updatedAt = new Date().toISOString();
+    await this.store.save(project);
+    await this.render({ force: true });
+  }
+
+  async #connectTo(targetId) {
+    const project = this.#currentProject();
+    const map = this.#currentMap(project);
+    if (!map || !this.connectionSourceId || this.connectionSourceId === targetId) return;
+    this.history.capture(project);
+    createConnection(map, this.connectionSourceId, targetId);
+    await this.store.save(project);
+    this.selectedElementIds = [this.connectionSourceId, targetId];
+    this.selectedElementId = this.connectionSourceId;
+    this.connectionSourceId = null;
+    await this.render({ force: true });
+  }
+
   #onKeyDown(event) {
     const tagName = event.target?.tagName?.toLowerCase();
     if (["input", "textarea", "select"].includes(tagName) || event.target?.isContentEditable) return;
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
+      event.preventDefault();
+      this.#copySelection();
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v") {
+      event.preventDefault();
+      this.#pasteClipboard();
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
       event.preventDefault();
       this.#handleAction({ currentTarget: { dataset: { action: event.shiftKey ? "redo" : "undo" } } });
     } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
@@ -123,32 +219,93 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
   }
 
+  #copySelection() {
+    const project = this.#currentProject();
+    const map = this.#currentMap(project);
+    if (!map || !this.selectedElementIds.length) return;
+    this.clipboard = copyMapElements(map, this.selectedElementIds);
+    ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.Copied"));
+  }
+
+  async #pasteClipboard() {
+    const project = this.#currentProject();
+    const map = this.#currentMap(project);
+    if (!map || !this.clipboard) return;
+    this.history.capture(project);
+    const result = pasteMapElements(map, this.clipboard);
+    await this.store.save(project);
+    this.selectedElementIds = result.duplicates.map(element => element.id);
+    this.selectedElementId = this.selectedElementIds[0] ?? null;
+    await this.render({ force: true });
+  }
+
   async #handleAction(event) {
     const action = event.currentTarget.dataset.action;
     try {
       if (action === "create-project") {
-        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.ProjectTitle"));
+        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.StorylineTitle"));
         if (!title) return;
         const project = await this.store.create(title);
         this.projectId = project.id;
         this.mapId = project.maps[0].id;
+        this.selectedElementId = null;
+        this.selectedElementIds = [];
       } else if (action === "add-map") {
         const project = this.#currentProject();
+        if (!project) return;
+        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.StoryTitle"), `${localize("MEL_STORYBOARD.DEFAULTS.MapTitle")} ${project.maps.length + 1}`);
+        if (!title) return;
         this.history.capture(project);
-        const map = createMap(project.id, `${localize("MEL_STORYBOARD.DEFAULTS.MapTitle")} ${project.maps.length + 1}`);
+        const map = createMap(project.id, title);
         project.maps.push(map);
         await this.store.save(project);
         this.mapId = map.id;
       } else if (action === "add-scene") {
         const project = this.#currentProject();
+        if (!project) return;
+        const map = this.#currentMap(project);
+        if (!map) return;
         this.history.capture(project);
         const scene = createStoryScene(project);
-        const map = this.#currentMap(project);
         const element = createMapElement(map, { entityId: scene.id, elementType: "SCENE", title: scene.title });
         element.position = { x: 120 + map.elements.length * 24, y: 120 + map.elements.length * 18 };
         await this.store.save(project);
         this.selectedElementId = element.id;
         this.selectedElementIds = [element.id];
+      } else if (action === "rename-storyline") {
+        const project = this.#currentProject();
+        if (!project) return;
+        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.RenameStoryline"), project.title);
+        if (!title || title === project.title) return;
+        await this.store.rename(project.id, title);
+      } else if (action === "delete-storyline") {
+        const project = this.#currentProject();
+        if (!project || !window.confirm(format("MEL_STORYBOARD.PROMPTS.DeleteStoryline", { title: project.title }))) return;
+        await this.store.delete(project.id);
+        this.projectId = null;
+        this.mapId = null;
+        this.selectedElementId = null;
+        this.selectedElementIds = [];
+      } else if (action === "rename-story") {
+        const project = this.#currentProject();
+        const map = this.#currentMap(project);
+        if (!map) return;
+        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.RenameStory"), map.title);
+        if (!title || title === map.title) return;
+        this.history.capture(project);
+        map.title = title;
+        map.updatedAt = new Date().toISOString();
+        await this.store.save(project);
+      } else if (action === "delete-story") {
+        const project = this.#currentProject();
+        const map = this.#currentMap(project);
+        if (!project || !map || !window.confirm(format("MEL_STORYBOARD.PROMPTS.DeleteStory", { title: map.title }))) return;
+        this.history.capture(project);
+        project.maps = project.maps.filter(candidate => candidate.id !== map.id);
+        this.mapId = project.maps[0]?.id ?? null;
+        this.selectedElementId = null;
+        this.selectedElementIds = [];
+        await this.store.save(project);
       } else if (action === "duplicate-selected") {
         const project = this.#currentProject();
         const map = this.#currentMap(project);
@@ -256,7 +413,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #startDrag(event) {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || this.connectionSourceId || event.ctrlKey || event.metaKey) return;
+    event.preventDefault();
     const project = this.#currentProject();
     const map = this.#currentMap(project);
     const element = map?.elements.find(candidate => candidate.id === event.currentTarget.dataset.elementId);
@@ -267,15 +425,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const point = this.#svgPoint(svg, event);
     this.history.capture(project);
     this.drag = { element, startX: point.x, startY: point.y, original: clone(element.position), project };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    const move = moveEvent => this.#dragMove(moveEvent);
-    const end = endEvent => {
-      event.currentTarget.removeEventListener("pointermove", move);
-      event.currentTarget.removeEventListener("pointerup", end);
-      this.#finishDrag(endEvent);
-    };
-    event.currentTarget.addEventListener("pointermove", move);
-    event.currentTarget.addEventListener("pointerup", end, { once: true });
+    this.drag.move = moveEvent => this.#dragMove(moveEvent);
+    this.drag.end = endEvent => this.#finishDrag(endEvent);
+    window.addEventListener("pointermove", this.drag.move);
+    window.addEventListener("pointerup", this.drag.end, { once: true });
   }
 
   #svgPoint(svg, event) {
@@ -288,13 +441,17 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!this.drag) return;
     const point = this.#svgPoint(this.element.querySelector("[data-storyboard-canvas]"), event);
     this.drag.element.position = { x: Math.max(0, this.drag.original.x + point.x - this.drag.startX), y: Math.max(0, this.drag.original.y + point.y - this.drag.startY) };
-    event.currentTarget.setAttribute("transform", `translate(${this.drag.element.position.x} ${this.drag.element.position.y})`);
+    const elementNode = [...this.element.querySelectorAll("[data-element-id]")].find(node => node.dataset.elementId === this.drag.element.id);
+    elementNode?.setAttribute("transform", `translate(${this.drag.element.position.x} ${this.drag.element.position.y})`);
   }
 
   async #finishDrag() {
     if (!this.drag) return;
-    const project = this.drag.project;
+    const { project, move, element } = this.drag;
+    window.removeEventListener("pointermove", move);
     this.drag = null;
+    this.selectedElementId = element.id;
+    this.selectedElementIds = [element.id];
     await this.store.save(project);
     await this.render({ force: true });
   }

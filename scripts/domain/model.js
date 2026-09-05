@@ -166,22 +166,36 @@ export function assignActorToScene(scene, actorUuid, role = "PRESENT", notes = "
 }
 
 export function duplicateMapElements(map, elementIds, offset = { x: 32, y: 32 }) {
+  return pasteMapElements(map, copyMapElements(map, elementIds), offset);
+}
+
+export function copyMapElements(map, elementIds) {
   const selected = map.elements.filter(element => elementIds.includes(element.id));
+  return {
+    elements: clone(selected),
+    connections: clone(map.connections.filter(connection => elementIds.includes(connection.sourceElementId) && elementIds.includes(connection.targetElementId)))
+  };
+}
+
+export function pasteMapElements(map, payload, offset = { x: 32, y: 32 }) {
+  const selected = payload?.elements ?? [];
   const idMap = new Map();
   const duplicates = selected.map(element => {
     const duplicate = clone(element);
     duplicate.id = uuid();
+    duplicate.mapId = map.id;
     duplicate.position = { x: element.position.x + offset.x, y: element.position.y + offset.y };
     duplicate.createdAt = timestamp();
     duplicate.updatedAt = duplicate.createdAt;
     idMap.set(element.id, duplicate.id);
     return duplicate;
   });
-  const copiedConnections = map.connections
+  const copiedConnections = (payload?.connections ?? [])
     .filter(connection => idMap.has(connection.sourceElementId) && idMap.has(connection.targetElementId))
     .map(connection => ({
       ...clone(connection),
       id: uuid(),
+      mapId: map.id,
       sourceElementId: idMap.get(connection.sourceElementId),
       targetElementId: idMap.get(connection.targetElementId),
       createdAt: timestamp(),

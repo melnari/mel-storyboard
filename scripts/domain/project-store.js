@@ -67,4 +67,23 @@ export class ProjectStore {
     await this.settings.set(MODULE_ID, STORE_KEY, database);
     return clone(project);
   }
+
+  async rename(projectId, title) {
+    this.#assertGM();
+    if (!title?.trim()) throw new Error("A Storyline title is required.");
+    const project = this.get(projectId);
+    if (!project) throw new Error("The Storyline does not exist.");
+    project.title = title.trim();
+    project.updatedAt = new Date().toISOString();
+    return this.save(project);
+  }
+
+  async delete(projectId) {
+    this.#assertGM();
+    const database = this.readDatabase();
+    const nextProjects = database.projects.filter(project => project.id !== projectId);
+    if (nextProjects.length === database.projects.length) throw new Error("The Storyline does not exist.");
+    database.projects = nextProjects;
+    await this.settings.set(MODULE_ID, STORE_KEY, database);
+  }
 }
