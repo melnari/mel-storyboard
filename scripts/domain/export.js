@@ -80,7 +80,7 @@ export function printSceneBoardAsPdf(board, labels) {
   if (!preview) throw new Error("The browser blocked the print preview window.");
   const svgBlob = new Blob([sceneBoardToSvg(board, labels)], { type: "image/svg+xml" });
   const url = URL.createObjectURL(svgBlob);
-  preview.document.write(`<title>${escapeXml(labels.title ?? "Scenes")}</title><style>body{font-family:Arial,sans-serif;margin:2rem}img{max-width:100%}</style><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes')}" />`);
+  preview.document.write(`<title>${escapeXml(labels.title ?? "Scenes")}</title><style>body{font-family:Arial,sans-serif;margin:2rem}img{max-width:100%}</style><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes")}" />`);
   preview.document.close();
   preview.addEventListener("load", () => preview.print(), { once: true });
 }

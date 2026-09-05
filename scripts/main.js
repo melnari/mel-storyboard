@@ -1,10 +1,10 @@
 import { MODULE_ID } from "./domain/constants.js";
-import { ProjectStore, registerProjectSetting } from "./domain/project-store.js";
+import { SceneBoardStore, registerSceneBoardSetting } from "./domain/scene-board-store.js";
 import { StoryboardApplication } from "./ui/application.js";
 
 Hooks.once("init", () => {
-  registerProjectSetting();
-  const store = new ProjectStore();
+  registerSceneBoardSetting();
+  const store = new SceneBoardStore();
   game.melStoryboard = {
     store,
     application: null,

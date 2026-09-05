@@ -1,18 +1,96 @@
 {
-  "MEL_STORYBOARD": {
-    "SETTINGS": { "ProjectStore": { "Name": "Datos del proyecto", "Hint": "Almacenamiento interno de proyectos gestionados por el DJ." }, "OpenDesigner": { "Name": "Storyboard", "Label": "Abrir Storyboard", "Hint": "Abrir el diseñador de flujo narrativo del DJ." } },
-    "KEYBINDINGS": { "OpenDesigner": { "Name": "Abrir Storyboard", "Hint": "Abrir el diseñador de flujo narrativo." } },
-    "UI": { "Subtitle": "Planificación visual de aventuras ramificadas", "MoreActions": "Más" },
-    "ACTIONS": { "NewProject": "Nuevo proyecto", "NewMap": "Nuevo mapa", "NewStoryline": "Nueva Storyline", "NewStory": "Nueva historia", "NewScene": "Nueva escena", "RenameStoryline": "Renombrar Storyline", "DeleteStoryline": "Eliminar Storyline", "RenameStory": "Renombrar historia", "DeleteStory": "Eliminar historia", "RenameScene": "Renombrar escena", "DuplicateScene": "Duplicar escena", "ConnectScene": "Conectar escena", "DeleteMapElement": "Eliminar elemento del mapa", "Duplicate": "Duplicar", "Connect": "Conectar", "Delete": "Eliminar", "Undo": "Deshacer", "Redo": "Rehacer", "ExportJson": "JSON", "ImportJson": "Importar JSON", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Guardar" },
-    "LABELS": { "Project": "Proyecto", "Storyline": "Storyline", "Map": "Mapa", "Story": "Historia", "Scenes": "Escenas", "SceneDetails": "Detalles de la escena", "Title": "Título", "Status": "Estado", "Description": "Descripción", "SearchScenes": "Buscar escenas" },
-    "ACCESSIBILITY": { "Projects": "Navegación del proyecto", "MapCanvas": "Mapa del flujo narrativo", "Inspector": "Inspector" },
-    "EMPTY": { "NoStorylines": "Aún no hay Storylines.", "NoScenes": "Aún no hay escenas.", "SelectElement": "Selecciona un elemento para inspeccionarlo." },
-    "DEFAULTS": { "ProjectTitle": "Nuevo proyecto Storyboard", "MapTitle": "Mapa general", "StoryTitle": "Nueva historia" },
-    "PROMPTS": { "StorylineTitle": "Nombre de la Storyline", "StoryTitle": "Nombre de la historia", "RenameStoryline": "Renombrar Storyline", "DeleteStoryline": "¿Eliminar la Storyline \"{title}\"?", "RenameStory": "Renombrar historia", "DeleteStory": "¿Eliminar la historia \"{title}\"?", "RenameScene": "Renombrar escena" },
-    "NOTIFICATIONS": { "Saved": "Proyecto guardado.", "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.", "Copied": "Elemento del mapa copiado." },
-    "EXPORT": { "StoryScenes": "Escenas narrativas" },
-    "TEMPLATES": { "GENERAL": { "Name": "Escena general", "Situation": "Situación", "Objective": "Objetivo", "Options": "Opciones y reacciones", "Success": "Éxito", "PartialSuccess": "Éxito parcial", "Failure": "Fracaso", "Notes": "Notas" } },
-    "ELEMENT_TYPES": { "SCENE": "Escena", "DECISION": "Decisión", "SPLIT": "División", "MERGE": "Convergencia", "START": "Inicio", "END": "Fin", "ACTOR": "Actor", "PLACE": "Lugar", "EVENT": "Evento", "INFORMATION": "Información", "NOTE": "Nota", "PHASE": "Fase", "SWIMLANE": "Carril", "FREEFORM": "Forma libre" },
-    "STATUS": { "OPEN": "Abierto", "ACTIVE": "Activo", "SUCCESS": "Éxito", "PARTIAL_SUCCESS": "Éxito parcial", "FAILURE": "Fracaso", "SKIPPED": "Omitido" }
+  "SETTINGS": {
+    "SceneBoard": {
+      "Name": "Datos del tablero de escenas",
+      "Hint": "Almacenamiento interno del tablero de escenas gestionado por el DJ."
+    },
+    "OpenDesigner": {
+      "Name": "Storyboard",
+      "Label": "Abrir tablero de escenas",
+      "Hint": "Abrir el tablero de escenas del DJ."
+    }
+  },
+  "KEYBINDINGS": {
+    "OpenDesigner": {
+      "Name": "Abrir tablero de escenas",
+      "Hint": "Abrir el tablero de escenas del DJ."
+    }
+  },
+  "UI": {
+    "Title": "Tablero de escenas",
+    "Subtitle": "Planificación visual de escenas y su flujo",
+    "MoreActions": "Más"
+  },
+  "ACTIONS": {
+    "NewScene": "Nueva escena",
+    "RenameScene": "Renombrar escena",
+    "DuplicateScene": "Duplicar escena",
+    "ConnectScene": "Conectar escena",
+    "DeleteScene": "Eliminar escena",
+    "Connect": "Conectar",
+    "Undo": "Deshacer",
+    "Redo": "Rehacer",
+    "ExportJson": "JSON",
+    "ImportJson": "Importar JSON",
+    "ExportSvg": "SVG",
+    "ExportPng": "PNG",
+    "ExportPdf": "PDF",
+    "Save": "Guardar"
+  },
+  "LABELS": {
+    "Scenes": "Escenas",
+    "SceneDetails": "Detalles de la escena",
+    "Title": "Título",
+    "Status": "Estado",
+    "Description": "Descripción",
+    "SearchScenes": "Buscar escenas"
+  },
+  "ACCESSIBILITY": {
+    "Scenes": "Navegación de escenas",
+    "SceneCanvas": "Tablero de escenas",
+    "Inspector": "Inspector de escenas"
+  },
+  "EMPTY": {
+    "NoScenes": "Aún no hay escenas.",
+    "SelectScene": "Selecciona una escena para inspeccionarla."
+  },
+  "DEFAULTS": {
+    "SceneTitle": "Nueva escena"
+  },
+  "PROMPTS": {
+    "SceneTitle": "Título de la escena",
+    "RenameScene": "Renombrar escena",
+    "DeleteScene": "¿Eliminar la escena \"{title}\"?"
+  },
+  "NOTIFICATIONS": {
+    "Saved": "Tablero de escenas guardado.",
+    "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
+    "Copied": "Escena copiada."
+  },
+  "EXPORT": {
+    "Scenes": "Escenas"
+  },
+  "TEMPLATES": {
+    "GENERAL": {
+      "Name": "Escena general",
+      "Situation": "Situación",
+      "Objective": "Objetivo",
+      "Options": "Opciones y reacciones",
+      "Success": "Éxito",
+      "PartialSuccess": "Éxito parcial",
+      "Failure": "Fracaso",
+      "Notes": "Notas"
+    }
+  },
+  "ELEMENT_TYPES": {
+    "SCENE": "Escena"
+  },
+  "STATUS": {
+    "OPEN": "Abierto",
+    "ACTIVE": "Activo",
+    "SUCCESS": "Éxito",
+    "PARTIAL_SUCCESS": "Éxito parcial",
+    "FAILURE": "Fracaso",
+    "SKIPPED": "Omitido"
   }
 }

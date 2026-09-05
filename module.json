@@ -1,7 +1,7 @@
 {
   "id": "mel-storyboard",
   "title": "Mel Storyboard",
-  "description": "A GM-focused visual story-flow designer for planning and documenting branching roleplaying adventures.",
+  "description": "A GM-focused visual scene board for planning and documenting branching roleplaying adventures.",
   "version": "0.1.0",
   "compatibility": {
     "minimum": "14",

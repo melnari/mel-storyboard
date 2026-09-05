@@ -1,21 +1,96 @@
 {
-  "MEL_STORYBOARD": {
-    "SETTINGS": {
-      "ProjectStore": { "Name": "Project data", "Hint": "Internal GM-managed Storyboard project storage." },
-      "OpenDesigner": { "Name": "Storyboard", "Label": "Open Storyboard", "Hint": "Open the GM story-flow designer." }
+  "SETTINGS": {
+    "SceneBoard": {
+      "Name": "Scene board data",
+      "Hint": "Internal GM-managed scene board storage."
     },
-    "KEYBINDINGS": { "OpenDesigner": { "Name": "Open Storyboard", "Hint": "Open the GM story-flow designer." } },
-    "UI": { "Subtitle": "Visual planning for branching adventures", "MoreActions": "More" },
-    "ACTIONS": { "NewProject": "New project", "NewMap": "New map", "NewStoryline": "New Storyline", "NewStory": "New Story", "NewScene": "New scene", "RenameStoryline": "Rename Storyline", "DeleteStoryline": "Delete Storyline", "RenameStory": "Rename Story", "DeleteStory": "Delete Story", "RenameScene": "Rename scene", "DuplicateScene": "Duplicate scene", "ConnectScene": "Connect scene", "DeleteMapElement": "Delete map element", "Duplicate": "Duplicate", "Connect": "Connect", "Delete": "Delete", "Undo": "Undo", "Redo": "Redo", "ExportJson": "JSON", "ImportJson": "Import JSON", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Save" },
-    "LABELS": { "Project": "Project", "Storyline": "Storyline", "Map": "Map", "Story": "Story", "Scenes": "Scenes", "SceneDetails": "Scene details", "Title": "Title", "Status": "Status", "Description": "Description", "SearchScenes": "Search scenes" },
-    "ACCESSIBILITY": { "Projects": "Project navigation", "MapCanvas": "Story flow map", "Inspector": "Inspector" },
-    "EMPTY": { "NoStorylines": "No Storylines yet.", "NoScenes": "No scenes yet.", "SelectElement": "Select an element to inspect it." },
-    "DEFAULTS": { "ProjectTitle": "New Storyboard project", "MapTitle": "Overview map", "StoryTitle": "New Story" },
-    "PROMPTS": { "StorylineTitle": "Storyline title", "StoryTitle": "Story title", "RenameStoryline": "Rename Storyline", "DeleteStoryline": "Delete Storyline \"{title}\"?", "RenameStory": "Rename Story", "DeleteStory": "Delete Story \"{title}\"?", "RenameScene": "Rename scene" },
-    "NOTIFICATIONS": { "Saved": "Project saved.", "SelectConnectionTarget": "Select the target scene for this connection.", "Copied": "Map element copied." },
-    "EXPORT": { "StoryScenes": "Story scenes" },
-    "TEMPLATES": { "GENERAL": { "Name": "General scene", "Situation": "Situation", "Objective": "Objective", "Options": "Options and reactions", "Success": "Success", "PartialSuccess": "Partial success", "Failure": "Failure", "Notes": "Notes" } },
-    "ELEMENT_TYPES": { "SCENE": "Scene", "DECISION": "Decision", "SPLIT": "Split", "MERGE": "Merge", "START": "Start", "END": "End", "ACTOR": "Actor", "PLACE": "Place", "EVENT": "Event", "INFORMATION": "Information", "NOTE": "Note", "PHASE": "Phase", "SWIMLANE": "Swimlane", "FREEFORM": "Free form" },
-    "STATUS": { "OPEN": "Open", "ACTIVE": "Active", "SUCCESS": "Success", "PARTIAL_SUCCESS": "Partial success", "FAILURE": "Failure", "SKIPPED": "Skipped" }
+    "OpenDesigner": {
+      "Name": "Storyboard",
+      "Label": "Open Scene Board",
+      "Hint": "Open the GM scene board."
+    }
+  },
+  "KEYBINDINGS": {
+    "OpenDesigner": {
+      "Name": "Open Scene Board",
+      "Hint": "Open the GM scene board."
+    }
+  },
+  "UI": {
+    "Title": "Scene Board",
+    "Subtitle": "Visual planning for scenes and their flow",
+    "MoreActions": "More"
+  },
+  "ACTIONS": {
+    "NewScene": "New scene",
+    "RenameScene": "Rename scene",
+    "DuplicateScene": "Duplicate scene",
+    "ConnectScene": "Connect scene",
+    "DeleteScene": "Delete scene",
+    "Connect": "Connect",
+    "Undo": "Undo",
+    "Redo": "Redo",
+    "ExportJson": "JSON",
+    "ImportJson": "Import JSON",
+    "ExportSvg": "SVG",
+    "ExportPng": "PNG",
+    "ExportPdf": "PDF",
+    "Save": "Save"
+  },
+  "LABELS": {
+    "Scenes": "Scenes",
+    "SceneDetails": "Scene details",
+    "Title": "Title",
+    "Status": "Status",
+    "Description": "Description",
+    "SearchScenes": "Search scenes"
+  },
+  "ACCESSIBILITY": {
+    "Scenes": "Scene navigation",
+    "SceneCanvas": "Scene board",
+    "Inspector": "Scene inspector"
+  },
+  "EMPTY": {
+    "NoScenes": "No scenes yet.",
+    "SelectScene": "Select a scene to inspect it."
+  },
+  "DEFAULTS": {
+    "SceneTitle": "New scene"
+  },
+  "PROMPTS": {
+    "SceneTitle": "Scene title",
+    "RenameScene": "Rename scene",
+    "DeleteScene": "Delete scene \"{title}\"?"
+  },
+  "NOTIFICATIONS": {
+    "Saved": "Scene board saved.",
+    "SelectConnectionTarget": "Select the target scene for this connection.",
+    "Copied": "Scene copied."
+  },
+  "EXPORT": {
+    "Scenes": "Scenes"
+  },
+  "TEMPLATES": {
+    "GENERAL": {
+      "Name": "General scene",
+      "Situation": "Situation",
+      "Objective": "Objective",
+      "Options": "Options and reactions",
+      "Success": "Success",
+      "PartialSuccess": "Partial success",
+      "Failure": "Failure",
+      "Notes": "Notes"
+    }
+  },
+  "ELEMENT_TYPES": {
+    "SCENE": "Scene"
+  },
+  "STATUS": {
+    "OPEN": "Open",
+    "ACTIVE": "Active",
+    "SUCCESS": "Success",
+    "PARTIAL_SUCCESS": "Partial success",
+    "FAILURE": "Failure",
+    "SKIPPED": "Skipped"
   }
 }

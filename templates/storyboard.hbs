@@ -1,21 +1,19 @@
 <section class="mel-storyboard-workspace">
   <header class="mel-storyboard-toolbar">
     <div>
-      <h1>{{currentProject.title}}</h1>
+      <h1>{{localize "MEL_STORYBOARD.UI.Title"}}</h1>
       <p class="mel-storyboard-subtitle">{{localize "MEL_STORYBOARD.UI.Subtitle"}}</p>
     </div>
     <div class="mel-storyboard-actions">
-      <button type="button" data-action="add-scene" {{#unless hasMap}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.NewScene"}}</button>
-      <button type="button" data-action="duplicate-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.DuplicateScene"}}</button>
-      <button type="button" data-action="connect-selected" {{#unless canConnect}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Connect"}}</button>
-      <button type="button" data-action="undo" {{#unless canUndo}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Undo"}}</button>
-      <button type="button" data-action="redo" {{#unless canRedo}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Redo"}}</button>
+      <button type="button" data-action="add-scene"><i class="fas fa-plus"></i> {{localize "MEL_STORYBOARD.ACTIONS.NewScene"}}</button>
+      <button type="button" data-action="duplicate-selected" {{#unless selectedElement}}disabled{{/unless}}><i class="fas fa-copy"></i> {{localize "MEL_STORYBOARD.ACTIONS.DuplicateScene"}}</button>
+      <button type="button" data-action="connect-selected" {{#unless canConnect}}disabled{{/unless}}><i class="fas fa-arrow-right"></i> {{localize "MEL_STORYBOARD.ACTIONS.Connect"}}</button>
+      <button type="button" data-action="undo" {{#unless canUndo}}disabled{{/unless}} title="{{localize "MEL_STORYBOARD.ACTIONS.Undo"}}"><i class="fas fa-rotate-left"></i></button>
+      <button type="button" data-action="redo" {{#unless canRedo}}disabled{{/unless}} title="{{localize "MEL_STORYBOARD.ACTIONS.Redo"}}"><i class="fas fa-rotate-right"></i></button>
       <details class="mel-storyboard-command-menu">
         <summary>{{localize "MEL_STORYBOARD.UI.MoreActions"}}</summary>
         <div class="mel-storyboard-command-list">
-          <button type="button" data-action="create-project">{{localize "MEL_STORYBOARD.ACTIONS.NewStoryline"}}</button>
-          <button type="button" data-action="add-map" {{#unless hasProject}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.NewStory"}}</button>
-          <button type="button" data-action="delete-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Delete"}}</button>
+          <button type="button" data-action="delete-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.DeleteScene"}}</button>
           <button type="button" data-action="import-json">{{localize "MEL_STORYBOARD.ACTIONS.ImportJson"}}</button>
           <button type="button" data-action="export-json">{{localize "MEL_STORYBOARD.ACTIONS.ExportJson"}}</button>
           <button type="button" data-action="export-svg">{{localize "MEL_STORYBOARD.ACTIONS.ExportSvg"}}</button>
@@ -28,31 +26,11 @@
   <input type="file" data-json-import accept="application/json,.json" hidden />
 
   <div class="mel-storyboard-layout">
-    <aside class="mel-storyboard-sidebar" aria-label="{{localize "MEL_STORYBOARD.ACCESSIBILITY.Projects"}}">
-      <label for="mel-storyboard-project">{{localize "MEL_STORYBOARD.LABELS.Storyline"}}</label>
-      <select id="mel-storyboard-project" data-action="select-project">
-        {{#each projects}}
-          <option value="{{id}}" {{#if isCurrent}}selected{{/if}}>{{title}}</option>
-        {{/each}}
-      </select>
-      <div class="mel-storyboard-sidebar-actions">
-        <button type="button" data-action="rename-storyline" {{#unless hasProject}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.RenameStoryline"}}</button>
-        <button type="button" data-action="delete-storyline" {{#unless hasProject}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.DeleteStoryline"}}</button>
-      </div>
-      <label for="mel-storyboard-map">{{localize "MEL_STORYBOARD.LABELS.Story"}}</label>
-      <select id="mel-storyboard-map" data-action="select-map">
-        {{#each currentProject.maps}}
-          <option value="{{id}}" {{#if isCurrent}}selected{{/if}}>{{title}}</option>
-        {{/each}}
-      </select>
-      <div class="mel-storyboard-sidebar-actions">
-        <button type="button" data-action="rename-story" {{#unless hasMap}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.RenameStory"}}</button>
-        <button type="button" data-action="delete-story" {{#unless hasMap}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.DeleteStory"}}</button>
-      </div>
-      <h2>{{localize "MEL_STORYBOARD.LABELS.Scenes"}}</h2>
-      <input type="search" data-search-scenes placeholder="{{localize "MEL_STORYBOARD.LABELS.SearchScenes"}}" value="{{searchQuery}}" />
+    <aside class="mel-storyboard-sidebar" aria-label="{{localize "MEL_STORYBOARD.ACCESSIBILITY.Scenes"}}">
+      <label for="mel-storyboard-scene-search">{{localize "MEL_STORYBOARD.LABELS.Scenes"}}</label>
+      <input id="mel-storyboard-scene-search" type="search" data-search-scenes placeholder="{{localize "MEL_STORYBOARD.LABELS.SearchScenes"}}" value="{{searchQuery}}" />
       <ul class="mel-storyboard-scene-list">
-        {{#each currentProject.scenes}}
+        {{#each scenes}}
           <li><button type="button" data-action="select-scene" data-scene-id="{{id}}">{{displayId}} — {{title}}</button></li>
         {{else}}
           <li class="mel-storyboard-empty">{{localize "MEL_STORYBOARD.EMPTY.NoScenes"}}</li>
@@ -61,22 +39,22 @@
     </aside>
 
     <main class="mel-storyboard-canvas-region">
-      <div class="mel-storyboard-canvas-scroll" data-canvas-scroll>
-        <svg class="mel-storyboard-canvas" data-storyboard-canvas viewBox="0 0 {{canvas.width}} {{canvas.height}}" role="application" aria-label="{{localize "MEL_STORYBOARD.ACCESSIBILITY.MapCanvas"}}">
+      <div class="mel-storyboard-canvas-scroll">
+        <svg class="mel-storyboard-canvas" data-storyboard-canvas viewBox="0 0 {{canvas.width}} {{canvas.height}}" role="application" aria-label="{{localize "MEL_STORYBOARD.ACCESSIBILITY.SceneCanvas"}}">
           <defs>
             <pattern id="mel-storyboard-grid" width="24" height="24" patternUnits="userSpaceOnUse">
               <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(160, 175, 195, .14)" stroke-width="1"/>
             </pattern>
-            <marker id="mel-storyboard-arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#f6c453" />
+            <marker id="mel-storyboard-arrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="5" orient="auto">
+              <path d="M0,0 L11,5 L0,10 z" fill="#f6c453" />
             </marker>
           </defs>
           <rect width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
-          {{#each currentMap.connections}}
+          {{#each board.connections}}
             <line class="mel-storyboard-connection" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" marker-end="url(#mel-storyboard-arrow)" />
           {{/each}}
-          {{#each currentMap.elements}}
-            <g class="mel-storyboard-element {{#if isSelected}}is-selected{{/if}}" data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{label}}">
+          {{#each board.elements}}
+            <g class="mel-storyboard-element {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{label}}">
               <rect width="{{size.width}}" height="{{size.height}}" rx="10" />
               <text x="14" y="27">{{label}}</text>
               <text class="mel-storyboard-element-type" x="14" y="48">{{typeLabel}}</text>
@@ -101,9 +79,9 @@
         </select>
         <label for="mel-storyboard-scene-description">{{localize "MEL_STORYBOARD.LABELS.Description"}}</label>
         <textarea id="mel-storyboard-scene-description" rows="6" data-scene-field="description">{{selectedScene.description}}</textarea>
-        <button type="button" data-action="save-scene">{{localize "MEL_STORYBOARD.ACTIONS.Save"}}</button>
+        <button type="button" data-action="save-scene"><i class="fas fa-save"></i> {{localize "MEL_STORYBOARD.ACTIONS.Save"}}</button>
       {{else}}
-        <p class="mel-storyboard-empty">{{localize "MEL_STORYBOARD.EMPTY.SelectElement"}}</p>
+        <p class="mel-storyboard-empty">{{localize "MEL_STORYBOARD.EMPTY.SelectScene"}}</p>
       {{/if}}
     </aside>
   </div>

@@ -2,76 +2,64 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, copyMapElements, createConnection, createMapElement, createProject, createStoryScene, duplicateMapElements, duplicateStoryElements, pasteMapElements } from "../scripts/domain/model.js";
-import { projectToJson, projectToSvg } from "../scripts/domain/export.js";
-import { validateProject } from "../scripts/domain/validation.js";
+import { assignActorToScene, copySceneElements, createConnection, createScene, createSceneBoard, createSceneElement, duplicateSceneElements, pasteSceneElements } from "../scripts/domain/model.js";
+import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
+import { validateSceneBoard } from "../scripts/domain/validation.js";
 
-test("new projects contain one map and one standard template", () => {
-  const project = createProject({ title: "Test project" });
-  assert.equal(project.maps.length, 1);
-  assert.equal(project.templates.length, 1);
-  assert.equal(project.maps[0].projectId, project.id);
-  assert.equal(validateProject(project).valid, true);
+test("new scene boards contain only scene-oriented records", () => {
+  const board = createSceneBoard();
+  assert.equal(board.scenes.length, 0);
+  assert.equal(board.elements.length, 0);
+  assert.equal(board.connections.length, 0);
+  assert.equal(board.templates.length, 1);
+  assert.equal("projects" in board, false);
+  assert.equal(validateSceneBoard(board).valid, true);
 });
 
-test("story scenes get stable UUIDs and unique visible IDs", () => {
-  const project = createProject({ title: "Test project" });
-  const first = createStoryScene(project);
-  const second = createStoryScene(project);
+test("scenes get stable UUIDs and unique visible IDs", () => {
+  const board = createSceneBoard();
+  const first = createScene(board, { title: "First" });
+  const second = createScene(board, { title: "Second" });
   assert.notEqual(first.id, second.id);
   assert.deepEqual([first.displayId, second.displayId], ["S-001", "S-002"]);
 });
 
-test("duplicating elements copies only internal connections", () => {
-  const project = createProject({ title: "Test project" });
-  const map = project.maps[0];
-  const first = createMapElement(map, { title: "First" });
-  const second = createMapElement(map, { title: "Second" });
-  const outside = createMapElement(map, { title: "Outside" });
-  createConnection(map, first.id, second.id, CONNECTION_TYPES.FLOW);
-  createConnection(map, second.id, outside.id, CONNECTION_TYPES.DEPENDENCY);
-  const result = duplicateMapElements(map, [first.id, second.id]);
-  assert.equal(result.duplicates.length, 2);
-  assert.equal(result.copiedConnections.length, 1);
-  assert.equal(map.connections.length, 3);
-  assert.equal(validateProject(project).valid, true);
-});
-
-test("copy and paste assigns new map element UUIDs and keeps internal links", () => {
-  const project = createProject({ title: "Clipboard project" });
-  const sourceMap = project.maps[0];
-  const targetMap = { ...project.maps[0], id: "target-map", elements: [], connections: [] };
-  const first = createMapElement(sourceMap, { title: "First" });
-  const second = createMapElement(sourceMap, { title: "Second" });
-  createConnection(sourceMap, first.id, second.id);
-  const payload = copyMapElements(sourceMap, [first.id, second.id]);
-  const result = pasteMapElements(targetMap, payload);
-  assert.equal(result.duplicates.length, 2);
-  assert.equal(result.copiedConnections.length, 1);
-  assert.ok(result.duplicates.every(element => element.mapId === targetMap.id));
-  assert.ok(result.copiedConnections.every(connection => connection.mapId === targetMap.id));
-});
-
-test("story duplication creates a new scene object and a new map representation", () => {
-  const project = createProject({ title: "Story duplication" });
-  const map = project.maps[0];
-  const scene = createStoryScene(project, { title: "Original scene" });
-  const element = createMapElement(map, { entityId: scene.id, elementType: "SCENE", title: scene.title });
-  const result = duplicateStoryElements(project, map, [element.id]);
+test("duplicating scenes creates new scene and element records", () => {
+  const board = createSceneBoard();
+  const scene = createScene(board, { title: "Original scene" });
+  const element = createSceneElement(board, { sceneId: scene.id, title: scene.title });
+  const result = duplicateSceneElements(board, [element.id]);
   assert.equal(result.duplicates.length, 1);
-  assert.equal(project.scenes.length, 2);
-  assert.notEqual(result.duplicates[0].entityId, scene.id);
-  assert.equal(result.duplicates[0].mapId, map.id);
-  assert.equal(validateProject(project).valid, true);
+  assert.equal(board.scenes.length, 2);
+  assert.notEqual(result.duplicates[0].sceneId, scene.id);
+  assert.notEqual(result.duplicates[0].id, element.id);
+  assert.equal(validateSceneBoard(board).valid, true);
 });
 
-test("validation reports broken scene references", () => {
-  const project = createProject({ title: "Test project" });
-  const map = project.maps[0];
-  createMapElement(map, { entityId: "missing-scene", elementType: "SCENE" });
-  const result = validateProject(project);
-  assert.equal(result.valid, false);
-  assert.match(result.errors[0], /missing scene/);
+test("copy and paste assigns new scene and element UUIDs and keeps internal links", () => {
+  const board = createSceneBoard();
+  const first = createScene(board, { title: "First" });
+  const second = createScene(board, { title: "Second" });
+  const firstElement = createSceneElement(board, { sceneId: first.id });
+  const secondElement = createSceneElement(board, { sceneId: second.id });
+  createConnection(board, firstElement.id, secondElement.id);
+  const payload = copySceneElements(board, [firstElement.id, secondElement.id]);
+  const result = pasteSceneElements(board, payload);
+  assert.equal(result.duplicates.length, 2);
+  assert.equal(result.copiedConnections.length, 1);
+  assert.equal(board.scenes.length, 4);
+  assert.equal(board.connections.length, 2);
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("connections are directed and reject duplicates", () => {
+  const board = createSceneBoard();
+  const first = createSceneElement(board, { sceneId: createScene(board).id });
+  const second = createSceneElement(board, { sceneId: createScene(board).id });
+  const connection = createConnection(board, first.id, second.id, CONNECTION_TYPES.SUCCESS);
+  assert.equal(connection.sourceElementId, first.id);
+  assert.equal(connection.targetElementId, second.id);
+  assert.throws(() => createConnection(board, first.id, second.id), /already exists/);
 });
 
 test("history supports undo and redo snapshots", () => {
@@ -84,15 +72,16 @@ test("history supports undo and redo snapshots", () => {
 });
 
 test("Actor assignments keep Foundry UUIDs instead of copying Actor data", () => {
-  const project = createProject({ title: "Actor project" });
-  const scene = createStoryScene(project);
+  const board = createSceneBoard();
+  const scene = createScene(board);
   const assignment = assignActorToScene(scene, "Actor.test-uuid", "INFORMATION_SOURCE");
   assert.equal(assignment.actorUuid, "Actor.test-uuid");
   assert.equal(scene.actorAssignments.length, 1);
 });
 
-test("project exports are deterministic enough for file transport", () => {
-  const project = createProject({ title: "Export project" });
-  assert.match(projectToJson(project), /Export project/);
-  assert.match(projectToSvg(project), /^<svg /);
+test("scene board exports are suitable for file transport", () => {
+  const board = createSceneBoard();
+  createScene(board, { title: "Export scene" });
+  assert.match(sceneBoardToJson(board), /Export scene/);
+  assert.match(sceneBoardToSvg(board), /^<svg /);
 });

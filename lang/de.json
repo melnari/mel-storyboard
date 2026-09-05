@@ -1,18 +1,96 @@
 {
-  "MEL_STORYBOARD": {
-    "SETTINGS": { "ProjectStore": { "Name": "Projektdaten", "Hint": "Interne, von der Spielleitung verwaltete Storyboard-Projektdaten." }, "OpenDesigner": { "Name": "Storyboard", "Label": "Storyboard öffnen", "Hint": "Den Story-Flow-Designer für die Spielleitung öffnen." } },
-    "KEYBINDINGS": { "OpenDesigner": { "Name": "Storyboard öffnen", "Hint": "Den Story-Flow-Designer öffnen." } },
-    "UI": { "Subtitle": "Visuelle Planung verzweigter Abenteuer", "MoreActions": "Mehr" },
-    "ACTIONS": { "NewProject": "Neues Projekt", "NewMap": "Neue Karte", "NewStoryline": "Neue Storyline", "NewStory": "Neue Story", "NewScene": "Neue Szene", "RenameStoryline": "Storyline umbenennen", "DeleteStoryline": "Storyline löschen", "RenameStory": "Story umbenennen", "DeleteStory": "Story löschen", "RenameScene": "Szene umbenennen", "DuplicateScene": "Szene duplizieren", "ConnectScene": "Szene verknüpfen", "DeleteMapElement": "Kartenelement löschen", "Duplicate": "Duplizieren", "Connect": "Verbinden", "Delete": "Löschen", "Undo": "Rückgängig", "Redo": "Wiederholen", "ExportJson": "JSON", "ImportJson": "JSON importieren", "ExportSvg": "SVG", "ExportPng": "PNG", "ExportPdf": "PDF", "Save": "Speichern" },
-    "LABELS": { "Project": "Projekt", "Storyline": "Storyline", "Map": "Karte", "Story": "Story", "Scenes": "Szenen", "SceneDetails": "Szenendetails", "Title": "Titel", "Status": "Status", "Description": "Beschreibung", "SearchScenes": "Szenen suchen" },
-    "ACCESSIBILITY": { "Projects": "Projektnavigation", "MapCanvas": "Story-Flow-Karte", "Inspector": "Inspektor" },
-    "EMPTY": { "NoStorylines": "Noch keine Storylines.", "NoScenes": "Noch keine Szenen.", "SelectElement": "Element zur Anzeige auswählen." },
-    "DEFAULTS": { "ProjectTitle": "Neues Storyboard-Projekt", "MapTitle": "Übersichtskarte", "StoryTitle": "Neue Story" },
-    "PROMPTS": { "StorylineTitle": "Name der Storyline", "StoryTitle": "Name der Story", "RenameStoryline": "Storyline umbenennen", "DeleteStoryline": "Storyline \"{title}\" löschen?", "RenameStory": "Story umbenennen", "DeleteStory": "Story \"{title}\" löschen?", "RenameScene": "Szene umbenennen" },
-    "NOTIFICATIONS": { "Saved": "Projekt gespeichert.", "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.", "Copied": "Kartenelement kopiert." },
-    "EXPORT": { "StoryScenes": "Szenen" },
-    "TEMPLATES": { "GENERAL": { "Name": "Allgemeine Szene", "Situation": "Ausgangslage", "Objective": "Ziel", "Options": "Handlungsoptionen und Reaktionen", "Success": "Erfolg", "PartialSuccess": "Teilerfolg", "Failure": "Fehlschlag", "Notes": "Notizen" } },
-    "ELEMENT_TYPES": { "SCENE": "Szene", "DECISION": "Entscheidung", "SPLIT": "Aufteilung", "MERGE": "Zusammenführung", "START": "Start", "END": "Ende", "ACTOR": "Akteur", "PLACE": "Ort", "EVENT": "Ereignis", "INFORMATION": "Information", "NOTE": "Notiz", "PHASE": "Phase", "SWIMLANE": "Swimlane", "FREEFORM": "Freie Form" },
-    "STATUS": { "OPEN": "Offen", "ACTIVE": "Aktiv", "SUCCESS": "Erfolg", "PARTIAL_SUCCESS": "Teilerfolg", "FAILURE": "Fehlschlag", "SKIPPED": "Übersprungen" }
+  "SETTINGS": {
+    "SceneBoard": {
+      "Name": "Szenenboard-Daten",
+      "Hint": "Interne, von der Spielleitung verwaltete Szenenboard-Speicherung."
+    },
+    "OpenDesigner": {
+      "Name": "Storyboard",
+      "Label": "Szenenboard öffnen",
+      "Hint": "Das Szenenboard für die Spielleitung öffnen."
+    }
+  },
+  "KEYBINDINGS": {
+    "OpenDesigner": {
+      "Name": "Szenenboard öffnen",
+      "Hint": "Das Szenenboard für die Spielleitung öffnen."
+    }
+  },
+  "UI": {
+    "Title": "Szenenboard",
+    "Subtitle": "Visuelle Planung von Szenen und ihrem Ablauf",
+    "MoreActions": "Mehr"
+  },
+  "ACTIONS": {
+    "NewScene": "Neue Szene",
+    "RenameScene": "Szene umbenennen",
+    "DuplicateScene": "Szene duplizieren",
+    "ConnectScene": "Szene verknüpfen",
+    "DeleteScene": "Szene löschen",
+    "Connect": "Verbinden",
+    "Undo": "Rückgängig",
+    "Redo": "Wiederholen",
+    "ExportJson": "JSON",
+    "ImportJson": "JSON importieren",
+    "ExportSvg": "SVG",
+    "ExportPng": "PNG",
+    "ExportPdf": "PDF",
+    "Save": "Speichern"
+  },
+  "LABELS": {
+    "Scenes": "Szenen",
+    "SceneDetails": "Szenendetails",
+    "Title": "Titel",
+    "Status": "Status",
+    "Description": "Beschreibung",
+    "SearchScenes": "Szenen suchen"
+  },
+  "ACCESSIBILITY": {
+    "Scenes": "Szenennavigation",
+    "SceneCanvas": "Szenenboard",
+    "Inspector": "Szeneninspektor"
+  },
+  "EMPTY": {
+    "NoScenes": "Noch keine Szenen.",
+    "SelectScene": "Szene zur Anzeige auswählen."
+  },
+  "DEFAULTS": {
+    "SceneTitle": "Neue Szene"
+  },
+  "PROMPTS": {
+    "SceneTitle": "Name der Szene",
+    "RenameScene": "Szene umbenennen",
+    "DeleteScene": "Szene „{title}“ löschen?"
+  },
+  "NOTIFICATIONS": {
+    "Saved": "Szenenboard gespeichert.",
+    "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.",
+    "Copied": "Szene kopiert."
+  },
+  "EXPORT": {
+    "Scenes": "Szenen"
+  },
+  "TEMPLATES": {
+    "GENERAL": {
+      "Name": "Allgemeine Szene",
+      "Situation": "Ausgangslage",
+      "Objective": "Ziel",
+      "Options": "Handlungsoptionen und Reaktionen",
+      "Success": "Erfolg",
+      "PartialSuccess": "Teilerfolg",
+      "Failure": "Fehlschlag",
+      "Notes": "Notizen"
+    }
+  },
+  "ELEMENT_TYPES": {
+    "SCENE": "Szene"
+  },
+  "STATUS": {
+    "OPEN": "Offen",
+    "ACTIVE": "Aktiv",
+    "SUCCESS": "Erfolg",
+    "PARTIAL_SUCCESS": "Teilerfolg",
+    "FAILURE": "Fehlschlag",
+    "SKIPPED": "Übersprungen"
   }
 }
