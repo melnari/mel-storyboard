@@ -51,6 +51,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   static PARTS = { body: { template: "modules/mel-storyboard/templates/storyboard.hbs" } };
 
+  _canDetach() {
+    return false;
+  }
+
   constructor(options = {}) {
     super(options);
     this.store = game.melStoryboard.store;
