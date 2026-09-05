@@ -1,0 +1,39 @@
+<section class="mel-storyboard-template-management">
+  <header class="mel-storyboard-template-management-header">
+    <h1>{{labels.title}}</h1>
+    <button type="button" data-action="new-template"><i class="fas fa-plus"></i> {{labels.newTemplate}}</button>
+  </header>
+  <div class="mel-storyboard-template-management-list">
+    {{#each templates}}
+      <article class="mel-storyboard-template-card" data-template-card data-template-id="{{id}}">
+        <header>
+          <div>
+            <input type="text" data-template-name value="{{label}}" aria-label="{{../labels.templateName}}" />
+            <p>{{../labels.version}} {{version}} · {{scopeLabel}}</p>
+          </div>
+          <button type="button" data-action="copy-template" data-template-id="{{id}}" title="{{../labels.copyTemplate}}" aria-label="{{../labels.copyTemplate}}"><i class="fas fa-copy"></i></button>
+        </header>
+        <h2>{{../labels.templateFields}}</h2>
+        <div class="mel-storyboard-template-management-fields">
+          {{#each fields}}
+            <label>
+              <span>{{stableKey}}</span>
+              <input type="text" data-template-field-label data-field-key="{{stableKey}}" value="{{label}}" />
+            </label>
+          {{/each}}
+        </div>
+        <footer>
+          <button type="button" data-action="add-template-field" data-template-id="{{id}}"><i class="fas fa-plus"></i> {{../labels.addTemplateField}}</button>
+          <button type="button" data-action="save-template" data-template-id="{{id}}"><i class="fas fa-save"></i> {{../labels.saveTemplate}}</button>
+          {{#if canDelete}}
+            <button type="button" data-action="delete-template" data-template-id="{{id}}"><i class="fas fa-trash"></i> {{../labels.deleteTemplate}}</button>
+          {{else if scope}}
+            {{#if referenced}}<span class="mel-storyboard-field-hint">{{../labels.referenced}}</span>{{/if}}
+          {{/if}}
+        </footer>
+      </article>
+    {{else}}
+      <p class="mel-storyboard-empty">{{labels.noTemplates}}</p>
+    {{/each}}
+  </div>
+</section>

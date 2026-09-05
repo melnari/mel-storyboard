@@ -9,6 +9,11 @@
         "Name": "Storyboard",
         "Label": "Ouvrir le tableau de scènes",
         "Hint": "Ouvrir le tableau de scènes du MJ."
+      },
+      "ManageTemplates": {
+        "Name": "Gérer les modèles",
+        "Label": "Ouvrir la gestion des modèles",
+        "Hint": "Gérer les modèles globaux et propres au tableau."
       }
     },
     "KEYBINDINGS": {
@@ -19,6 +24,7 @@
     },
     "UI": {
       "Title": "Mel-Storyboard",
+      "TemplateManagement": "Gestion des modèles",
       "ImportExport": "Importer/Exporter",
       "MoreActions": "Plus"
     },
@@ -34,10 +40,14 @@
       "ZoomOut": "Réduire",
       "ZoomIn": "Agrandir",
       "CopyTemplate": "Copier le modèle",
+      "NewTemplate": "Nouveau modèle",
+      "SaveTemplate": "Enregistrer comme nouvelle version",
       "AddTemplateField": "Ajouter un champ au modèle",
+      "DeleteTemplate": "Supprimer le modèle",
       "AddObject": "Ajouter un objet",
       "AssignObject": "Associer l’objet",
       "RemoveObject": "Retirer l’objet",
+      "EditObjectNote": "Modifier la note",
       "Connect": "Relier",
       "Undo": "Annuler",
       "Redo": "Rétablir",
@@ -55,6 +65,9 @@
       "Template": "Modèle",
       "TemplateVersion": "Version du modèle",
       "TemplateFields": "Champs du modèle",
+      "TemplateName": "Nom du modèle",
+      "Scope": "Portée",
+      "TemplateReferenced": "Utilisé",
       "GlobalTemplate": "Global",
       "BoardTemplate": "Copie du tableau",
       "Objects": "Objets",
@@ -80,6 +93,7 @@
       "NoScenes": "Aucune scène pour le moment.",
       "SelectScene": "Sélectionnez une scène à inspecter."
       ,"NoObjects": "Aucun objet n’est encore associé à cette scène."
+      ,"NoTemplates": "Aucun modèle disponible."
     },
     "DEFAULTS": {
       "SceneTitle": "Nouvelle scène"
@@ -93,13 +107,16 @@
       ,"TemplateCopyName": "Nom de la copie du modèle"
       ,"TemplateFieldKey": "Clé stable du nouveau champ du modèle"
       ,"TemplateFieldLabel": "Libellé affiché du nouveau champ du modèle"
+      ,"ObjectNote": "Note de l’objet"
       ,"TemplateMigration": "Appliquer la version {to} sur la version {from} ?\nChamps ajoutés : {added}\nChamps supprimés : {removed}\nChamps modifiés : {changed}"
+      ,"DeleteTemplate": "Supprimer ce modèle propre au tableau ?"
     },
     "NOTIFICATIONS": {
       "Saved": "Tableau de scènes enregistré.",
       "SelectConnectionTarget": "Sélectionnez la scène cible de cette relation.",
       "Copied": "Scène copiée."
       ,"ActorUuidRequired": "Les objets Actor nécessitent un UUID Foundry."
+      ,"TemplateInUse": "Ce modèle est encore utilisé par une scène."
     },
     "EXPORT": {
       "Scenes": "Scènes"
@@ -127,7 +144,9 @@
       "PLACE": "Lieu",
       "ITEM": "Objet",
       "INFORMATION": "Information",
-      "EVENT": "Événement"
+      "EVENT": "Événement",
+      "JOURNAL": "Journal",
+      "FOUNDRY_SCENE": "Scène Foundry"
     },
     "STATUS": {
       "OFFEN": "Ouvert",

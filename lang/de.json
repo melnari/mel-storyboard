@@ -9,6 +9,11 @@
         "Name": "Storyboard",
         "Label": "Szenenboard öffnen",
         "Hint": "Das Szenenboard für die Spielleitung öffnen."
+      },
+      "ManageTemplates": {
+        "Name": "Templates verwalten",
+        "Label": "Template-Verwaltung öffnen",
+        "Hint": "Globale und boardbezogene Templates pflegen."
       }
     },
     "KEYBINDINGS": {
@@ -19,6 +24,7 @@
     },
     "UI": {
       "Title": "Mel-Storyboard",
+      "TemplateManagement": "Template-Verwaltung",
       "ImportExport": "Import/Export",
       "MoreActions": "Mehr"
     },
@@ -34,10 +40,14 @@
       "ZoomOut": "Verkleinern",
       "ZoomIn": "Vergrößern",
       "CopyTemplate": "Vorlage kopieren",
+      "NewTemplate": "Neue Vorlage",
+      "SaveTemplate": "Vorlage als neue Version speichern",
       "AddTemplateField": "Vorlagenfeld hinzufügen",
+      "DeleteTemplate": "Vorlage löschen",
       "AddObject": "Objekt hinzufügen",
       "AssignObject": "Objekt zuordnen",
       "RemoveObject": "Objekt entfernen",
+      "EditObjectNote": "Anmerkung bearbeiten",
       "Connect": "Verbinden",
       "Undo": "Rückgängig",
       "Redo": "Wiederholen",
@@ -55,6 +65,9 @@
       "Template": "Vorlage",
       "TemplateVersion": "Vorlagenversion",
       "TemplateFields": "Vorlagenfelder",
+      "TemplateName": "Vorlagenname",
+      "Scope": "Geltungsbereich",
+      "TemplateReferenced": "Wird verwendet",
       "GlobalTemplate": "Global",
       "BoardTemplate": "Board-Kopie",
       "Objects": "Objekte",
@@ -80,6 +93,7 @@
       "NoScenes": "Noch keine Szenen.",
       "SelectScene": "Szene zur Anzeige auswählen."
       ,"NoObjects": "Der Szene sind noch keine Objekte zugeordnet."
+      ,"NoTemplates": "Keine Templates vorhanden."
     },
     "DEFAULTS": {
       "SceneTitle": "Neue Szene"
@@ -93,13 +107,16 @@
       ,"TemplateCopyName": "Name der Vorlagenkopie"
       ,"TemplateFieldKey": "Stabiler Schlüssel des neuen Vorlagenfelds"
       ,"TemplateFieldLabel": "Anzeigename des neuen Vorlagenfelds"
+      ,"ObjectNote": "Anmerkung zum Objekt"
       ,"TemplateMigration": "Vorlage von Version {from} auf Version {to} übernehmen?\nNeue Felder: {added}\nEntfernte Felder: {removed}\nGeänderte Felder: {changed}"
+      ,"DeleteTemplate": "Diese boardbezogene Vorlage löschen?"
     },
     "NOTIFICATIONS": {
       "Saved": "Szenenboard gespeichert.",
       "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.",
       "Copied": "Szene kopiert."
       ,"ActorUuidRequired": "Für Actor-Objekte ist eine Foundry-UUID erforderlich."
+      ,"TemplateInUse": "Diese Vorlage wird noch von einer Szene verwendet."
     },
     "EXPORT": {
       "Scenes": "Szenen"
@@ -127,7 +144,9 @@
       "PLACE": "Ort",
       "ITEM": "Gegenstand",
       "INFORMATION": "Information",
-      "EVENT": "Ereignis"
+      "EVENT": "Ereignis",
+      "JOURNAL": "Journal",
+      "FOUNDRY_SCENE": "Foundry-Szene"
     },
     "STATUS": {
       "OFFEN": "Offen",

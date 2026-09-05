@@ -14,7 +14,7 @@ export const STATUS = Object.freeze({
 export const ELEMENT_TYPES = Object.freeze(["SCENE"]);
 
 export const OBJECT_TYPES = Object.freeze([
-  "PLAYER_CHARACTER", "NPC", "GROUP", "FACTION", "PLACE", "ITEM", "INFORMATION", "EVENT"
+  "PLAYER_CHARACTER", "NPC", "GROUP", "FACTION", "PLACE", "ITEM", "INFORMATION", "EVENT", "JOURNAL", "FOUNDRY_SCENE"
 ]);
 
 export const CONNECTION_TYPES = Object.freeze([

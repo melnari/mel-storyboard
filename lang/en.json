@@ -9,6 +9,11 @@
         "Name": "Storyboard",
         "Label": "Open Scene Board",
         "Hint": "Open the GM scene board."
+      },
+      "ManageTemplates": {
+        "Name": "Manage templates",
+        "Label": "Open template management",
+        "Hint": "Manage global and board-specific templates."
       }
     },
     "KEYBINDINGS": {
@@ -19,6 +24,7 @@
     },
     "UI": {
       "Title": "Mel-Storyboard",
+      "TemplateManagement": "Template management",
       "ImportExport": "Import/Export",
       "MoreActions": "More"
     },
@@ -34,10 +40,14 @@
       "ZoomOut": "Zoom out",
       "ZoomIn": "Zoom in",
       "CopyTemplate": "Copy template",
+      "NewTemplate": "New template",
+      "SaveTemplate": "Save template as new version",
       "AddTemplateField": "Add template field",
+      "DeleteTemplate": "Delete template",
       "AddObject": "Add object",
       "AssignObject": "Assign object",
       "RemoveObject": "Remove object",
+      "EditObjectNote": "Edit note",
       "Connect": "Connect",
       "Undo": "Undo",
       "Redo": "Redo",
@@ -55,6 +65,9 @@
       "Template": "Template",
       "TemplateVersion": "Template version",
       "TemplateFields": "Template fields",
+      "TemplateName": "Template name",
+      "Scope": "Scope",
+      "TemplateReferenced": "In use",
       "GlobalTemplate": "Global",
       "BoardTemplate": "Board copy",
       "Objects": "Objects",
@@ -80,6 +93,7 @@
       "NoScenes": "No scenes yet.",
       "SelectScene": "Select a scene to inspect it."
       ,"NoObjects": "No objects are assigned to this scene yet."
+      ,"NoTemplates": "No templates available."
     },
     "DEFAULTS": {
       "SceneTitle": "New scene"
@@ -93,13 +107,16 @@
       ,"TemplateCopyName": "Template copy name"
       ,"TemplateFieldKey": "Stable key for the new template field"
       ,"TemplateFieldLabel": "Display label for the new template field"
+      ,"ObjectNote": "Note for this object"
       ,"TemplateMigration": "Apply template version {to} over version {from}?\nNew fields: {added}\nRemoved fields: {removed}\nChanged fields: {changed}"
+      ,"DeleteTemplate": "Delete this board-specific template?"
     },
     "NOTIFICATIONS": {
       "Saved": "Scene board saved.",
       "SelectConnectionTarget": "Select the target scene for this connection.",
       "Copied": "Scene copied."
       ,"ActorUuidRequired": "Actor objects require a Foundry UUID."
+      ,"TemplateInUse": "This template is still used by a scene."
     },
     "EXPORT": {
       "Scenes": "Scenes"
@@ -127,7 +144,9 @@
       "PLACE": "Place",
       "ITEM": "Item",
       "INFORMATION": "Information",
-      "EVENT": "Event"
+      "EVENT": "Event",
+      "JOURNAL": "Journal",
+      "FOUNDRY_SCENE": "Foundry scene"
     },
     "STATUS": {
       "OFFEN": "Open",

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment } from "../scripts/domain/model.js";
+import { assignActorToScene, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
@@ -57,6 +57,8 @@ test("scene objects use typed records and Foundry UUID references", () => {
   const assignment = assignObjectToScene(scene, actor.id);
   assert.equal(actor.foundryUuid, "Actor.keeper");
   assert.equal(scene.objectAssignments[0].objectId, actor.id);
+  updateObjectAssignment(scene, assignment.id, { notes: "Only appears in the opening scene." });
+  assert.equal(scene.objectAssignments[0].notes, "Only appears in the opening scene.");
   assert.throws(() => createBoardObject(board, { objectType: "NPC", title: "Missing UUID" }), /Actor UUID/);
   removeObjectAssignment(scene, assignment.id);
   assert.equal(scene.objectAssignments.length, 0);

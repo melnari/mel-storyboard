@@ -1,5 +1,5 @@
 import { MODULE_ID, OBJECT_TYPES, STATUS } from "../domain/constants.js";
-import { assignObjectToScene, clone, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneElement, createTemplateVersion, duplicateSceneElements, copySceneElements, pasteSceneElements, migrateSceneTemplate, previewTemplateMigration, removeObjectAssignment, removeSceneElements, removeConnection } from "../domain/model.js";
+import { assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, migrateSceneTemplate, previewTemplateMigration, removeObjectAssignment, removeSceneElements, removeConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
@@ -96,7 +96,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const objects = (this.board.objects ?? []).map(object => ({
       ...object,
       typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
-      icon: OBJECT_ICONS[object.objectType] ?? "fa-cube"
+      icon: OBJECT_ICONS[object.objectType] ?? "fa-cube",
+      image: object.visualConfig?.image ?? ""
     }));
     const objectsById = new Map(objects.map(object => [object.id, object]));
     const connections = this.board.connections.map(connection => {
@@ -177,8 +178,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         template: localize("MEL_STORYBOARD.LABELS.Template"),
         templateVersion: localize("MEL_STORYBOARD.LABELS.TemplateVersion"),
         templateFields: localize("MEL_STORYBOARD.LABELS.TemplateFields"),
-        copyTemplate: localize("MEL_STORYBOARD.ACTIONS.CopyTemplate"),
-        addTemplateField: localize("MEL_STORYBOARD.ACTIONS.AddTemplateField"),
         objects: localize("MEL_STORYBOARD.LABELS.Objects"),
         objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
         objectTitle: localize("MEL_STORYBOARD.LABELS.ObjectTitle"),
@@ -187,6 +186,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         addObject: localize("MEL_STORYBOARD.ACTIONS.AddObject"),
         assignObject: localize("MEL_STORYBOARD.ACTIONS.AssignObject"),
         removeObject: localize("MEL_STORYBOARD.ACTIONS.RemoveObject"),
+        editObjectNote: localize("MEL_STORYBOARD.ACTIONS.EditObjectNote"),
         noObjects: localize("MEL_STORYBOARD.EMPTY.NoObjects"),
         titleField: localize("MEL_STORYBOARD.LABELS.Title"),
         status: localize("MEL_STORYBOARD.LABELS.Status"),
@@ -233,6 +233,19 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       }
     });
     this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("wheel", event => this.#onCanvasWheel(event), { passive: false });
+    if (foundry.applications.ux?.DragDrop) {
+      this.documentDragDrop = new foundry.applications.ux.DragDrop({
+        dropSelector: "[data-scene-element]",
+        permissions: { drop: () => Boolean(game.user?.isGM) },
+        callbacks: {
+          dragenter: event => this.#markDropTarget(event, true),
+          dragleave: event => this.#markDropTarget(event, false),
+          dragend: event => this.#markDropTarget(event, false),
+          drop: event => { this.#markDropTarget(event, false); return this.#onFoundryDrop(event); }
+        }
+      });
+      this.documentDragDrop.bind(this.element);
+    }
     this.#applyZoom();
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
@@ -504,38 +517,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
-  async #copySelectedTemplate() {
-    const scene = this.#selectedScene();
-    const source = this.board.templates.find(template => template.id === scene?.templateId);
-    if (!scene || !source) return;
-    const sourceName = source.name?.trim() || localize(source.nameKey);
-    const name = window.prompt(localize("MEL_STORYBOARD.PROMPTS.TemplateCopyName"), `${sourceName} (${localize("MEL_STORYBOARD.LABELS.Copy")})`);
-    if (name === null || !name.trim()) return;
-    this.history.capture(this.board);
-    const copy = createBoardTemplate(this.board, source.id, { name });
-    scene.templateId = copy.id;
-    scene.templateVersion = copy.version;
-    scene.updatedAt = new Date().toISOString();
-    this.board = await this.store.save(this.board);
-  }
-
-  async #addTemplateField() {
-    const scene = this.#selectedScene();
-    const source = this.board.templates.find(template => template.id === scene?.templateId);
-    if (!scene || !source) return;
-    const key = window.prompt(localize("MEL_STORYBOARD.PROMPTS.TemplateFieldKey"));
-    if (key === null || !key.trim()) return;
-    const stableKey = key.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    if (!stableKey || source.fields.some(field => field.stableKey === stableKey)) return;
-    const label = window.prompt(localize("MEL_STORYBOARD.PROMPTS.TemplateFieldLabel"), key.trim());
-    if (label === null || !label.trim()) return;
-    this.history.capture(this.board);
-    createTemplateVersion(this.board, source.id, {
-      fields: [...source.fields, { stableKey, label: label.trim(), fieldType: "rich-text", required: false, sortOrder: (source.fields.length + 1) * 10 }]
-    });
-    this.board = await this.store.save(this.board);
-  }
-
   async #saveTemplateFields() {
     const scene = this.#selectedScene();
     if (!scene) return;
@@ -583,6 +564,53 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.board = await this.store.save(this.board);
   }
 
+  async #editObjectNote(assignmentId) {
+    const scene = this.#selectedScene();
+    const assignment = scene?.objectAssignments?.find(candidate => candidate.id === assignmentId);
+    if (!scene || !assignment) return;
+    const notes = window.prompt(localize("MEL_STORYBOARD.PROMPTS.ObjectNote"), assignment.notes ?? "");
+    if (notes === null) return;
+    this.history.capture(this.board);
+    updateObjectAssignment(scene, assignmentId, { notes });
+    this.board = await this.store.save(this.board);
+  }
+
+  async #onFoundryDrop(event) {
+    const raw = event.dataTransfer?.getData("text/plain") || event.dataTransfer?.getData("text");
+    if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch { return; }
+    const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene"]);
+    if (!data?.uuid || !supportedTypes.has(data.type)) return;
+    const target = event.target instanceof Element ? event.target.closest("[data-scene-element]") : null;
+    const element = this.board.elements.find(candidate => candidate.id === target?.dataset.elementId);
+    const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
+    if (!scene) return;
+    const document = await fromUuid(data.uuid);
+    if (!document) throw new Error("The dropped Foundry document could not be resolved.");
+    const objectType = data.type === "Actor"
+      ? (document.type === "character" ? "PLAYER_CHARACTER" : "NPC")
+      : data.type === "Item" ? "ITEM" : data.type === "Scene" ? "FOUNDRY_SCENE" : "JOURNAL";
+    this.history.capture(this.board);
+    const existing = this.board.objects.find(object => object.foundryUuid === data.uuid);
+    const object = existing ?? createBoardObject(this.board, {
+      objectType,
+      title: document.name ?? data.uuid,
+      foundryUuid: data.uuid,
+      foundryDocumentType: data.type,
+      image: document.img ?? document.texture?.src ?? ""
+    });
+    assignObjectToScene(scene, object.id);
+    this.board = await this.store.save(this.board);
+    this.selectedElementIds = [element.id];
+    await this.render({ force: true });
+  }
+
+  #markDropTarget(event, active) {
+    const target = event.target instanceof Element ? event.target.closest("[data-scene-element]") : null;
+    target?.classList.toggle("is-drop-target", active);
+  }
+
   async #handleAction(event) {
     const action = event.currentTarget.dataset.action;
     try {
@@ -594,12 +622,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       } else if (action === "zoom-in") {
         this.#changeZoom(0.1);
         return;
-      } else if (action === "copy-template") await this.#copySelectedTemplate();
-      else if (action === "add-template-field") await this.#addTemplateField();
-      else if (action === "save-template-fields") await this.#saveTemplateFields();
+      } else if (action === "save-template-fields") await this.#saveTemplateFields();
       else if (action === "add-object") await this.#addObjectToScene();
       else if (action === "assign-object") await this.#assignExistingObject();
       else if (action === "remove-object") await this.#removeObjectFromScene(event.currentTarget.dataset.assignmentId);
+      else if (action === "edit-object-note") await this.#editObjectNote(event.currentTarget.dataset.assignmentId);
       else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
         if (this.selectedElementIds.length !== 2) return;

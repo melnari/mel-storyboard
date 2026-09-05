@@ -121,6 +121,90 @@
   outline: none;
 }
 
+.mel-storyboard-template-management {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem;
+  background: #17191f;
+  color: #edf2f7;
+}
+
+.mel-storyboard-template-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .8rem;
+}
+
+.mel-storyboard-template-management-header h1 {
+  margin: 0;
+}
+
+.mel-storyboard-template-management-list {
+  display: grid;
+  gap: .8rem;
+  overflow: auto;
+  padding-right: .25rem;
+}
+
+.mel-storyboard-template-card {
+  display: grid;
+  gap: .65rem;
+  padding: .8rem;
+  border: 1px solid #59687a;
+  border-radius: 5px;
+  background: #20242c;
+}
+
+.mel-storyboard-template-card > header,
+.mel-storyboard-template-card > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.mel-storyboard-template-card > header > div {
+  flex: 1;
+}
+
+.mel-storyboard-template-card h2 {
+  margin: 0;
+  font-size: .95rem;
+}
+
+.mel-storyboard-template-card p {
+  margin: .25rem 0 0;
+  color: #aeb8c5;
+  font-size: .75rem;
+}
+
+.mel-storyboard-template-management-fields {
+  display: grid;
+  gap: .35rem;
+}
+
+.mel-storyboard-template-management-fields label {
+  display: grid;
+  grid-template-columns: minmax(8rem, .35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: .5rem;
+}
+
+.mel-storyboard-template-management-fields label span {
+  color: #aeb8c5;
+  font-family: monospace;
+  font-size: .75rem;
+}
+
+.mel-storyboard-template-card footer {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 .mel-storyboard-toggle {
   position: fixed;
   top: 118px;
@@ -328,7 +412,7 @@
 
 .mel-storyboard-object-card {
   display: grid;
-  grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto auto;
   align-items: center;
   gap: .5rem;
   padding: .45rem;
@@ -339,6 +423,13 @@
 
 .mel-storyboard-object-card > i {
   color: #f6c453;
+}
+
+.mel-storyboard-object-card > img {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 3px;
+  object-fit: cover;
 }
 
 .mel-storyboard-object-card strong,
@@ -427,6 +518,12 @@
 .mel-storyboard-element:focus rect,
 .mel-storyboard-element.is-selected rect {
   stroke: #f6c453;
+  stroke-width: 3;
+}
+
+.mel-storyboard-element.is-drop-target rect {
+  stroke: #f6c453;
+  stroke-dasharray: 6 3;
   stroke-width: 3;
 }
 

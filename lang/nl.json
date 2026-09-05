@@ -9,6 +9,11 @@
         "Name": "Storyboard",
         "Label": "Scènebord openen",
         "Hint": "Open het scènebord voor de GM."
+      },
+      "ManageTemplates": {
+        "Name": "Sjablonen beheren",
+        "Label": "Sjabloonbeheer openen",
+        "Hint": "Beheer globale en bordspecifieke sjablonen."
       }
     },
     "KEYBINDINGS": {
@@ -19,6 +24,7 @@
     },
     "UI": {
       "Title": "Mel-Storyboard",
+      "TemplateManagement": "Sjabloonbeheer",
       "ImportExport": "Importeren/Exporteren",
       "MoreActions": "Meer"
     },
@@ -34,10 +40,14 @@
       "ZoomOut": "Uitzoomen",
       "ZoomIn": "Inzoomen",
       "CopyTemplate": "Sjabloon kopiëren",
+      "NewTemplate": "Nieuw sjabloon",
+      "SaveTemplate": "Opslaan als nieuwe versie",
       "AddTemplateField": "Sjabloonveld toevoegen",
+      "DeleteTemplate": "Sjabloon verwijderen",
       "AddObject": "Object toevoegen",
       "AssignObject": "Object toewijzen",
       "RemoveObject": "Object verwijderen",
+      "EditObjectNote": "Notitie bewerken",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
       "Redo": "Opnieuw",
@@ -55,6 +65,9 @@
       "Template": "Sjabloon",
       "TemplateVersion": "Sjabloonversie",
       "TemplateFields": "Sjabloonvelden",
+      "TemplateName": "Sjabloonnaam",
+      "Scope": "Bereik",
+      "TemplateReferenced": "In gebruik",
       "GlobalTemplate": "Globaal",
       "BoardTemplate": "Bordkopie",
       "Objects": "Objecten",
@@ -80,6 +93,7 @@
       "NoScenes": "Nog geen scènes.",
       "SelectScene": "Selecteer een scène om deze te bekijken."
       ,"NoObjects": "Aan deze scène zijn nog geen objecten toegewezen."
+      ,"NoTemplates": "Geen sjablonen beschikbaar."
     },
     "DEFAULTS": {
       "SceneTitle": "Nieuwe scène"
@@ -93,13 +107,16 @@
       ,"TemplateCopyName": "Naam van sjabloonkopie"
       ,"TemplateFieldKey": "Stabiele sleutel voor het nieuwe sjabloonveld"
       ,"TemplateFieldLabel": "Weergavelabel voor het nieuwe sjabloonveld"
+      ,"ObjectNote": "Notitie voor dit object"
       ,"TemplateMigration": "Sjabloonversie {to} toepassen op versie {from}?\nNieuwe velden: {added}\nVerwijderde velden: {removed}\nGewijzigde velden: {changed}"
+      ,"DeleteTemplate": "Dit bordspecifieke sjabloon verwijderen?"
     },
     "NOTIFICATIONS": {
       "Saved": "Scènebord opgeslagen.",
       "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
       "Copied": "Scène gekopieerd."
       ,"ActorUuidRequired": "Actor-objecten vereisen een Foundry-UUID."
+      ,"TemplateInUse": "Dit sjabloon wordt nog door een scène gebruikt."
     },
     "EXPORT": {
       "Scenes": "Scènes"
@@ -127,7 +144,9 @@
       "PLACE": "Plaats",
       "ITEM": "Voorwerp",
       "INFORMATION": "Informatie",
-      "EVENT": "Gebeurtenis"
+      "EVENT": "Gebeurtenis",
+      "JOURNAL": "Journal",
+      "FOUNDRY_SCENE": "Foundry-scène"
     },
     "STATUS": {
       "OFFEN": "Open",

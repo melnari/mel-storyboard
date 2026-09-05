@@ -9,6 +9,11 @@
         "Name": "Storyboard",
         "Label": "Abrir tablero de escenas",
         "Hint": "Abrir el tablero de escenas del DJ."
+      },
+      "ManageTemplates": {
+        "Name": "Gestionar plantillas",
+        "Label": "Abrir gestión de plantillas",
+        "Hint": "Gestiona plantillas globales y del tablero."
       }
     },
     "KEYBINDINGS": {
@@ -19,6 +24,7 @@
     },
     "UI": {
       "Title": "Mel-Storyboard",
+      "TemplateManagement": "Gestión de plantillas",
       "ImportExport": "Importar/Exportar",
       "MoreActions": "Más"
     },
@@ -34,10 +40,14 @@
       "ZoomOut": "Alejar",
       "ZoomIn": "Acercar",
       "CopyTemplate": "Copiar plantilla",
+      "NewTemplate": "Nueva plantilla",
+      "SaveTemplate": "Guardar plantilla como nueva versión",
       "AddTemplateField": "Añadir campo de plantilla",
+      "DeleteTemplate": "Eliminar plantilla",
       "AddObject": "Añadir objeto",
       "AssignObject": "Asignar objeto",
       "RemoveObject": "Quitar objeto",
+      "EditObjectNote": "Editar nota",
       "Connect": "Conectar",
       "Undo": "Deshacer",
       "Redo": "Rehacer",
@@ -55,6 +65,9 @@
       "Template": "Plantilla",
       "TemplateVersion": "Versión de plantilla",
       "TemplateFields": "Campos de plantilla",
+      "TemplateName": "Nombre de plantilla",
+      "Scope": "Ámbito",
+      "TemplateReferenced": "En uso",
       "GlobalTemplate": "Global",
       "BoardTemplate": "Copia del tablero",
       "Objects": "Objetos",
@@ -80,6 +93,7 @@
       "NoScenes": "Aún no hay escenas.",
       "SelectScene": "Selecciona una escena para inspeccionarla."
       ,"NoObjects": "Todavía no hay objetos asignados a esta escena."
+      ,"NoTemplates": "No hay plantillas disponibles."
     },
     "DEFAULTS": {
       "SceneTitle": "Nueva escena"
@@ -93,13 +107,16 @@
       ,"TemplateCopyName": "Nombre de la copia de plantilla"
       ,"TemplateFieldKey": "Clave estable del nuevo campo de plantilla"
       ,"TemplateFieldLabel": "Etiqueta visible del nuevo campo de plantilla"
+      ,"ObjectNote": "Nota del objeto"
       ,"TemplateMigration": "¿Aplicar la versión {to} sobre la versión {from}?\nCampos nuevos: {added}\nCampos eliminados: {removed}\nCampos modificados: {changed}"
+      ,"DeleteTemplate": "¿Eliminar esta plantilla del tablero?"
     },
     "NOTIFICATIONS": {
       "Saved": "Tablero de escenas guardado.",
       "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
       "Copied": "Escena copiada."
       ,"ActorUuidRequired": "Los objetos Actor requieren un UUID de Foundry."
+      ,"TemplateInUse": "Esta plantilla todavía está siendo utilizada por una escena."
     },
     "EXPORT": {
       "Scenes": "Escenas"
@@ -127,7 +144,9 @@
       "PLACE": "Lugar",
       "ITEM": "Objeto",
       "INFORMATION": "Información",
-      "EVENT": "Evento"
+      "EVENT": "Evento",
+      "JOURNAL": "Diario",
+      "FOUNDRY_SCENE": "Escena de Foundry"
     },
     "STATUS": {
       "OFFEN": "Abierto",

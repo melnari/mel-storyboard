@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./domain/constants.js";
 import { SceneBoardStore, registerSceneBoardSetting } from "./domain/scene-board-store.js";
 import { StoryboardApplication } from "./ui/application.js";
+import { TemplateManagementApplication } from "./ui/template-management.js";
 
 Hooks.once("init", () => {
   registerSceneBoardSetting();
@@ -27,6 +28,14 @@ Hooks.once("init", () => {
     hint: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Hint",
     icon: "fas fa-sitemap",
     type: StoryboardApplication,
+    restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "manageTemplates", {
+    name: "MEL_STORYBOARD.SETTINGS.ManageTemplates.Name",
+    label: "MEL_STORYBOARD.SETTINGS.ManageTemplates.Label",
+    hint: "MEL_STORYBOARD.SETTINGS.ManageTemplates.Hint",
+    icon: "fas fa-table-list",
+    type: TemplateManagementApplication,
     restricted: true
   });
   game.keybindings.register(MODULE_ID, "openDesigner", {

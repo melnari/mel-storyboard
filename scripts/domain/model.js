@@ -87,7 +87,7 @@ export function createSceneElement(board, { sceneId = null, title = "" } = {}) {
   return element;
 }
 
-export function createBoardObject(board, { objectType = "INFORMATION", title = "New object", description = "", foundryUuid = "" } = {}) {
+export function createBoardObject(board, { objectType = "INFORMATION", title = "New object", description = "", foundryUuid = "", foundryDocumentType = "", image = "" } = {}) {
   if (!OBJECT_TYPES.includes(objectType)) throw new Error(`Unsupported object type: ${objectType}`);
   const actorTypes = new Set(["PLAYER_CHARACTER", "NPC", "GROUP", "FACTION"]);
   if (actorTypes.has(objectType) && !foundryUuid?.trim()) throw new Error("An Actor UUID is required for this object type.");
@@ -99,7 +99,8 @@ export function createBoardObject(board, { objectType = "INFORMATION", title = "
     title: title.trim() || "New object",
     description,
     foundryUuid: foundryUuid.trim(),
-    visualConfig: {},
+    foundryDocumentType,
+    visualConfig: image ? { image } : {},
     createdAt: now,
     updatedAt: now
   };
@@ -125,6 +126,16 @@ export function removeObjectAssignment(scene, assignmentId) {
   scene.objectAssignments = (scene.objectAssignments ?? []).filter(assignment => assignment.id !== assignmentId);
   if (scene.objectAssignments.length === previousLength) throw new Error("The scene object assignment does not exist.");
   scene.updatedAt = timestamp();
+}
+
+export function updateObjectAssignment(scene, assignmentId, { role = null, notes = null } = {}) {
+  const assignment = (scene.objectAssignments ?? []).find(candidate => candidate.id === assignmentId);
+  if (!assignment) throw new Error("The scene object assignment does not exist.");
+  if (role !== null) assignment.role = role.trim();
+  if (notes !== null) assignment.notes = notes;
+  assignment.updatedAt = timestamp();
+  scene.updatedAt = assignment.updatedAt;
+  return assignment;
 }
 
 export function createBoardTemplate(board, sourceTemplateId, { name = "" } = {}) {
