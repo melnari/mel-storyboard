@@ -39,8 +39,9 @@
       "ExportPdf": "PDF",
       "Save": "Save"
     },
-    "LABELS": {
-      "Scenes": "Scenes",
+  "LABELS": {
+    "Story": "Story",
+    "Scenes": "Scenes",
       "SceneDetails": "Scene details",
       "Title": "Title",
       "Status": "Status",

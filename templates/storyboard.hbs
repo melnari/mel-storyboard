@@ -21,23 +21,23 @@
   <div class="mel-storyboard-layout">
     <aside class="mel-storyboard-sidebar" aria-label="{{labels.scenes}}">
       <div class="mel-storyboard-sidebar-heading">
-        <label for="mel-storyboard-scene-search">{{labels.scenes}}</label>
+        <span class="mel-storyboard-tree-root"><i class="fas fa-folder-open" aria-hidden="true"></i> {{labels.story}}</span>
         <button type="button" class="icon-button" data-action="add-scene" title="{{labels.newScene}}" aria-label="{{labels.newScene}}"><i class="fas fa-plus"></i></button>
       </div>
-      <input id="mel-storyboard-scene-search" type="search" data-search-scenes placeholder="{{labels.searchScenes}}" value="{{searchQuery}}" aria-label="{{labels.searchScenes}}" />
-      <ul class="mel-storyboard-scene-tree" role="tree" aria-label="{{labels.scenes}}">
-        {{#each sceneTree}}
-          <li role="treeitem" aria-level="{{treeDepth}}" class="mel-storyboard-tree-item" style="--tree-depth: {{treeDepth}}">
-            <button type="button" data-action="select-scene" data-scene-id="{{id}}" class="mel-storyboard-tree-node">
-              <span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas {{#if hasChildren}}fa-chevron-down{{else}}fa-circle{{/if}}"></i></span>
-              <span class="mel-storyboard-tree-id">{{displayId}}</span>
-              <span class="mel-storyboard-tree-title">{{title}}</span>
-              <span class="mel-storyboard-tree-status">{{statusLabel}}</span>
-            </button>
-          </li>
+      <ul class="mel-storyboard-scene-tree" role="tree" aria-label="{{labels.story}}">
+        {{#if hasScenes}}
+          {{#each sceneTree}}
+            <li role="treeitem" aria-level="{{treeLevel}}" class="mel-storyboard-tree-item" style="--tree-depth: {{treeDepth}}">
+              <button type="button" data-action="select-scene" data-scene-id="{{id}}" class="mel-storyboard-tree-node">
+                <span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas {{#if hasChildren}}fa-chevron-down{{else}}fa-circle{{/if}}"></i></span>
+                <span class="mel-storyboard-tree-id">{{displayId}}</span>
+                <span class="mel-storyboard-tree-title">{{title}}</span>
+              </button>
+            </li>
+          {{/each}}
         {{else}}
           <li class="mel-storyboard-empty">{{labels.noScenes}}</li>
-        {{/each}}
+        {{/if}}
       </ul>
     </aside>
 

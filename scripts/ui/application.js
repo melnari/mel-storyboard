@@ -4,7 +4,6 @@ import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, p
 import { HistoryStack } from "../domain/history.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-const { ContextMenu } = foundry.applications.ux;
 
 function localize(key) {
   return game.i18n?.localize(key) ?? key;
@@ -19,9 +18,7 @@ function notifyError(error) {
   ui.notifications.error(error.message ?? String(error));
 }
 
-function buildSceneTree(scenes, query = "") {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const matches = scene => !normalizedQuery || `${scene.displayId} ${scene.title} ${scene.description}`.toLocaleLowerCase().includes(normalizedQuery);
+function buildSceneTree(scenes) {
   const childrenByParent = new Map();
   for (const scene of scenes) {
     const parentId = scene.parentId ?? null;
@@ -30,19 +27,16 @@ function buildSceneTree(scenes, query = "") {
     childrenByParent.set(parentId, children);
   }
   const tree = [];
-  const hasMatchingDescendant = sceneId => (childrenByParent.get(sceneId) ?? []).some(child => matches(child) || hasMatchingDescendant(child.id));
   const visit = (parentId, depth) => {
     for (const scene of childrenByParent.get(parentId) ?? []) {
       const children = childrenByParent.get(scene.id) ?? [];
-      if (matches(scene) || hasMatchingDescendant(scene.id)) {
-        tree.push({ ...scene, treeDepth: depth, hasChildren: children.length > 0, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
-      }
+      tree.push({ ...scene, treeDepth: depth, treeLevel: depth + 2, hasChildren: children.length > 0, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
       visit(scene.id, depth + 1);
     }
   };
   visit(null, 0);
   for (const scene of scenes) {
-    if (!tree.some(item => item.id === scene.id)) tree.push({ ...scene, treeDepth: 0, hasChildren: false, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
+    if (!tree.some(item => item.id === scene.id)) tree.push({ ...scene, treeDepth: 0, treeLevel: 2, hasChildren: false, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
   }
   return tree;
 }
@@ -64,10 +58,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.selectedElementIds = [];
     this.history = new HistoryStack();
     this.drag = null;
-    this.searchQuery = "";
     this.clipboard = null;
     this.connectionSourceId = null;
-    this.contextMenu = null;
+    this.contextMenus = [];
   }
 
   async _prepareContext() {
@@ -91,8 +84,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement.id).length
     } : null;
     const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: selectedScene?.status === value }));
-    const query = this.searchQuery.trim().toLocaleLowerCase();
-    const sceneTree = buildSceneTree(this.board.scenes, query);
+    const sceneTree = buildSceneTree(this.board.scenes);
     const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80));
     const maxY = Math.max(800, ...elements.map(element => element.position.y + element.size.height + 80));
     return {
@@ -106,7 +98,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       canvas: { width: maxX, height: maxY },
       canUndo: this.history.canUndo,
       canRedo: this.history.canRedo,
-      searchQuery: this.searchQuery,
       connectionStatus: this.connectionSourceId ? localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget") : "",
       labels: {
         title: localize("MEL_STORYBOARD.UI.Title"),
@@ -119,8 +110,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         exportPng: localize("MEL_STORYBOARD.ACTIONS.ExportPng"),
         exportPdf: localize("MEL_STORYBOARD.ACTIONS.ExportPdf"),
         newScene: localize("MEL_STORYBOARD.ACTIONS.NewScene"),
+        story: localize("MEL_STORYBOARD.LABELS.Story"),
         scenes: localize("MEL_STORYBOARD.LABELS.Scenes"),
-        searchScenes: localize("MEL_STORYBOARD.LABELS.SearchScenes"),
         noScenes: localize("MEL_STORYBOARD.EMPTY.NoScenes"),
         sceneCanvas: localize("MEL_STORYBOARD.ACCESSIBILITY.SceneCanvas"),
         inspector: localize("MEL_STORYBOARD.ACCESSIBILITY.Inspector"),
@@ -137,9 +128,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     };
   }
 
-  _onRender() {
-    this.contextMenu?.close({ animate: false });
-    this.contextMenu = new ContextMenu(this.element, "[data-scene-element], [data-storyboard-canvas]", this.#contextMenuEntries(), { fixed: true, relative: "cursor" });
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    for (const contextMenu of this.contextMenus) contextMenu.close({ animate: false });
+    this.contextMenus = [
+      this._createContextMenu(() => this.#sceneContextMenuEntries(), "[data-scene-element]", { container: this.element }),
+      this._createContextMenu(() => this.#canvasContextMenuEntries(), "[data-storyboard-canvas]", { container: this.element })
+    ].filter(Boolean);
     this.element.tabIndex = 0;
     if (!this.keyboardBound) {
       this.element.addEventListener("keydown", event => this.#onKeyDown(event));
@@ -164,12 +159,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       }
     });
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
-    this.element.querySelector("[data-search-scenes]")?.addEventListener("input", event => {
-      this.searchQuery = event.currentTarget.value;
-      this.render({ force: true });
-    });
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
-    this.element.querySelector("[data-search-scenes]")?.focus({ preventScroll: true });
   }
 
   #selectElement(elementId, additive = false) {
@@ -188,20 +178,22 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     return { title: localize("MEL_STORYBOARD.EXPORT.Scenes"), scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`) };
   }
 
-  #contextMenuEntries() {
+  #sceneContextMenuEntries() {
     const sceneTarget = target => Boolean(target?.dataset?.elementId);
-    const canvasTarget = target => target?.hasAttribute?.("data-storyboard-canvas") === true;
     const selectTarget = target => {
       const elementId = target?.dataset?.elementId;
       if (elementId) this.selectedElementIds = [elementId];
       return elementId;
     };
     return [
-      { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "fas fa-plus", visible: canvasTarget, onClick: event => this.#createScene(event) },
       { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "fas fa-pen", visible: sceneTarget, onClick: (_event, target) => this.#renameScene(selectTarget(target)) },
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "fas fa-arrow-right", visible: sceneTarget, onClick: async (_event, target) => { this.connectionSourceId = selectTarget(target); ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "fas fa-trash", visible: sceneTarget, onClick: () => this.#deleteSelected() }
     ];
+  }
+
+  #canvasContextMenuEntries() {
+    return [{ label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "fas fa-plus", onClick: event => this.#createScene(event) }];
   }
 
   async #createScene(event = null) {

@@ -42,9 +42,11 @@ const flatten = (value, prefix = "") => Object.entries(value).flatMap(([key, chi
   return child && typeof child === "object" && !Array.isArray(child) ? flatten(child, full) : [full];
 });
 const english = JSON.parse(await readFile(join(root, "lang/en.json"), "utf8"));
+if (!english.MEL_STORYBOARD || typeof english.MEL_STORYBOARD !== "object") throw new Error("lang/en.json must use the MEL_STORYBOARD namespace.");
 const expected = flatten(english);
 for (const file of languageFiles) {
   const current = JSON.parse(await readFile(join(root, "lang", file), "utf8"));
+  if (!current.MEL_STORYBOARD || typeof current.MEL_STORYBOARD !== "object") throw new Error(`${file}: missing MEL_STORYBOARD namespace`);
   const actual = flatten(current);
   const missing = expected.filter(key => !actual.includes(key));
   const extra = actual.filter(key => !expected.includes(key));

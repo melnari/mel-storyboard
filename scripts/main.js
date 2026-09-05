@@ -60,7 +60,8 @@ function mountStoryboardToggle() {
   const button = document.createElement("button");
   button.type = "button";
   button.dataset.melStoryboardToggle = "true";
-  button.className = "mel-storyboard-toggle fas fa-sitemap";
+  button.className = "mel-storyboard-toggle";
+  button.innerHTML = `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 4v7M16 11H8v6M16 11h8v6M8 17v5M24 17v5"/><circle cx="16" cy="4" r="2.5"/><circle cx="8" cy="17" r="2.5"/><circle cx="24" cy="17" r="2.5"/><circle cx="8" cy="25" r="2.5"/><circle cx="24" cy="25" r="2.5"/></svg>`;
   button.title = game.i18n.localize("MEL_STORYBOARD.SETTINGS.OpenDesigner.Label");
   button.setAttribute("aria-label", button.title);
   button.addEventListener("click", () => game.melStoryboard.toggle());

@@ -39,8 +39,9 @@
       "ExportPdf": "PDF",
       "Save": "Guardar"
     },
-    "LABELS": {
-      "Scenes": "Escenas",
+  "LABELS": {
+    "Story": "Story",
+    "Scenes": "Escenas",
       "SceneDetails": "Detalles de la escena",
       "Title": "Título",
       "Status": "Estado",
