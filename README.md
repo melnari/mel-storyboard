@@ -19,7 +19,7 @@ The designer can be opened from the Settings menu, the left-side Storyboard togg
 
 The repository intentionally has no runtime dependencies. Run the checks with:
 
-```bash
+```text
 npm test
 npm run check
 ```

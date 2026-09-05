@@ -1,9 +1,10 @@
 import { MODULE_ID, STATUS } from "../domain/constants.js";
-import { copyMapElements, createConnection, createMap, createMapElement, createStoryScene, duplicateMapElements, pasteMapElements, clone } from "../domain/model.js";
+import { createConnection, createMap, createMapElement, createStoryScene, duplicateStoryElements, clone } from "../domain/model.js";
 import { downloadProjectJson, downloadProjectPng, downloadProjectSvg, printProjectAsPdf, projectFromJson } from "../domain/export.js";
 import { HistoryStack } from "../domain/history.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+const { ContextMenu } = foundry.applications.ux;
 
 function localize(key) {
   return game.i18n?.localize(key) ?? key;
@@ -42,6 +43,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.searchQuery = "";
     this.clipboard = null;
     this.connectionSourceId = null;
+    this.contextMenu = null;
   }
 
   async _prepareContext() {
@@ -71,12 +73,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   _onRender() {
+    this.contextMenu?.close({ animate: false });
+    this.contextMenu = new ContextMenu(this.element, "[data-element-id]", this.#contextMenuEntries(), { fixed: true, relative: "cursor" });
     this.element.tabIndex = 0;
     this.element.addEventListener("keydown", event => this.#onKeyDown(event));
     this.element.querySelectorAll("[data-action]").forEach(element => element.addEventListener("click", event => this.#handleAction(event)));
     this.element.querySelectorAll("[data-element-id]").forEach(element => {
       element.addEventListener("pointerdown", event => this.#startDrag(event));
-      element.addEventListener("contextmenu", event => this.#openContextMenu(event, element.dataset.elementId));
       element.addEventListener("click", async event => {
         event.stopPropagation();
         if (this.connectionSourceId && this.connectionSourceId !== element.dataset.elementId) {
@@ -96,15 +99,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     });
     this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("click", event => {
       if (event.target === event.currentTarget) {
-        this.#closeContextMenu();
         if (this.connectionSourceId) return;
         this.selectedElementId = null;
         this.selectedElementIds = [];
         this.render({ force: true });
       }
-    });
-    this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("contextmenu", event => {
-      if (event.target === event.currentTarget) this.#openContextMenu(event, null);
     });
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
     this.element.querySelector("[data-search-scenes]")?.addEventListener("input", event => {
@@ -118,53 +117,25 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #currentMap(project = this.#currentProject()) { return project?.maps.find(map => map.id === this.mapId) ?? project?.maps[0]; }
   #exportLabels() { return { sceneHeading: localize("MEL_STORYBOARD.EXPORT.StoryScenes"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`) }; }
 
-  #openContextMenu(event, elementId) {
-    event.preventDefault();
-    event.stopPropagation();
-    const menu = this.element.querySelector("[data-context-menu]");
-    if (!menu) return;
-    menu.replaceChildren();
-    const project = this.#currentProject();
-    const map = this.#currentMap(project);
-    const element = map?.elements.find(candidate => candidate.id === elementId);
-    const scene = element?.entityId ? project?.scenes.find(candidate => candidate.id === element.entityId) : null;
-    const entries = [
-      ["add-scene", "MEL_STORYBOARD.ACTIONS.NewScene"],
-      ...(scene ? [
-        ["rename-scene", "MEL_STORYBOARD.ACTIONS.RenameScene"],
-        ["duplicate-selected", "MEL_STORYBOARD.ACTIONS.DuplicateScene"],
-        ["connect-scene", "MEL_STORYBOARD.ACTIONS.ConnectScene"],
-        ["delete-selected", "MEL_STORYBOARD.ACTIONS.DeleteMapElement"]
-      ] : [])
+  #contextMenuEntries() {
+    const sceneVisible = target => Boolean(target?.dataset?.elementId);
+    const selectTarget = target => {
+      const elementId = target?.dataset?.elementId;
+      if (!elementId) return null;
+      this.selectedElementId = elementId;
+      this.selectedElementIds = [elementId];
+      return elementId;
+    };
+    return [
+      { label: localize("MEL_STORYBOARD.ACTIONS.RenameScene"), icon: "fas fa-pen", visible: sceneVisible, onClick: (_event, target) => this.#renameScene(selectTarget(target)) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.DuplicateScene"), icon: "fas fa-copy", visible: sceneVisible, onClick: (_event, target) => { selectTarget(target); return this.#handleAction({ currentTarget: { dataset: { action: "duplicate-selected" } } }); } },
+      { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "fas fa-arrow-right", visible: sceneVisible, onClick: async (_event, target) => {
+        this.connectionSourceId = selectTarget(target);
+        ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget"));
+        await this.render({ force: true });
+      } },
+      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteMapElement"), icon: "fas fa-trash", visible: sceneVisible, onClick: (_event, target) => { selectTarget(target); return this.#handleAction({ currentTarget: { dataset: { action: "delete-selected" } } }); } }
     ];
-    for (const [action, labelKey] of entries) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = localize(labelKey);
-      button.addEventListener("click", async () => {
-        this.#closeContextMenu();
-        if (elementId) {
-          this.selectedElementId = elementId;
-          this.selectedElementIds = [elementId];
-        }
-        if (action === "rename-scene") await this.#renameScene(elementId);
-        else if (action === "connect-scene") {
-          this.connectionSourceId = elementId;
-          ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget"));
-          await this.render({ force: true });
-        } else await this.#handleAction({ currentTarget: { dataset: { action } } });
-      });
-      menu.append(button);
-    }
-    const shellRect = this.element.querySelector(".mel-storyboard-shell")?.getBoundingClientRect();
-    menu.style.left = `${Math.max(8, event.clientX - (shellRect?.left ?? 0))}px`;
-    menu.style.top = `${Math.max(8, event.clientY - (shellRect?.top ?? 0))}px`;
-    menu.hidden = false;
-  }
-
-  #closeContextMenu() {
-    const menu = this.element.querySelector("[data-context-menu]");
-    if (menu) menu.hidden = true;
   }
 
   async #renameScene(elementId) {
@@ -223,16 +194,16 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const project = this.#currentProject();
     const map = this.#currentMap(project);
     if (!map || !this.selectedElementIds.length) return;
-    this.clipboard = copyMapElements(map, this.selectedElementIds);
+    this.clipboard = { mapId: map.id, elementIds: [...this.selectedElementIds] };
     ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.Copied"));
   }
 
   async #pasteClipboard() {
     const project = this.#currentProject();
     const map = this.#currentMap(project);
-    if (!map || !this.clipboard) return;
+    if (!map || !this.clipboard || this.clipboard.mapId !== map.id) return;
     this.history.capture(project);
-    const result = pasteMapElements(map, this.clipboard);
+    const result = duplicateStoryElements(project, map, this.clipboard.elementIds);
     await this.store.save(project);
     this.selectedElementIds = result.duplicates.map(element => element.id);
     this.selectedElementId = this.selectedElementIds[0] ?? null;
@@ -253,7 +224,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       } else if (action === "add-map") {
         const project = this.#currentProject();
         if (!project) return;
-        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.StoryTitle"), `${localize("MEL_STORYBOARD.DEFAULTS.MapTitle")} ${project.maps.length + 1}`);
+        const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.StoryTitle"), `${localize("MEL_STORYBOARD.DEFAULTS.StoryTitle")} ${project.maps.length + 1}`);
         if (!title) return;
         this.history.capture(project);
         const map = createMap(project.id, title);
@@ -311,7 +282,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         const map = this.#currentMap(project);
         if (!map || !this.selectedElementIds.length) return;
         this.history.capture(project);
-        const result = duplicateMapElements(map, this.selectedElementIds);
+        const result = duplicateStoryElements(project, map, this.selectedElementIds);
         await this.store.save(project);
         this.selectedElementIds = result.duplicates.map(element => element.id);
         this.selectedElementId = this.selectedElementIds[0] ?? null;
@@ -439,15 +410,45 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #dragMove(event) {
     if (!this.drag) return;
+    this.drag.pendingEvent = event;
+    if (this.drag.frame) return;
+    this.drag.frame = requestAnimationFrame(() => this.#applyDragFrame());
+  }
+
+  #applyDragFrame() {
+    if (!this.drag?.pendingEvent) return;
+    const event = this.drag.pendingEvent;
     const point = this.#svgPoint(this.element.querySelector("[data-storyboard-canvas]"), event);
     this.drag.element.position = { x: Math.max(0, this.drag.original.x + point.x - this.drag.startX), y: Math.max(0, this.drag.original.y + point.y - this.drag.startY) };
     const elementNode = [...this.element.querySelectorAll("[data-element-id]")].find(node => node.dataset.elementId === this.drag.element.id);
     elementNode?.setAttribute("transform", `translate(${this.drag.element.position.x} ${this.drag.element.position.y})`);
+    this.#updateConnectionGeometry(this.drag.project, this.drag.element.id);
+    this.drag.pendingEvent = null;
+    this.drag.frame = null;
+  }
+
+  #updateConnectionGeometry(project, movedElementId) {
+    const map = this.#currentMap(project);
+    if (!map) return;
+    const positions = new Map(map.elements.map(element => [element.id, { x: element.position.x + element.size.width / 2, y: element.position.y + element.size.height / 2 }]));
+    for (const connection of map.connections) {
+      if (connection.sourceElementId !== movedElementId && connection.targetElementId !== movedElementId) continue;
+      const source = positions.get(connection.sourceElementId);
+      const target = positions.get(connection.targetElementId);
+      const line = this.element.querySelector(`[data-connection-id="${connection.id}"]`);
+      if (!line || !source || !target) continue;
+      line.setAttribute("x1", source.x);
+      line.setAttribute("y1", source.y);
+      line.setAttribute("x2", target.x);
+      line.setAttribute("y2", target.y);
+    }
   }
 
   async #finishDrag() {
     if (!this.drag) return;
     const { project, move, element } = this.drag;
+    if (this.drag.frame) cancelAnimationFrame(this.drag.frame);
+    this.#applyDragFrame();
     window.removeEventListener("pointermove", move);
     this.drag = null;
     this.selectedElementId = element.id;

@@ -2,7 +2,7 @@
   min-width: 900px;
 }
 
-.mel-storyboard-shell {
+.mel-storyboard-workspace {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -38,7 +38,38 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: .35rem;
+}
+
+.mel-storyboard-command-menu {
+  position: relative;
+}
+
+.mel-storyboard-command-menu summary {
+  padding: .35rem .6rem;
+  border: 1px solid #59687a;
+  border-radius: 3px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mel-storyboard-command-list {
+  position: absolute;
+  top: calc(100% + .3rem);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 190px;
+  padding: .35rem;
+  border: 1px solid #59687a;
+  border-radius: 4px;
+  background: #20242c;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+
+.mel-storyboard-command-list button {
+  text-align: left;
 }
 
 .mel-storyboard-toggle {
@@ -176,6 +207,8 @@
   stroke: #9aa4b2;
   stroke-width: 3;
   fill: none;
+  marker-end: url("#mel-storyboard-arrow");
+  stroke-linecap: round;
 }
 
 .mel-storyboard-connection-status {
@@ -188,31 +221,4 @@
   border-radius: 4px;
   background: #3c2f12;
   color: #f6c453;
-}
-
-.mel-storyboard-context-menu {
-  position: absolute;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  min-width: 190px;
-  padding: .25rem;
-  border: 1px solid #59687a;
-  border-radius: 4px;
-  background: #20242c;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
-}
-
-.mel-storyboard-context-menu button {
-  width: 100%;
-  border: 0;
-  border-radius: 2px;
-  background: transparent;
-  color: #edf2f7;
-  text-align: left;
-}
-
-.mel-storyboard-context-menu button:hover,
-.mel-storyboard-context-menu button:focus {
-  background: #394454;
 }

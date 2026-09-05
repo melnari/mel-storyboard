@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, copyMapElements, createConnection, createMapElement, createProject, createStoryScene, duplicateMapElements, pasteMapElements } from "../scripts/domain/model.js";
+import { assignActorToScene, copyMapElements, createConnection, createMapElement, createProject, createStoryScene, duplicateMapElements, duplicateStoryElements, pasteMapElements } from "../scripts/domain/model.js";
 import { projectToJson, projectToSvg } from "../scripts/domain/export.js";
 import { validateProject } from "../scripts/domain/validation.js";
 
@@ -50,6 +50,19 @@ test("copy and paste assigns new map element UUIDs and keeps internal links", ()
   assert.equal(result.copiedConnections.length, 1);
   assert.ok(result.duplicates.every(element => element.mapId === targetMap.id));
   assert.ok(result.copiedConnections.every(connection => connection.mapId === targetMap.id));
+});
+
+test("story duplication creates a new scene object and a new map representation", () => {
+  const project = createProject({ title: "Story duplication" });
+  const map = project.maps[0];
+  const scene = createStoryScene(project, { title: "Original scene" });
+  const element = createMapElement(map, { entityId: scene.id, elementType: "SCENE", title: scene.title });
+  const result = duplicateStoryElements(project, map, [element.id]);
+  assert.equal(result.duplicates.length, 1);
+  assert.equal(project.scenes.length, 2);
+  assert.notEqual(result.duplicates[0].entityId, scene.id);
+  assert.equal(result.duplicates[0].mapId, map.id);
+  assert.equal(validateProject(project).valid, true);
 });
 
 test("validation reports broken scene references", () => {

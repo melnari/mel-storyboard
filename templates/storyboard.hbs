@@ -1,23 +1,28 @@
-<section class="mel-storyboard-shell">
+<section class="mel-storyboard-workspace">
   <header class="mel-storyboard-toolbar">
     <div>
       <h1>{{currentProject.title}}</h1>
       <p class="mel-storyboard-subtitle">{{localize "MEL_STORYBOARD.UI.Subtitle"}}</p>
     </div>
     <div class="mel-storyboard-actions">
-      <button type="button" data-action="create-project">{{localize "MEL_STORYBOARD.ACTIONS.NewStoryline"}}</button>
-      <button type="button" data-action="add-map" {{#unless hasProject}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.NewStory"}}</button>
       <button type="button" data-action="add-scene" {{#unless hasMap}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.NewScene"}}</button>
-      <button type="button" data-action="duplicate-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Duplicate"}}</button>
+      <button type="button" data-action="duplicate-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.DuplicateScene"}}</button>
       <button type="button" data-action="connect-selected" {{#unless canConnect}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Connect"}}</button>
-      <button type="button" data-action="delete-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Delete"}}</button>
       <button type="button" data-action="undo" {{#unless canUndo}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Undo"}}</button>
       <button type="button" data-action="redo" {{#unless canRedo}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Redo"}}</button>
-      <button type="button" data-action="export-json">{{localize "MEL_STORYBOARD.ACTIONS.ExportJson"}}</button>
-      <button type="button" data-action="import-json">{{localize "MEL_STORYBOARD.ACTIONS.ImportJson"}}</button>
-      <button type="button" data-action="export-svg">{{localize "MEL_STORYBOARD.ACTIONS.ExportSvg"}}</button>
-      <button type="button" data-action="export-png">{{localize "MEL_STORYBOARD.ACTIONS.ExportPng"}}</button>
-      <button type="button" data-action="export-pdf">{{localize "MEL_STORYBOARD.ACTIONS.ExportPdf"}}</button>
+      <details class="mel-storyboard-command-menu">
+        <summary>{{localize "MEL_STORYBOARD.UI.MoreActions"}}</summary>
+        <div class="mel-storyboard-command-list">
+          <button type="button" data-action="create-project">{{localize "MEL_STORYBOARD.ACTIONS.NewStoryline"}}</button>
+          <button type="button" data-action="add-map" {{#unless hasProject}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.NewStory"}}</button>
+          <button type="button" data-action="delete-selected" {{#unless selectedElement}}disabled{{/unless}}>{{localize "MEL_STORYBOARD.ACTIONS.Delete"}}</button>
+          <button type="button" data-action="import-json">{{localize "MEL_STORYBOARD.ACTIONS.ImportJson"}}</button>
+          <button type="button" data-action="export-json">{{localize "MEL_STORYBOARD.ACTIONS.ExportJson"}}</button>
+          <button type="button" data-action="export-svg">{{localize "MEL_STORYBOARD.ACTIONS.ExportSvg"}}</button>
+          <button type="button" data-action="export-png">{{localize "MEL_STORYBOARD.ACTIONS.ExportPng"}}</button>
+          <button type="button" data-action="export-pdf">{{localize "MEL_STORYBOARD.ACTIONS.ExportPdf"}}</button>
+        </div>
+      </details>
     </div>
   </header>
   <input type="file" data-json-import accept="application/json,.json" hidden />
@@ -62,8 +67,8 @@
             <pattern id="mel-storyboard-grid" width="24" height="24" patternUnits="userSpaceOnUse">
               <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(160, 175, 195, .14)" stroke-width="1"/>
             </pattern>
-            <marker id="mel-storyboard-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L9,3 z" fill="currentColor" />
+            <marker id="mel-storyboard-arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#f6c453" />
             </marker>
           </defs>
           <rect width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
@@ -103,5 +108,4 @@
     </aside>
   </div>
   <p class="mel-storyboard-connection-status" data-connection-status>{{connectionStatus}}</p>
-  <div class="mel-storyboard-context-menu" data-context-menu hidden></div>
 </section>

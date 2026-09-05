@@ -169,6 +169,53 @@ export function duplicateMapElements(map, elementIds, offset = { x: 32, y: 32 })
   return pasteMapElements(map, copyMapElements(map, elementIds), offset);
 }
 
+export function duplicateStoryElements(project, map, elementIds, offset = { x: 32, y: 32 }) {
+  const selected = map.elements.filter(element => elementIds.includes(element.id));
+  const idMap = new Map();
+  const duplicates = selected.map(element => {
+    const duplicate = clone(element);
+    duplicate.id = uuid();
+    duplicate.mapId = map.id;
+    duplicate.position = { x: element.position.x + offset.x, y: element.position.y + offset.y };
+    duplicate.createdAt = timestamp();
+    duplicate.updatedAt = duplicate.createdAt;
+    if (element.elementType === "SCENE" && element.entityId) {
+      const sourceScene = project.scenes.find(scene => scene.id === element.entityId);
+      if (sourceScene) {
+        const copiedScene = clone(sourceScene);
+        copiedScene.id = uuid();
+        copiedScene.displayId = nextDisplayId(project.scenes, "S");
+        copiedScene.projectId = project.id;
+        copiedScene.createdAt = timestamp();
+        copiedScene.updatedAt = copiedScene.createdAt;
+        copiedScene.actorAssignments = (copiedScene.actorAssignments ?? []).map(assignment => ({ ...assignment, id: uuid(), createdAt: copiedScene.createdAt, updatedAt: copiedScene.updatedAt }));
+        copiedScene.objectAssignments = (copiedScene.objectAssignments ?? []).map(assignment => ({ ...assignment, id: uuid(), createdAt: copiedScene.createdAt, updatedAt: copiedScene.updatedAt }));
+        project.scenes.push(copiedScene);
+        duplicate.entityId = copiedScene.id;
+        duplicate.title = copiedScene.title;
+      }
+    }
+    idMap.set(element.id, duplicate.id);
+    return duplicate;
+  });
+  const copiedConnections = map.connections
+    .filter(connection => idMap.has(connection.sourceElementId) && idMap.has(connection.targetElementId))
+    .map(connection => ({
+      ...clone(connection),
+      id: uuid(),
+      mapId: map.id,
+      sourceElementId: idMap.get(connection.sourceElementId),
+      targetElementId: idMap.get(connection.targetElementId),
+      createdAt: timestamp(),
+      updatedAt: timestamp()
+    }));
+  map.elements.push(...duplicates);
+  map.connections.push(...copiedConnections);
+  map.updatedAt = timestamp();
+  project.updatedAt = map.updatedAt;
+  return { duplicates, copiedConnections };
+}
+
 export function copyMapElements(map, elementIds) {
   const selected = map.elements.filter(element => elementIds.includes(element.id));
   return {
