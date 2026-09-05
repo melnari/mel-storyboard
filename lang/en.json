@@ -1,100 +1,102 @@
 {
-  "SETTINGS": {
-    "SceneBoard": {
-      "Name": "Scene board data",
-      "Hint": "Internal GM-managed scene board storage."
+  "MEL_STORYBOARD": {
+    "SETTINGS": {
+      "SceneBoard": {
+        "Name": "Scene board data",
+        "Hint": "Internal GM-managed scene board storage."
+      },
+      "OpenDesigner": {
+        "Name": "Storyboard",
+        "Label": "Open Scene Board",
+        "Hint": "Open the GM scene board."
+      }
     },
-    "OpenDesigner": {
-      "Name": "Storyboard",
-      "Label": "Open Scene Board",
-      "Hint": "Open the GM scene board."
+    "KEYBINDINGS": {
+      "OpenDesigner": {
+        "Name": "Open Scene Board",
+        "Hint": "Open the GM scene board."
+      }
+    },
+    "UI": {
+      "Title": "Mel-Storyboard",
+      "ImportExport": "Import/Export",
+      "MoreActions": "More"
+    },
+    "ACTIONS": {
+      "NewScene": "New scene",
+      "EditScene": "Edit",
+      "RenameScene": "Rename scene",
+      "DuplicateScene": "Duplicate scene",
+      "ConnectScene": "Connect scene",
+      "DeleteScene": "Delete scene",
+      "Connect": "Connect",
+      "Undo": "Undo",
+      "Redo": "Redo",
+      "ExportJson": "JSON",
+      "ImportJson": "Import JSON",
+      "ExportSvg": "SVG",
+      "ExportPng": "PNG",
+      "ExportPdf": "PDF",
+      "Save": "Save"
+    },
+    "LABELS": {
+      "Scenes": "Scenes",
+      "SceneDetails": "Scene details",
+      "Title": "Title",
+      "Status": "Status",
+      "Description": "Description",
+      "SearchScenes": "Search scenes",
+      "Connections": "Connections",
+      "Incoming": "Incoming",
+      "Outgoing": "Outgoing"
+    },
+    "ACCESSIBILITY": {
+      "Scenes": "Scene navigation",
+      "SceneCanvas": "Scene board",
+      "Inspector": "Scene inspector"
+    },
+    "EMPTY": {
+      "NoScenes": "No scenes yet.",
+      "SelectScene": "Select a scene to inspect it."
+    },
+    "DEFAULTS": {
+      "SceneTitle": "New scene"
+    },
+    "PROMPTS": {
+      "SceneTitle": "Scene title",
+      "RenameScene": "Rename scene",
+      "DeleteScene": "Delete scene \"{title}\"?"
+    },
+    "NOTIFICATIONS": {
+      "Saved": "Scene board saved.",
+      "SelectConnectionTarget": "Select the target scene for this connection.",
+      "Copied": "Scene copied."
+    },
+    "EXPORT": {
+      "Scenes": "Scenes"
+    },
+    "TEMPLATES": {
+      "GENERAL": {
+        "Name": "General scene",
+        "Situation": "Situation",
+        "Objective": "Objective",
+        "Options": "Options and reactions",
+        "Success": "Success",
+        "PartialSuccess": "Partial success",
+        "Failure": "Failure",
+        "Notes": "Notes"
+      }
+    },
+    "ELEMENT_TYPES": {
+      "SCENE": "Scene"
+    },
+    "STATUS": {
+      "OFFEN": "Open",
+      "AKTIV": "Active",
+      "ERFOLG": "Success",
+      "TEILERFOLG": "Partial success",
+      "FEHLSCHLAG": "Failure",
+      "UEBERSPRUNGEN": "Skipped"
     }
-  },
-  "KEYBINDINGS": {
-    "OpenDesigner": {
-      "Name": "Open Scene Board",
-      "Hint": "Open the GM scene board."
-    }
-  },
-  "UI": {
-    "Title": "Mel-Storyboard",
-    "ImportExport": "Import/Export",
-    "MoreActions": "More"
-  },
-  "ACTIONS": {
-    "NewScene": "New scene",
-    "EditScene": "Edit",
-    "RenameScene": "Rename scene",
-    "DuplicateScene": "Duplicate scene",
-    "ConnectScene": "Connect scene",
-    "DeleteScene": "Delete scene",
-    "Connect": "Connect",
-    "Undo": "Undo",
-    "Redo": "Redo",
-    "ExportJson": "JSON",
-    "ImportJson": "Import JSON",
-    "ExportSvg": "SVG",
-    "ExportPng": "PNG",
-    "ExportPdf": "PDF",
-    "Save": "Save"
-  },
-  "LABELS": {
-    "Scenes": "Scenes",
-    "SceneDetails": "Scene details",
-    "Title": "Title",
-    "Status": "Status",
-    "Description": "Description",
-    "SearchScenes": "Search scenes",
-    "Connections": "Connections",
-    "Incoming": "Incoming",
-    "Outgoing": "Outgoing"
-  },
-  "ACCESSIBILITY": {
-    "Scenes": "Scene navigation",
-    "SceneCanvas": "Scene board",
-    "Inspector": "Scene inspector"
-  },
-  "EMPTY": {
-    "NoScenes": "No scenes yet.",
-    "SelectScene": "Select a scene to inspect it."
-  },
-  "DEFAULTS": {
-    "SceneTitle": "New scene"
-  },
-  "PROMPTS": {
-    "SceneTitle": "Scene title",
-    "RenameScene": "Rename scene",
-    "DeleteScene": "Delete scene \"{title}\"?"
-  },
-  "NOTIFICATIONS": {
-    "Saved": "Scene board saved.",
-    "SelectConnectionTarget": "Select the target scene for this connection.",
-    "Copied": "Scene copied."
-  },
-  "EXPORT": {
-    "Scenes": "Scenes"
-  },
-  "TEMPLATES": {
-    "GENERAL": {
-      "Name": "General scene",
-      "Situation": "Situation",
-      "Objective": "Objective",
-      "Options": "Options and reactions",
-      "Success": "Success",
-      "PartialSuccess": "Partial success",
-      "Failure": "Failure",
-      "Notes": "Notes"
-    }
-  },
-  "ELEMENT_TYPES": {
-    "SCENE": "Scene"
-  },
-  "STATUS": {
-    "OFFEN": "Open",
-    "AKTIV": "Active",
-    "ERFOLG": "Success",
-    "TEILERFOLG": "Partial success",
-    "FEHLSCHLAG": "Failure",
-    "UEBERSPRUNGEN": "Skipped"
   }
 }

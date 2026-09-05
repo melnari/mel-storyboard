@@ -25,7 +25,7 @@ Hooks.once("init", () => {
     name: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Name",
     label: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Label",
     hint: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Hint",
-    icon: "fas fa-diagram-project",
+    icon: "fas fa-sitemap",
     type: StoryboardApplication,
     restricted: true
   });
@@ -49,7 +49,7 @@ Hooks.on("getSceneControlButtons", controls => {
   control.tools.push({
     name: "mel-storyboard",
     title: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Label",
-    icon: "fas fa-diagram-project",
+    icon: "fas fa-sitemap",
     button: true,
     onChange: () => game.melStoryboard.open()
   });
@@ -60,7 +60,7 @@ function mountStoryboardToggle() {
   const button = document.createElement("button");
   button.type = "button";
   button.dataset.melStoryboardToggle = "true";
-  button.className = "mel-storyboard-toggle fas fa-diagram-project";
+  button.className = "mel-storyboard-toggle fas fa-sitemap";
   button.title = game.i18n.localize("MEL_STORYBOARD.SETTINGS.OpenDesigner.Label");
   button.setAttribute("aria-label", button.title);
   button.addEventListener("click", () => game.melStoryboard.toggle());

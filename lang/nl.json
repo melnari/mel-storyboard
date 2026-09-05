@@ -1,100 +1,102 @@
 {
-  "SETTINGS": {
-    "SceneBoard": {
-      "Name": "Scènebordgegevens",
-      "Hint": "Interne, door de GM beheerde opslag van het scènebord."
+  "MEL_STORYBOARD": {
+    "SETTINGS": {
+      "SceneBoard": {
+        "Name": "Scènebordgegevens",
+        "Hint": "Interne, door de GM beheerde opslag van het scènebord."
+      },
+      "OpenDesigner": {
+        "Name": "Storyboard",
+        "Label": "Scènebord openen",
+        "Hint": "Open het scènebord voor de GM."
+      }
     },
-    "OpenDesigner": {
-      "Name": "Storyboard",
-      "Label": "Scènebord openen",
-      "Hint": "Open het scènebord voor de GM."
+    "KEYBINDINGS": {
+      "OpenDesigner": {
+        "Name": "Scènebord openen",
+        "Hint": "Open het scènebord voor de GM."
+      }
+    },
+    "UI": {
+      "Title": "Mel-Storyboard",
+      "ImportExport": "Importeren/Exporteren",
+      "MoreActions": "Meer"
+    },
+    "ACTIONS": {
+      "NewScene": "Nieuwe scène",
+      "EditScene": "Wijzigen",
+      "RenameScene": "Scène hernoemen",
+      "DuplicateScene": "Scène dupliceren",
+      "ConnectScene": "Scène verbinden",
+      "DeleteScene": "Scène verwijderen",
+      "Connect": "Verbinden",
+      "Undo": "Ongedaan maken",
+      "Redo": "Opnieuw",
+      "ExportJson": "JSON",
+      "ImportJson": "JSON importeren",
+      "ExportSvg": "SVG",
+      "ExportPng": "PNG",
+      "ExportPdf": "PDF",
+      "Save": "Opslaan"
+    },
+    "LABELS": {
+      "Scenes": "Scènes",
+      "SceneDetails": "Scènedetails",
+      "Title": "Titel",
+      "Status": "Status",
+      "Description": "Beschrijving",
+      "SearchScenes": "Scènes zoeken",
+      "Connections": "Verbindingen",
+      "Incoming": "Inkomend",
+      "Outgoing": "Uitgaand"
+    },
+    "ACCESSIBILITY": {
+      "Scenes": "Scènenavigatie",
+      "SceneCanvas": "Scènebord",
+      "Inspector": "Scène-inspecteur"
+    },
+    "EMPTY": {
+      "NoScenes": "Nog geen scènes.",
+      "SelectScene": "Selecteer een scène om deze te bekijken."
+    },
+    "DEFAULTS": {
+      "SceneTitle": "Nieuwe scène"
+    },
+    "PROMPTS": {
+      "SceneTitle": "Scènetitel",
+      "RenameScene": "Scène hernoemen",
+      "DeleteScene": "Scène \"{title}\" verwijderen?"
+    },
+    "NOTIFICATIONS": {
+      "Saved": "Scènebord opgeslagen.",
+      "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
+      "Copied": "Scène gekopieerd."
+    },
+    "EXPORT": {
+      "Scenes": "Scènes"
+    },
+    "TEMPLATES": {
+      "GENERAL": {
+        "Name": "Algemene scène",
+        "Situation": "Situatie",
+        "Objective": "Doel",
+        "Options": "Opties en reacties",
+        "Success": "Succes",
+        "PartialSuccess": "Gedeeltelijk succes",
+        "Failure": "Mislukking",
+        "Notes": "Notities"
+      }
+    },
+    "ELEMENT_TYPES": {
+      "SCENE": "Scène"
+    },
+    "STATUS": {
+      "OFFEN": "Open",
+      "AKTIV": "Actief",
+      "ERFOLG": "Succes",
+      "TEILERFOLG": "Gedeeltelijk succes",
+      "FEHLSCHLAG": "Mislukking",
+      "UEBERSPRUNGEN": "Overgeslagen"
     }
-  },
-  "KEYBINDINGS": {
-    "OpenDesigner": {
-      "Name": "Scènebord openen",
-      "Hint": "Open het scènebord voor de GM."
-    }
-  },
-  "UI": {
-    "Title": "Mel-Storyboard",
-    "ImportExport": "Importeren/Exporteren",
-    "MoreActions": "Meer"
-  },
-  "ACTIONS": {
-    "NewScene": "Nieuwe scène",
-    "EditScene": "Wijzigen",
-    "RenameScene": "Scène hernoemen",
-    "DuplicateScene": "Scène dupliceren",
-    "ConnectScene": "Scène verbinden",
-    "DeleteScene": "Scène verwijderen",
-    "Connect": "Verbinden",
-    "Undo": "Ongedaan maken",
-    "Redo": "Opnieuw",
-    "ExportJson": "JSON",
-    "ImportJson": "JSON importeren",
-    "ExportSvg": "SVG",
-    "ExportPng": "PNG",
-    "ExportPdf": "PDF",
-    "Save": "Opslaan"
-  },
-  "LABELS": {
-    "Scenes": "Scènes",
-    "SceneDetails": "Scènedetails",
-    "Title": "Titel",
-    "Status": "Status",
-    "Description": "Beschrijving",
-    "SearchScenes": "Scènes zoeken",
-    "Connections": "Verbindingen",
-    "Incoming": "Inkomend",
-    "Outgoing": "Uitgaand"
-  },
-  "ACCESSIBILITY": {
-    "Scenes": "Scènenavigatie",
-    "SceneCanvas": "Scènebord",
-    "Inspector": "Scène-inspecteur"
-  },
-  "EMPTY": {
-    "NoScenes": "Nog geen scènes.",
-    "SelectScene": "Selecteer een scène om deze te bekijken."
-  },
-  "DEFAULTS": {
-    "SceneTitle": "Nieuwe scène"
-  },
-  "PROMPTS": {
-    "SceneTitle": "Scènetitel",
-    "RenameScene": "Scène hernoemen",
-    "DeleteScene": "Scène \"{title}\" verwijderen?"
-  },
-  "NOTIFICATIONS": {
-    "Saved": "Scènebord opgeslagen.",
-    "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
-    "Copied": "Scène gekopieerd."
-  },
-  "EXPORT": {
-    "Scenes": "Scènes"
-  },
-  "TEMPLATES": {
-    "GENERAL": {
-      "Name": "Algemene scène",
-      "Situation": "Situatie",
-      "Objective": "Doel",
-      "Options": "Opties en reacties",
-      "Success": "Succes",
-      "PartialSuccess": "Gedeeltelijk succes",
-      "Failure": "Mislukking",
-      "Notes": "Notities"
-    }
-  },
-  "ELEMENT_TYPES": {
-    "SCENE": "Scène"
-  },
-  "STATUS": {
-    "OFFEN": "Open",
-    "AKTIV": "Actief",
-    "ERFOLG": "Succes",
-    "TEILERFOLG": "Gedeeltelijk succes",
-    "FEHLSCHLAG": "Mislukking",
-    "UEBERSPRUNGEN": "Overgeslagen"
   }
 }

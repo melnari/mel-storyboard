@@ -1,100 +1,102 @@
 {
-  "SETTINGS": {
-    "SceneBoard": {
-      "Name": "Datos del tablero de escenas",
-      "Hint": "Almacenamiento interno del tablero de escenas gestionado por el DJ."
+  "MEL_STORYBOARD": {
+    "SETTINGS": {
+      "SceneBoard": {
+        "Name": "Datos del tablero de escenas",
+        "Hint": "Almacenamiento interno del tablero de escenas gestionado por el DJ."
+      },
+      "OpenDesigner": {
+        "Name": "Storyboard",
+        "Label": "Abrir tablero de escenas",
+        "Hint": "Abrir el tablero de escenas del DJ."
+      }
     },
-    "OpenDesigner": {
-      "Name": "Storyboard",
-      "Label": "Abrir tablero de escenas",
-      "Hint": "Abrir el tablero de escenas del DJ."
+    "KEYBINDINGS": {
+      "OpenDesigner": {
+        "Name": "Abrir tablero de escenas",
+        "Hint": "Abrir el tablero de escenas del DJ."
+      }
+    },
+    "UI": {
+      "Title": "Mel-Storyboard",
+      "ImportExport": "Importar/Exportar",
+      "MoreActions": "Más"
+    },
+    "ACTIONS": {
+      "NewScene": "Nueva escena",
+      "EditScene": "Modificar",
+      "RenameScene": "Renombrar escena",
+      "DuplicateScene": "Duplicar escena",
+      "ConnectScene": "Conectar escena",
+      "DeleteScene": "Eliminar escena",
+      "Connect": "Conectar",
+      "Undo": "Deshacer",
+      "Redo": "Rehacer",
+      "ExportJson": "JSON",
+      "ImportJson": "Importar JSON",
+      "ExportSvg": "SVG",
+      "ExportPng": "PNG",
+      "ExportPdf": "PDF",
+      "Save": "Guardar"
+    },
+    "LABELS": {
+      "Scenes": "Escenas",
+      "SceneDetails": "Detalles de la escena",
+      "Title": "Título",
+      "Status": "Estado",
+      "Description": "Descripción",
+      "SearchScenes": "Buscar escenas",
+      "Connections": "Conexiones",
+      "Incoming": "Entrantes",
+      "Outgoing": "Salientes"
+    },
+    "ACCESSIBILITY": {
+      "Scenes": "Navegación de escenas",
+      "SceneCanvas": "Tablero de escenas",
+      "Inspector": "Inspector de escenas"
+    },
+    "EMPTY": {
+      "NoScenes": "Aún no hay escenas.",
+      "SelectScene": "Selecciona una escena para inspeccionarla."
+    },
+    "DEFAULTS": {
+      "SceneTitle": "Nueva escena"
+    },
+    "PROMPTS": {
+      "SceneTitle": "Título de la escena",
+      "RenameScene": "Renombrar escena",
+      "DeleteScene": "¿Eliminar la escena \"{title}\"?"
+    },
+    "NOTIFICATIONS": {
+      "Saved": "Tablero de escenas guardado.",
+      "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
+      "Copied": "Escena copiada."
+    },
+    "EXPORT": {
+      "Scenes": "Escenas"
+    },
+    "TEMPLATES": {
+      "GENERAL": {
+        "Name": "Escena general",
+        "Situation": "Situación",
+        "Objective": "Objetivo",
+        "Options": "Opciones y reacciones",
+        "Success": "Éxito",
+        "PartialSuccess": "Éxito parcial",
+        "Failure": "Fracaso",
+        "Notes": "Notas"
+      }
+    },
+    "ELEMENT_TYPES": {
+      "SCENE": "Escena"
+    },
+    "STATUS": {
+      "OFFEN": "Abierto",
+      "AKTIV": "Activo",
+      "ERFOLG": "Éxito",
+      "TEILERFOLG": "Éxito parcial",
+      "FEHLSCHLAG": "Fracaso",
+      "UEBERSPRUNGEN": "Omitido"
     }
-  },
-  "KEYBINDINGS": {
-    "OpenDesigner": {
-      "Name": "Abrir tablero de escenas",
-      "Hint": "Abrir el tablero de escenas del DJ."
-    }
-  },
-  "UI": {
-    "Title": "Mel-Storyboard",
-    "ImportExport": "Importar/Exportar",
-    "MoreActions": "Más"
-  },
-  "ACTIONS": {
-    "NewScene": "Nueva escena",
-    "EditScene": "Modificar",
-    "RenameScene": "Renombrar escena",
-    "DuplicateScene": "Duplicar escena",
-    "ConnectScene": "Conectar escena",
-    "DeleteScene": "Eliminar escena",
-    "Connect": "Conectar",
-    "Undo": "Deshacer",
-    "Redo": "Rehacer",
-    "ExportJson": "JSON",
-    "ImportJson": "Importar JSON",
-    "ExportSvg": "SVG",
-    "ExportPng": "PNG",
-    "ExportPdf": "PDF",
-    "Save": "Guardar"
-  },
-  "LABELS": {
-    "Scenes": "Escenas",
-    "SceneDetails": "Detalles de la escena",
-    "Title": "Título",
-    "Status": "Estado",
-    "Description": "Descripción",
-    "SearchScenes": "Buscar escenas",
-    "Connections": "Conexiones",
-    "Incoming": "Entrantes",
-    "Outgoing": "Salientes"
-  },
-  "ACCESSIBILITY": {
-    "Scenes": "Navegación de escenas",
-    "SceneCanvas": "Tablero de escenas",
-    "Inspector": "Inspector de escenas"
-  },
-  "EMPTY": {
-    "NoScenes": "Aún no hay escenas.",
-    "SelectScene": "Selecciona una escena para inspeccionarla."
-  },
-  "DEFAULTS": {
-    "SceneTitle": "Nueva escena"
-  },
-  "PROMPTS": {
-    "SceneTitle": "Título de la escena",
-    "RenameScene": "Renombrar escena",
-    "DeleteScene": "¿Eliminar la escena \"{title}\"?"
-  },
-  "NOTIFICATIONS": {
-    "Saved": "Tablero de escenas guardado.",
-    "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
-    "Copied": "Escena copiada."
-  },
-  "EXPORT": {
-    "Scenes": "Escenas"
-  },
-  "TEMPLATES": {
-    "GENERAL": {
-      "Name": "Escena general",
-      "Situation": "Situación",
-      "Objective": "Objetivo",
-      "Options": "Opciones y reacciones",
-      "Success": "Éxito",
-      "PartialSuccess": "Éxito parcial",
-      "Failure": "Fracaso",
-      "Notes": "Notas"
-    }
-  },
-  "ELEMENT_TYPES": {
-    "SCENE": "Escena"
-  },
-  "STATUS": {
-    "OFFEN": "Abierto",
-    "AKTIV": "Activo",
-    "ERFOLG": "Éxito",
-    "TEILERFOLG": "Éxito parcial",
-    "FEHLSCHLAG": "Fracaso",
-    "UEBERSPRUNGEN": "Omitido"
   }
 }
