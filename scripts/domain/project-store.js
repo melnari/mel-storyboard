@@ -1,89 +1,47 @@
 import { MODULE_ID, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
-import { clone, createProject } from "./model.js";
-import { validateProject } from "./validation.js";
+import { clone, createSceneBoard } from "./model.js";
+import { validateSceneBoard } from "./validation.js";
 
-export function registerProjectSetting() {
+export function registerSceneBoardSetting() {
   game.settings.register(MODULE_ID, STORE_KEY, {
-    name: "MEL_STORYBOARD.SETTINGS.ProjectStore.Name",
-    hint: "MEL_STORYBOARD.SETTINGS.ProjectStore.Hint",
+    name: "MEL_STORYBOARD.SETTINGS.SceneBoard.Name",
+    hint: "MEL_STORYBOARD.SETTINGS.SceneBoard.Hint",
     scope: "world",
     config: false,
     type: Object,
-    default: { schemaVersion: STORE_SCHEMA_VERSION, projects: [] }
+    default: createSceneBoard()
   });
 }
 
-export class ProjectStore {
+export class SceneBoardStore {
   constructor(settings = game.settings) {
     this.settings = settings;
   }
 
   #assertGM() {
-    if (!game.user?.isGM) throw new Error("Only a GM may change Storyboard projects.");
+    if (!game.user?.isGM) throw new Error("Only a GM may change the scene board.");
   }
 
-  readDatabase() {
-    const database = this.settings.get(MODULE_ID, STORE_KEY) ?? { schemaVersion: STORE_SCHEMA_VERSION, projects: [] };
-    return clone(database);
+  read() {
+    const stored = this.settings.get(MODULE_ID, STORE_KEY);
+    return clone(stored?.schemaVersion === STORE_SCHEMA_VERSION ? stored : createSceneBoard());
   }
 
-  list() {
-    return this.readDatabase().projects;
-  }
-
-  get(projectId) {
-    return this.list().find(project => project.id === projectId) ?? null;
-  }
-
-  async save(project) {
+  async save(board) {
     this.#assertGM();
-    const result = validateProject(project);
-    if (!result.valid) throw new Error(`Project validation failed: ${result.errors.join(" ")}`);
-    const database = this.readDatabase();
-    const index = database.projects.findIndex(candidate => candidate.id === project.id);
-    if (index < 0) database.projects.push(clone(project));
-    else database.projects[index] = clone(project);
-    database.schemaVersion = STORE_SCHEMA_VERSION;
-    await this.settings.set(MODULE_ID, STORE_KEY, database);
-    return clone(project);
+    const result = validateSceneBoard(board);
+    if (!result.valid) throw new Error(`Scene board validation failed: ${result.errors.join(" ")}`);
+    const saved = clone(board);
+    saved.schemaVersion = STORE_SCHEMA_VERSION;
+    saved.updatedAt = new Date().toISOString();
+    await this.settings.set(MODULE_ID, STORE_KEY, saved);
+    return clone(saved);
   }
 
-  async create(title, description = "") {
+  async import(board) {
     this.#assertGM();
-    const project = createProject({ title, description });
-    await this.save(project);
-    return project;
-  }
-
-  async import(project) {
-    this.#assertGM();
-    const result = validateProject(project);
-    if (!result.valid) throw new Error(`Project validation failed: ${result.errors.join(" ")}`);
-    const database = this.readDatabase();
-    if (database.projects.some(candidate => candidate.id === project.id)) {
-      throw new Error("A project with this UUID already exists.");
-    }
-    database.projects.push(clone(project));
-    await this.settings.set(MODULE_ID, STORE_KEY, database);
-    return clone(project);
-  }
-
-  async rename(projectId, title) {
-    this.#assertGM();
-    if (!title?.trim()) throw new Error("A Storyline title is required.");
-    const project = this.get(projectId);
-    if (!project) throw new Error("The Storyline does not exist.");
-    project.title = title.trim();
-    project.updatedAt = new Date().toISOString();
-    return this.save(project);
-  }
-
-  async delete(projectId) {
-    this.#assertGM();
-    const database = this.readDatabase();
-    const nextProjects = database.projects.filter(project => project.id !== projectId);
-    if (nextProjects.length === database.projects.length) throw new Error("The Storyline does not exist.");
-    database.projects = nextProjects;
-    await this.settings.set(MODULE_ID, STORE_KEY, database);
+    const result = validateSceneBoard(board);
+    if (!result.valid) throw new Error(`Scene board validation failed: ${result.errors.join(" ")}`);
+    return this.save(board);
   }
 }

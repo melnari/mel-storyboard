@@ -2,55 +2,48 @@ function escapeXml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character]);
 }
 
-function mapBounds(map) {
-  const right = Math.max(800, ...map.elements.map(element => element.position.x + element.size.width + 80));
-  const bottom = Math.max(600, ...map.elements.map(element => element.position.y + element.size.height + 80));
-  return { width: right, height: bottom };
+function boardBounds(board) {
+  return {
+    width: Math.max(800, ...board.elements.map(element => element.position.x + element.size.width + 80)),
+    height: Math.max(600, ...board.elements.map(element => element.position.y + element.size.height + 80))
+  };
 }
 
-function mapSvg(map, project, offsetY = 0) {
-  const { width, height } = mapBounds(map);
-  const sceneById = new Map(project.scenes.map(scene => [scene.id, scene]));
-  const lines = map.connections.map(connection => {
-    const source = map.elements.find(element => element.id === connection.sourceElementId);
-    const target = map.elements.find(element => element.id === connection.targetElementId);
+export function sceneBoardToSvg(board, labels = {}) {
+  const { width, height } = boardBounds(board);
+  const sceneById = new Map(board.scenes.map(scene => [scene.id, scene]));
+  const elementById = new Map(board.elements.map(element => [element.id, element]));
+  const lines = board.connections.map(connection => {
+    const source = elementById.get(connection.sourceElementId);
+    const target = elementById.get(connection.targetElementId);
     if (!source || !target) return "";
     const x1 = source.position.x + source.size.width / 2;
-    const y1 = source.position.y + source.size.height / 2 + offsetY;
+    const y1 = source.position.y + source.size.height / 2;
     const x2 = target.position.x + target.size.width / 2;
-    const y2 = target.position.y + target.size.height / 2 + offsetY;
-    return `<line class="connection" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+    const y2 = target.position.y + target.size.height / 2;
+    return `<line class="connection" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" marker-end="url(#arrow)" />`;
   }).join("");
-  const elements = map.elements.map(element => {
-    const scene = sceneById.get(element.entityId);
-    const title = scene?.title || element.title || element.elementType;
-    return `<g class="element" transform="translate(${element.position.x},${element.position.y + offsetY})"><rect width="${element.size.width}" height="${element.size.height}" rx="8" /><text x="12" y="28">${escapeXml(title)}</text><text class="type" x="12" y="50">${escapeXml(element.elementType)}</text></g>`;
+  const elements = board.elements.map(element => {
+    const scene = sceneById.get(element.sceneId);
+    const title = scene?.title || element.title || labels.scene || "Scene";
+    const status = labels.status?.(scene?.status) ?? scene?.status ?? "";
+    return `<g class="element" transform="translate(${element.position.x},${element.position.y})"><rect width="${element.size.width}" height="${element.size.height}" rx="8" /><text x="12" y="28">${escapeXml(title)}</text><text class="type" x="12" y="50">${escapeXml(scene?.displayId ?? "")}</text><text class="status" x="12" y="68">${escapeXml(status)}</text></g>`;
   }).join("");
-  return { width, height, content: `<text class="map-title" x="24" y="${offsetY + 32}">${escapeXml(map.title)}</text>${lines}${elements}` };
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.connection{stroke:#f6c453;stroke-width:3;fill:none;marker-end:url(#arrow)}.element rect{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element text{fill:#f0f0f0;font-size:16px}.element text.type,.element text.status{fill:#aeb8c5;font-size:11px}</style><defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0,0 L0,8 L11,4 z" fill="#f6c453" /></marker></defs>${lines}${elements}</svg>`;
 }
 
-export function projectToSvg(project, labels = {}) {
-  const panelHeight = 760;
-  const sceneSectionY = Math.max(panelHeight, project.maps.length * panelHeight) + 24;
-  const sceneHeight = Math.max(220, project.scenes.length * 48 + 100);
-  const height = sceneSectionY + sceneHeight;
-  const sections = project.maps.map((map, index) => mapSvg(map, project, index * panelHeight + 48).content).join("");
-  const scenes = project.scenes.map((scene, index) => `<text class="scene-row" x="32" y="${sceneSectionY + 58 + index * 48}">${escapeXml(scene.displayId)} — ${escapeXml(scene.title)} — ${escapeXml(labels.status?.(scene.status) ?? scene.status)}</text>`).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.map-title{font-size:24px;font-weight:700;fill:#f0f0f0}.connection{stroke:#9aa4b2;stroke-width:3;marker-end:url(#arrow)}.element rect{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element text{fill:#f0f0f0;font-size:16px}.element text.type{fill:#aeb8c5;font-size:11px}.scene-heading{font-size:22px;font-weight:700;fill:#f0f0f0}.scene-row{font-size:16px;fill:#d7dee8}</style><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9aa4b2" /></marker></defs>${sections}<text class="scene-heading" x="24" y="${sceneSectionY + 32}">${escapeXml(labels.sceneHeading ?? "Story scenes")}</text>${scenes}</svg>`;
+export function sceneBoardToJson(board) {
+  return JSON.stringify(board, null, 2);
 }
 
-export function projectToJson(project) {
-  return JSON.stringify(project, null, 2);
-}
-
-export function projectFromJson(json) {
-  const project = typeof json === "string" ? JSON.parse(json) : json;
-  if (!project || typeof project !== "object") throw new Error("The imported JSON is not a project object.");
-  return project;
+export function sceneBoardFromJson(json) {
+  const board = typeof json === "string" ? JSON.parse(json) : json;
+  if (!board || typeof board !== "object") throw new Error("The imported JSON is not a scene board.");
+  return board;
 }
 
 function downloadBlob(content, filename, type) {
-  const blob = new Blob([content], { type });
+  const blob = content instanceof Blob ? content : new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -59,16 +52,16 @@ function downloadBlob(content, filename, type) {
   URL.revokeObjectURL(url);
 }
 
-export function downloadProjectJson(project) {
-  downloadBlob(projectToJson(project), `${project.title}.json`, "application/json");
+export function downloadSceneBoardJson(board) {
+  downloadBlob(sceneBoardToJson(board), "mel-storyboard-scenes.json", "application/json");
 }
 
-export function downloadProjectSvg(project, labels) {
-  downloadBlob(projectToSvg(project, labels), `${project.title}.svg`, "image/svg+xml");
+export function downloadSceneBoardSvg(board, labels) {
+  downloadBlob(sceneBoardToSvg(board, labels), "mel-storyboard-scenes.svg", "image/svg+xml");
 }
 
-export async function downloadProjectPng(project, labels) {
-  const svg = projectToSvg(project, labels);
+export async function downloadSceneBoardPng(board, labels) {
+  const svg = sceneBoardToSvg(board, labels);
   const blob = new Blob([svg], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   const image = new Image();
@@ -79,16 +72,15 @@ export async function downloadProjectPng(project, labels) {
   canvas.height = image.height;
   canvas.getContext("2d").drawImage(image, 0, 0);
   URL.revokeObjectURL(url);
-  canvas.toBlob(result => downloadBlob(result, `${project.title}.png`, "image/png"));
+  canvas.toBlob(result => downloadBlob(result, "mel-storyboard-scenes.png", "image/png"));
 }
 
-export function printProjectAsPdf(project, labels) {
+export function printSceneBoardAsPdf(board, labels) {
   const preview = window.open("", "mel-storyboard-pdf");
   if (!preview) throw new Error("The browser blocked the print preview window.");
-  preview.document.write(`<title>${escapeXml(project.title)}</title><style>body{font-family:Arial,sans-serif;margin:2rem}img{max-width:100%}</style><h1>${escapeXml(project.title)}</h1><p>${escapeXml(project.description)}</p><div>${project.maps.map(map => `<h2>${escapeXml(map.title)}</h2>`).join("")}</div>`);
-  const svgBlob = new Blob([projectToSvg(project, labels)], { type: "image/svg+xml" });
+  const svgBlob = new Blob([sceneBoardToSvg(board, labels)], { type: "image/svg+xml" });
   const url = URL.createObjectURL(svgBlob);
-  preview.document.write(`<img src="${url}" alt="${escapeXml(project.title)}" />`);
+  preview.document.write(`<title>${escapeXml(labels.title ?? "Scenes")}</title><style>body{font-family:Arial,sans-serif;margin:2rem}img{max-width:100%}</style><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes')}" />`);
   preview.document.close();
   preview.addEventListener("load", () => preview.print(), { once: true });
 }

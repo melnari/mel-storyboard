@@ -12,7 +12,6 @@ function timestamp() {
 export function createDefaultTemplate() {
   return {
     id: uuid(),
-    projectId: null,
     nameKey: "MEL_STORYBOARD.TEMPLATES.GENERAL.Name",
     version: 1,
     active: true,
@@ -28,228 +27,158 @@ export function createDefaultTemplate() {
   };
 }
 
-export function createMap(projectId, title = "Overview map") {
+export function createSceneBoard() {
   const now = timestamp();
   return {
-    id: uuid(),
-    projectId,
-    title,
-    viewport: { x: 0, y: 0, zoom: 1 },
-    elements: [],
-    connections: [],
-    createdAt: now,
-    updatedAt: now
-  };
-}
-
-export function createProject({ title, description = "" }) {
-  if (!title?.trim()) throw new Error("A project title is required.");
-  const id = uuid();
-  const now = timestamp();
-  const project = {
     schemaVersion: STORE_SCHEMA_VERSION,
-    id,
-    title: title.trim(),
-    description,
+    id: uuid(),
     createdAt: now,
     updatedAt: now,
-    maps: [],
+    templates: [createDefaultTemplate()],
     scenes: [],
-    objects: [],
-    templates: [],
-    notes: []
+    elements: [],
+    connections: []
   };
-  project.templates.push(createDefaultTemplate());
-  project.maps.push(createMap(id));
-  return project;
 }
 
-export function createStoryScene(project, { title = "New scene", description = "" } = {}) {
+export function createScene(board, { title = "New scene", description = "" } = {}) {
   const now = timestamp();
   const scene = {
     id: uuid(),
-    projectId: project.id,
-    displayId: nextDisplayId(project.scenes, "S"),
-    title,
+    displayId: nextDisplayId(board.scenes, "S"),
+    title: title.trim() || "New scene",
     description,
     status: STATUS.OPEN,
-    templateId: project.templates.find(template => template.active)?.id ?? null,
+    templateId: board.templates.find(template => template.active)?.id ?? null,
     fieldValues: {},
-    phaseId: null,
-    storyLineId: null,
     actorAssignments: [],
     objectAssignments: [],
     createdAt: now,
     updatedAt: now
   };
-  project.scenes.push(scene);
-  project.updatedAt = now;
+  board.scenes.push(scene);
+  board.updatedAt = now;
   return scene;
 }
 
-export function createMapElement(map, { entityId = null, elementType = "SCENE", title = "" } = {}) {
-  if (!ELEMENT_TYPES.includes(elementType)) throw new Error(`Unsupported element type: ${elementType}`);
+export function createSceneElement(board, { sceneId = null, title = "" } = {}) {
+  const now = timestamp();
   const element = {
     id: uuid(),
-    mapId: map.id,
-    entityId,
-    elementType,
+    sceneId,
+    elementType: "SCENE",
     title,
-    description: "",
-    position: { x: 120, y: 120 },
+    position: { x: 120 + board.elements.length * 24, y: 120 + board.elements.length * 18 },
     size: { width: 180, height: 80 },
-    zIndex: map.elements.length,
-    status: null,
+    zIndex: board.elements.length,
     visualConfig: {},
-    createdAt: timestamp(),
-    updatedAt: timestamp()
-  };
-  map.elements.push(element);
-  map.updatedAt = element.updatedAt;
-  return element;
-}
-
-export function createConnection(map, sourceElementId, targetElementId, connectionType = "FLOW") {
-  if (!map.elements.some(element => element.id === sourceElementId)) throw new Error("The source element does not exist.");
-  if (!map.elements.some(element => element.id === targetElementId)) throw new Error("The target element does not exist.");
-  const connection = {
-    id: uuid(),
-    mapId: map.id,
-    sourceElementId,
-    targetElementId,
-    connectionType,
-    label: "",
-    description: "",
-    visualConfig: {},
-    createdAt: timestamp(),
-    updatedAt: timestamp()
-  };
-  map.connections.push(connection);
-  map.updatedAt = connection.updatedAt;
-  return connection;
-}
-
-export function createDomainObject(project, { objectType, name, description = "" }) {
-  if (!name?.trim()) throw new Error("An object name is required.");
-  const now = timestamp();
-  const object = {
-    id: uuid(),
-    projectId: project.id,
-    displayId: nextDisplayId(project.objects, "O"),
-    objectType,
-    name: name.trim(),
-    description,
-    attributes: {},
     createdAt: now,
     updatedAt: now
   };
-  project.objects.push(object);
-  project.updatedAt = now;
-  return object;
+  board.elements.push(element);
+  board.updatedAt = now;
+  return element;
 }
 
-export function createNote(project, { ownerEntityId, title = "", content = "", category = "GENERAL" }) {
+export function createConnection(board, sourceElementId, targetElementId, connectionType = "FLOW") {
+  if (!board.elements.some(element => element.id === sourceElementId)) throw new Error("The source scene does not exist.");
+  if (!board.elements.some(element => element.id === targetElementId)) throw new Error("The target scene does not exist.");
+  if (sourceElementId === targetElementId) throw new Error("A scene cannot connect to itself.");
+  if (board.connections.some(connection => connection.sourceElementId === sourceElementId && connection.targetElementId === targetElementId)) throw new Error("This scene connection already exists.");
   const now = timestamp();
-  const note = { id: uuid(), ownerEntityId, title, content, category, authorId: null, createdAt: now, updatedAt: now };
-  project.notes.push(note);
-  project.updatedAt = now;
-  return note;
+  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType, label: "", description: "", visualConfig: {}, createdAt: now, updatedAt: now };
+  board.connections.push(connection);
+  board.updatedAt = now;
+  return connection;
 }
 
 export function assignActorToScene(scene, actorUuid, role = "PRESENT", notes = "") {
   if (!actorUuid?.trim()) throw new Error("An Actor UUID is required.");
-  const assignment = { id: uuid(), actorUuid: actorUuid.trim(), role, notes, createdAt: timestamp(), updatedAt: timestamp() };
-  scene.actorAssignments = scene.actorAssignments ?? [];
+  const now = timestamp();
+  const assignment = { id: uuid(), actorUuid: actorUuid.trim(), role, notes, createdAt: now, updatedAt: now };
+  scene.actorAssignments ??= [];
   scene.actorAssignments.push(assignment);
-  scene.updatedAt = assignment.updatedAt;
+  scene.updatedAt = now;
   return assignment;
 }
 
-export function duplicateMapElements(map, elementIds, offset = { x: 32, y: 32 }) {
-  return pasteMapElements(map, copyMapElements(map, elementIds), offset);
+function duplicateSceneRecord(board, sourceScene) {
+  const copiedScene = clone(sourceScene);
+  const now = timestamp();
+  copiedScene.id = uuid();
+  copiedScene.displayId = nextDisplayId(board.scenes, "S");
+  copiedScene.createdAt = now;
+  copiedScene.updatedAt = now;
+  copiedScene.actorAssignments = (copiedScene.actorAssignments ?? []).map(assignment => ({ ...assignment, id: uuid(), createdAt: now, updatedAt: now }));
+  copiedScene.objectAssignments = (copiedScene.objectAssignments ?? []).map(assignment => ({ ...assignment, id: uuid(), createdAt: now, updatedAt: now }));
+  board.scenes.push(copiedScene);
+  return copiedScene;
 }
 
-export function duplicateStoryElements(project, map, elementIds, offset = { x: 32, y: 32 }) {
-  const selected = map.elements.filter(element => elementIds.includes(element.id));
+export function duplicateSceneElements(board, elementIds, offset = { x: 32, y: 32 }) {
+  const selected = board.elements.filter(element => elementIds.includes(element.id));
   const idMap = new Map();
   const duplicates = selected.map(element => {
+    const sourceScene = board.scenes.find(scene => scene.id === element.sceneId);
+    const copiedScene = sourceScene ? duplicateSceneRecord(board, sourceScene) : null;
     const duplicate = clone(element);
     duplicate.id = uuid();
-    duplicate.mapId = map.id;
+    duplicate.sceneId = copiedScene?.id ?? null;
     duplicate.position = { x: element.position.x + offset.x, y: element.position.y + offset.y };
     duplicate.createdAt = timestamp();
     duplicate.updatedAt = duplicate.createdAt;
-    if (element.elementType === "SCENE" && element.entityId) {
-      const sourceScene = project.scenes.find(scene => scene.id === element.entityId);
-      if (sourceScene) {
-        const copiedScene = clone(sourceScene);
-        copiedScene.id = uuid();
-        copiedScene.displayId = nextDisplayId(project.scenes, "S");
-        copiedScene.projectId = project.id;
-        copiedScene.createdAt = timestamp();
-        copiedScene.updatedAt = copiedScene.createdAt;
-        copiedScene.actorAssignments = (copiedScene.actorAssignments ?? []).map(assignment => ({ ...assignment, id: uuid(), createdAt: copiedScene.createdAt, updatedAt: copiedScene.updatedAt }));
-        copiedScene.objectAssignments = (copiedScene.objectAssignments ?? []).map(assignment => ({ ...assignment, id: uuid(), createdAt: copiedScene.createdAt, updatedAt: copiedScene.updatedAt }));
-        project.scenes.push(copiedScene);
-        duplicate.entityId = copiedScene.id;
-        duplicate.title = copiedScene.title;
-      }
-    }
+    duplicate.title = copiedScene?.title ?? element.title;
     idMap.set(element.id, duplicate.id);
     return duplicate;
   });
-  const copiedConnections = map.connections
-    .filter(connection => idMap.has(connection.sourceElementId) && idMap.has(connection.targetElementId))
-    .map(connection => ({
-      ...clone(connection),
-      id: uuid(),
-      mapId: map.id,
-      sourceElementId: idMap.get(connection.sourceElementId),
-      targetElementId: idMap.get(connection.targetElementId),
-      createdAt: timestamp(),
-      updatedAt: timestamp()
-    }));
-  map.elements.push(...duplicates);
-  map.connections.push(...copiedConnections);
-  map.updatedAt = timestamp();
-  project.updatedAt = map.updatedAt;
+  const copiedConnections = board.connections.filter(connection => idMap.has(connection.sourceElementId) && idMap.has(connection.targetElementId)).map(connection => ({ ...clone(connection), id: uuid(), sourceElementId: idMap.get(connection.sourceElementId), targetElementId: idMap.get(connection.targetElementId), createdAt: timestamp(), updatedAt: timestamp() }));
+  board.elements.push(...duplicates);
+  board.connections.push(...copiedConnections);
+  board.updatedAt = timestamp();
   return { duplicates, copiedConnections };
 }
 
-export function copyMapElements(map, elementIds) {
-  const selected = map.elements.filter(element => elementIds.includes(element.id));
+export function copySceneElements(board, elementIds) {
+  const selectedElements = board.elements.filter(element => elementIds.includes(element.id));
+  const sceneIds = new Set(selectedElements.map(element => element.sceneId));
   return {
-    elements: clone(selected),
-    connections: clone(map.connections.filter(connection => elementIds.includes(connection.sourceElementId) && elementIds.includes(connection.targetElementId)))
+    elements: clone(selectedElements),
+    scenes: clone(board.scenes.filter(scene => sceneIds.has(scene.id))),
+    connections: clone(board.connections.filter(connection => elementIds.includes(connection.sourceElementId) && elementIds.includes(connection.targetElementId)))
   };
 }
 
-export function pasteMapElements(map, payload, offset = { x: 32, y: 32 }) {
-  const selected = payload?.elements ?? [];
-  const idMap = new Map();
-  const duplicates = selected.map(element => {
+export function pasteSceneElements(board, payload, offset = { x: 32, y: 32 }) {
+  const sceneIdMap = new Map();
+  const copiedScenes = (payload?.scenes ?? []).map(sourceScene => {
+    const copied = duplicateSceneRecord(board, sourceScene);
+    sceneIdMap.set(sourceScene.id, copied.id);
+    return copied;
+  });
+  const elementIdMap = new Map();
+  const duplicates = (payload?.elements ?? []).map(element => {
     const duplicate = clone(element);
     duplicate.id = uuid();
-    duplicate.mapId = map.id;
+    duplicate.sceneId = sceneIdMap.get(element.sceneId) ?? null;
     duplicate.position = { x: element.position.x + offset.x, y: element.position.y + offset.y };
     duplicate.createdAt = timestamp();
     duplicate.updatedAt = duplicate.createdAt;
-    idMap.set(element.id, duplicate.id);
+    duplicate.title = copiedScenes.find(scene => scene.id === duplicate.sceneId)?.title ?? element.title;
+    elementIdMap.set(element.id, duplicate.id);
     return duplicate;
   });
-  const copiedConnections = (payload?.connections ?? [])
-    .filter(connection => idMap.has(connection.sourceElementId) && idMap.has(connection.targetElementId))
-    .map(connection => ({
-      ...clone(connection),
-      id: uuid(),
-      mapId: map.id,
-      sourceElementId: idMap.get(connection.sourceElementId),
-      targetElementId: idMap.get(connection.targetElementId),
-      createdAt: timestamp(),
-      updatedAt: timestamp()
-    }));
-  map.elements.push(...duplicates);
-  map.connections.push(...copiedConnections);
-  map.updatedAt = timestamp();
+  const copiedConnections = (payload?.connections ?? []).filter(connection => elementIdMap.has(connection.sourceElementId) && elementIdMap.has(connection.targetElementId)).map(connection => ({ ...clone(connection), id: uuid(), sourceElementId: elementIdMap.get(connection.sourceElementId), targetElementId: elementIdMap.get(connection.targetElementId), createdAt: timestamp(), updatedAt: timestamp() }));
+  board.elements.push(...duplicates);
+  board.connections.push(...copiedConnections);
+  board.updatedAt = timestamp();
   return { duplicates, copiedConnections };
+}
+
+export function removeSceneElements(board, elementIds) {
+  const ids = new Set(elementIds);
+  const sceneIds = new Set(board.elements.filter(element => ids.has(element.id)).map(element => element.sceneId));
+  board.elements = board.elements.filter(element => !ids.has(element.id));
+  board.connections = board.connections.filter(connection => !ids.has(connection.sourceElementId) && !ids.has(connection.targetElementId));
+  board.scenes = board.scenes.filter(scene => !sceneIds.has(scene.id));
+  board.updatedAt = timestamp();
 }
