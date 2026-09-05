@@ -304,8 +304,8 @@
 
 .mel-storyboard-canvas {
   display: block;
-  min-width: 100%;
-  min-height: 100%;
+  min-width: 0;
+  min-height: 0;
   color: #9aa4b2;
   cursor: default;
   touch-action: none;
@@ -347,6 +347,18 @@
   font-size: 11px !important;
 }
 
+.mel-storyboard-element-status-badge {
+  fill: rgba(246, 196, 83, .12) !important;
+  stroke: #59687a !important;
+  stroke-width: 1 !important;
+  pointer-events: none;
+}
+
+.mel-storyboard-element-status {
+  fill: #f6c453 !important;
+  font-weight: 600;
+}
+
 .mel-storyboard-connection {
   stroke: #9aa4b2;
   stroke-width: 3;
@@ -357,7 +369,7 @@
 }
 
 .mel-storyboard-connection-arrow {
-  fill: #f6c453;
+  fill: #9aa4b2;
   pointer-events: all;
   cursor: context-menu;
 }

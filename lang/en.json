@@ -31,6 +31,8 @@
       "DeleteScene": "Delete scene",
       "DeleteConnection": "Delete connection",
       "EditConnection": "Edit connection label",
+      "ZoomOut": "Zoom out",
+      "ZoomIn": "Zoom in",
       "Connect": "Connect",
       "Undo": "Undo",
       "Redo": "Redo",

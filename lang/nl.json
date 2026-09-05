@@ -31,6 +31,8 @@
       "DeleteScene": "Scène verwijderen",
       "DeleteConnection": "Verbinding verwijderen",
       "EditConnection": "Verbindingslabel bewerken",
+      "ZoomOut": "Uitzoomen",
+      "ZoomIn": "Inzoomen",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
       "Redo": "Opnieuw",

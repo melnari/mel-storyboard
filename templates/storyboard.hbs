@@ -2,6 +2,8 @@
   <header class="mel-storyboard-toolbar">
     <h1>{{labels.title}}</h1>
     <div class="mel-storyboard-actions">
+      <button type="button" class="icon-button" data-action="zoom-out" title="{{labels.zoomOut}}" aria-label="{{labels.zoomOut}}"><i class="fas fa-minus"></i></button>
+      <button type="button" class="icon-button" data-action="zoom-in" title="{{labels.zoomIn}}" aria-label="{{labels.zoomIn}}"><i class="fas fa-plus"></i></button>
       <button type="button" class="icon-button" data-action="undo" {{#unless canUndo}}disabled{{/unless}} title="{{labels.undo}}" aria-label="{{labels.undo}}"><i class="fas fa-rotate-left"></i></button>
       <button type="button" class="icon-button" data-action="redo" {{#unless canRedo}}disabled{{/unless}} title="{{labels.redo}}" aria-label="{{labels.redo}}"><i class="fas fa-rotate-right"></i></button>
       <details class="mel-storyboard-command-menu">
@@ -43,7 +45,7 @@
 
     <main class="mel-storyboard-canvas-region">
       <div class="mel-storyboard-canvas-scroll">
-        <svg class="mel-storyboard-canvas" data-storyboard-canvas viewBox="0 0 {{canvas.width}} {{canvas.height}}" role="application" aria-label="{{labels.sceneCanvas}}">
+        <svg class="mel-storyboard-canvas" data-storyboard-canvas data-canvas-width="{{canvas.width}}" data-canvas-height="{{canvas.height}}" width="{{canvas.width}}" height="{{canvas.height}}" viewBox="0 0 {{canvas.width}} {{canvas.height}}" role="application" aria-label="{{labels.sceneCanvas}}">
           <defs>
             <pattern id="mel-storyboard-grid" width="24" height="24" patternUnits="userSpaceOnUse">
               <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(160, 175, 195, .14)" stroke-width="1"/>
@@ -60,7 +62,8 @@
               <rect width="{{size.width}}" height="{{size.height}}" rx="10" />
               <text x="14" y="27">{{label}}</text>
               <text class="mel-storyboard-element-type" x="14" y="48">{{typeLabel}}</text>
-              <text class="mel-storyboard-element-status" x="14" y="67">{{statusLabel}}</text>
+              <rect class="mel-storyboard-element-status-badge" x="10" y="53" width="160" height="18" rx="9" />
+              <text class="mel-storyboard-element-status" x="18" y="66">{{statusLabel}}</text>
             </g>
           {{/each}}
         </svg>

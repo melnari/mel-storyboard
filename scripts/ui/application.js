@@ -64,6 +64,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.history = new HistoryStack();
     this.drag = null;
     this.clipboard = null;
+    this.zoom = 1;
     this.connectionSourceId = null;
     this.contextMenuElement = null;
     this.contextMenuHost = null;
@@ -113,6 +114,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       connectionStatus: this.connectionSourceId ? localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget") : "",
       labels: {
         title: localize("MEL_STORYBOARD.UI.Title"),
+        zoomOut: localize("MEL_STORYBOARD.ACTIONS.ZoomOut"),
+        zoomIn: localize("MEL_STORYBOARD.ACTIONS.ZoomIn"),
         undo: localize("MEL_STORYBOARD.ACTIONS.Undo"),
         redo: localize("MEL_STORYBOARD.ACTIONS.Redo"),
         importExport: localize("MEL_STORYBOARD.UI.ImportExport"),
@@ -172,6 +175,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         this.render({ force: true });
       }
     });
+    this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("wheel", event => this.#onCanvasWheel(event), { passive: false });
+    this.#applyZoom();
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
   }
@@ -211,6 +216,48 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       connectionId: connectionTarget?.dataset.connectionId ?? null,
       elementId: sceneTarget?.dataset.elementId ?? null
     });
+  }
+
+  #onCanvasWheel(event) {
+    if (!event.deltaY) return;
+    event.preventDefault();
+    const direction = event.deltaY < 0 ? 1 : -1;
+    this.#changeZoom(direction * 0.1, event);
+  }
+
+  #changeZoom(delta, event = null) {
+    const nextZoom = Math.min(2.5, Math.max(0.4, Math.round((this.zoom + delta) * 10) / 10));
+    if (nextZoom === this.zoom) return;
+    const scroll = this.element.querySelector(".mel-storyboard-canvas-scroll");
+    const svg = this.element.querySelector("[data-storyboard-canvas]");
+    if (!scroll || !svg) {
+      this.zoom = nextZoom;
+      return;
+    }
+    const scrollRect = scroll.getBoundingClientRect();
+    const oldWidth = svg.getBoundingClientRect().width;
+    const oldHeight = svg.getBoundingClientRect().height;
+    const pointerX = event ? event.clientX - scrollRect.left : scroll.clientWidth / 2;
+    const pointerY = event ? event.clientY - scrollRect.top : scroll.clientHeight / 2;
+    const anchorX = (scroll.scrollLeft + pointerX) / Math.max(oldWidth, 1);
+    const anchorY = (scroll.scrollTop + pointerY) / Math.max(oldHeight, 1);
+    this.zoom = nextZoom;
+    this.#applyZoom();
+    const newWidth = svg.getBoundingClientRect().width;
+    const newHeight = svg.getBoundingClientRect().height;
+    scroll.scrollLeft = anchorX * newWidth - pointerX;
+    scroll.scrollTop = anchorY * newHeight - pointerY;
+  }
+
+  #applyZoom() {
+    const svg = this.element.querySelector("[data-storyboard-canvas]");
+    if (!svg) return;
+    const width = Number(svg.dataset.canvasWidth) * this.zoom;
+    const height = Number(svg.dataset.canvasHeight) * this.zoom;
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.style.width = `${width}px`;
+    svg.style.height = `${height}px`;
   }
 
   #openContextMenu(event, { connectionId = null, elementId = null } = {}) {
@@ -382,6 +429,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     try {
       if (action === "add-scene") {
         await this.#createScene();
+      } else if (action === "zoom-out") {
+        this.#changeZoom(-0.1);
+        return;
+      } else if (action === "zoom-in") {
+        this.#changeZoom(0.1);
+        return;
       } else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
         if (this.selectedElementIds.length !== 2) return;

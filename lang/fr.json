@@ -31,6 +31,8 @@
       "DeleteScene": "Supprimer la scène",
       "DeleteConnection": "Supprimer la relation",
       "EditConnection": "Modifier le libellé",
+      "ZoomOut": "Réduire",
+      "ZoomIn": "Agrandir",
       "Connect": "Relier",
       "Undo": "Annuler",
       "Redo": "Rétablir",
