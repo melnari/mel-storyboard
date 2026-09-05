@@ -87,6 +87,40 @@
   text-align: left;
 }
 
+.mel-storyboard-context-menu {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  min-width: 170px;
+  margin: 0;
+  padding: .3rem;
+  border: 1px solid #59687a;
+  border-radius: 5px;
+  background: #20242c;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  list-style: none;
+}
+
+.mel-storyboard-context-menu-item {
+  display: grid;
+  grid-template-columns: 1.2rem minmax(0, 1fr);
+  gap: .45rem;
+  width: 100%;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #edf2f7;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mel-storyboard-context-menu-item:hover,
+.mel-storyboard-context-menu-item:focus {
+  background: rgba(246, 196, 83, .16);
+  color: #fff;
+  outline: none;
+}
+
 .mel-storyboard-toggle {
   position: fixed;
   top: 118px;

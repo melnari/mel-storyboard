@@ -60,7 +60,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.drag = null;
     this.clipboard = null;
     this.connectionSourceId = null;
-    this.contextMenus = [];
+    this.contextMenuElement = null;
+    this.contextMenuHost = null;
+    this.contextMenuHandler = null;
+    this.contextMenuOutsideHandler = null;
+    this.contextMenuKeyHandler = null;
   }
 
   async _prepareContext() {
@@ -130,11 +134,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async _onRender(context, options) {
     await super._onRender(context, options);
-    for (const contextMenu of this.contextMenus) contextMenu.close({ animate: false });
-    this.contextMenus = [
-      this._createContextMenu(() => this.#sceneContextMenuEntries(), "[data-scene-element]", { container: this.element }),
-      this._createContextMenu(() => this.#canvasContextMenuEntries(), "[data-storyboard-canvas]", { container: this.element })
-    ].filter(Boolean);
+    this.#closeContextMenu();
+    if (this.contextMenuHost !== this.element) {
+      this.contextMenuHost?.removeEventListener("contextmenu", this.contextMenuHandler);
+      this.contextMenuHandler = event => this.#onContextMenu(event);
+      this.element.addEventListener("contextmenu", this.contextMenuHandler);
+      this.contextMenuHost = this.element;
+    }
     this.element.tabIndex = 0;
     if (!this.keyboardBound) {
       this.element.addEventListener("keydown", event => this.#onKeyDown(event));
@@ -162,6 +168,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
   }
 
+  _onClose(options) {
+    this.#closeContextMenu();
+    return super._onClose(options);
+  }
+
   #selectElement(elementId, additive = false) {
     this.selectedElementIds = additive
       ? (this.selectedElementIds.includes(elementId) ? this.selectedElementIds.filter(id => id !== elementId) : [...this.selectedElementIds, elementId])
@@ -178,22 +189,70 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     return { title: localize("MEL_STORYBOARD.EXPORT.Scenes"), scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`) };
   }
 
-  #sceneContextMenuEntries() {
-    const sceneTarget = target => Boolean(target?.dataset?.elementId);
-    const selectTarget = target => {
-      const elementId = target?.dataset?.elementId;
-      if (elementId) this.selectedElementIds = [elementId];
-      return elementId;
-    };
-    return [
-      { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "fas fa-pen", visible: sceneTarget, onClick: (_event, target) => this.#renameScene(selectTarget(target)) },
-      { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "fas fa-arrow-right", visible: sceneTarget, onClick: async (_event, target) => { this.connectionSourceId = selectTarget(target); ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
-      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "fas fa-trash", visible: sceneTarget, onClick: () => this.#deleteSelected() }
-    ];
+  #onContextMenu(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    const sceneTarget = target?.closest("[data-scene-element]");
+    const canvasTarget = target?.closest("[data-storyboard-canvas]");
+    if (!sceneTarget && !canvasTarget) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.#openContextMenu(event, sceneTarget?.dataset.elementId ?? null);
   }
 
-  #canvasContextMenuEntries() {
-    return [{ label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "fas fa-plus", onClick: event => this.#createScene(event) }];
+  #openContextMenu(event, elementId) {
+    this.#closeContextMenu();
+    const sceneMenu = Boolean(elementId);
+    const menu = document.createElement("menu");
+    menu.className = "mel-storyboard-context-menu";
+    menu.setAttribute("role", "menu");
+    const entries = sceneMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "✎", action: () => this.#renameScene(elementId) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
+      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "×", action: async () => { this.selectedElementIds = [elementId]; await this.#deleteSelected(); } }
+    ] : [
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "+", action: () => this.#createScene(event) }
+    ];
+    for (const entry of entries) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "mel-storyboard-context-menu-item";
+      item.setAttribute("role", "menuitem");
+      const icon = document.createElement("span");
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = entry.icon;
+      const label = document.createElement("span");
+      label.textContent = entry.label;
+      item.append(icon, label);
+      item.addEventListener("click", async () => {
+        this.#closeContextMenu();
+        try { await entry.action(); } catch (error) { notifyError(error); }
+      });
+      menu.append(item);
+    }
+    menu.addEventListener("contextmenu", menuEvent => menuEvent.preventDefault());
+    document.body.append(menu);
+    const left = Math.min(event.clientX, window.innerWidth - menu.offsetWidth - 8);
+    const top = Math.min(event.clientY, window.innerHeight - menu.offsetHeight - 8);
+    menu.style.left = `${Math.max(8, left)}px`;
+    menu.style.top = `${Math.max(8, top)}px`;
+    this.contextMenuElement = menu;
+    this.contextMenuOutsideHandler = pointerEvent => {
+      if (!menu.contains(pointerEvent.target)) this.#closeContextMenu();
+    };
+    this.contextMenuKeyHandler = keyEvent => {
+      if (keyEvent.key === "Escape") this.#closeContextMenu();
+    };
+    document.addEventListener("pointerdown", this.contextMenuOutsideHandler, true);
+    document.addEventListener("keydown", this.contextMenuKeyHandler, true);
+  }
+
+  #closeContextMenu() {
+    this.contextMenuElement?.remove();
+    if (this.contextMenuOutsideHandler) document.removeEventListener("pointerdown", this.contextMenuOutsideHandler, true);
+    if (this.contextMenuKeyHandler) document.removeEventListener("keydown", this.contextMenuKeyHandler, true);
+    this.contextMenuElement = null;
+    this.contextMenuOutsideHandler = null;
+    this.contextMenuKeyHandler = null;
   }
 
   async #createScene(event = null) {
