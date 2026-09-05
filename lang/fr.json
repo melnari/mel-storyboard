@@ -28,9 +28,9 @@
       "RenameScene": "Renommer la scène",
       "DuplicateScene": "Dupliquer la scène",
       "ConnectScene": "Relier la scène",
-      "EditConnection": "Modifier le libellé",
       "DeleteScene": "Supprimer la scène",
       "DeleteConnection": "Supprimer la relation",
+      "EditConnection": "Modifier le libellé",
       "Connect": "Relier",
       "Undo": "Annuler",
       "Redo": "Rétablir",
@@ -69,8 +69,8 @@
       "SceneTitle": "Titre de la scène",
       "RenameScene": "Renommer la scène",
       "DeleteScene": "Supprimer la scène « {title} » ?",
-      "ConnectionLabel": "Libellé de la relation",
-      "DeleteConnection": "Supprimer cette relation ?"
+      "DeleteConnection": "Supprimer cette relation ?",
+      "ConnectionLabel": "Libellé de la relation"
     },
     "NOTIFICATIONS": {
       "Saved": "Tableau de scènes enregistré.",

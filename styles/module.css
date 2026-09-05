@@ -351,9 +351,14 @@
   stroke: #9aa4b2;
   stroke-width: 3;
   fill: none;
-  marker-end: url("#mel-storyboard-arrow");
   stroke-linecap: round;
-  pointer-events: stroke;
+  pointer-events: all;
+  cursor: context-menu;
+}
+
+.mel-storyboard-connection-arrow {
+  fill: #f6c453;
+  pointer-events: all;
   cursor: context-menu;
 }
 

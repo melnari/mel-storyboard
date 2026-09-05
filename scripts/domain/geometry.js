@@ -27,9 +27,21 @@ export function connectionGeometry(sourceElement, targetElement) {
     x: targetCenter.x - unit.x * (targetEdge + 12),
     y: targetCenter.y - unit.y * (targetEdge + 12)
   };
+  const arrowBase = {
+    x: target.x - unit.x * 12,
+    y: target.y - unit.y * 12
+  };
+  const perpendicular = { x: -unit.y, y: unit.x };
+  const arrowHalfWidth = 5;
+  const arrowPoints = [
+    `${target.x},${target.y}`,
+    `${arrowBase.x + perpendicular.x * arrowHalfWidth},${arrowBase.y + perpendicular.y * arrowHalfWidth}`,
+    `${arrowBase.x - perpendicular.x * arrowHalfWidth},${arrowBase.y - perpendicular.y * arrowHalfWidth}`
+  ].join(" ");
   return {
     source,
     target,
+    arrowPoints,
     label: {
       x: (source.x + target.x) / 2,
       y: (source.y + target.y) / 2 - 8

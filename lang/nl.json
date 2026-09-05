@@ -28,9 +28,9 @@
       "RenameScene": "Scène hernoemen",
       "DuplicateScene": "Scène dupliceren",
       "ConnectScene": "Scène verbinden",
-      "EditConnection": "Verbindingslabel bewerken",
       "DeleteScene": "Scène verwijderen",
       "DeleteConnection": "Verbinding verwijderen",
+      "EditConnection": "Verbindingslabel bewerken",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
       "Redo": "Opnieuw",
@@ -69,8 +69,8 @@
       "SceneTitle": "Scènetitel",
       "RenameScene": "Scène hernoemen",
       "DeleteScene": "Scène \"{title}\" verwijderen?",
-      "ConnectionLabel": "Verbindingslabel",
-      "DeleteConnection": "Deze verbinding verwijderen?"
+      "DeleteConnection": "Deze verbinding verwijderen?",
+      "ConnectionLabel": "Verbindingslabel"
     },
     "NOTIFICATIONS": {
       "Saved": "Scènebord opgeslagen.",

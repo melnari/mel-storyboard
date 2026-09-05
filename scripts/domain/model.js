@@ -87,7 +87,7 @@ export function createConnection(board, sourceElementId, targetElementId, connec
   if (sourceElementId === targetElementId) throw new Error("A scene cannot connect to itself.");
   if (board.connections.some(connection => connection.sourceElementId === sourceElementId && connection.targetElementId === targetElementId)) throw new Error("This scene connection already exists.");
   const now = timestamp();
-  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType, label: label.trim(), description: "", visualConfig: {}, createdAt: now, updatedAt: now };
+  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType, label: String(label ?? "").trim(), description: "", visualConfig: {}, createdAt: now, updatedAt: now };
   board.connections.push(connection);
   board.updatedAt = now;
   return connection;

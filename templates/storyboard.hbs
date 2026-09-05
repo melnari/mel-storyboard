@@ -48,13 +48,11 @@
             <pattern id="mel-storyboard-grid" width="24" height="24" patternUnits="userSpaceOnUse">
               <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(160, 175, 195, .14)" stroke-width="1"/>
             </pattern>
-            <marker id="mel-storyboard-arrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="5" orient="auto">
-              <path d="M0,0 L11,5 L0,10 z" fill="#f6c453" />
-            </marker>
           </defs>
           <rect width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
           {{#each board.connections}}
-            <line class="mel-storyboard-connection" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" marker-end="url(#mel-storyboard-arrow)" />
+            <line class="mel-storyboard-connection" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
+            <polygon class="mel-storyboard-connection-arrow" data-connection-id="{{id}}" points="{{arrowPoints}}" />
             {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each board.elements}}

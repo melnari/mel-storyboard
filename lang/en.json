@@ -28,9 +28,9 @@
       "RenameScene": "Rename scene",
       "DuplicateScene": "Duplicate scene",
       "ConnectScene": "Connect scene",
-      "EditConnection": "Edit connection label",
       "DeleteScene": "Delete scene",
       "DeleteConnection": "Delete connection",
+      "EditConnection": "Edit connection label",
       "Connect": "Connect",
       "Undo": "Undo",
       "Redo": "Redo",
@@ -69,8 +69,8 @@
       "SceneTitle": "Scene title",
       "RenameScene": "Rename scene",
       "DeleteScene": "Delete scene \"{title}\"?",
-      "ConnectionLabel": "Connection label",
-      "DeleteConnection": "Delete this connection?"
+      "DeleteConnection": "Delete this connection?",
+      "ConnectionLabel": "Connection label"
     },
     "NOTIFICATIONS": {
       "Saved": "Scene board saved.",

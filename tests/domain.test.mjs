@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
 import { assignActorToScene, copySceneElements, createConnection, createScene, createSceneBoard, createSceneElement, duplicateSceneElements, pasteSceneElements, removeConnection } from "../scripts/domain/model.js";
-import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
+import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
 
 test("new scene boards contain only scene-oriented records", () => {
@@ -70,6 +70,23 @@ test("connections are directed and reject duplicates", () => {
   assert.throws(() => createConnection(board, first.id, second.id), /already exists/);
 });
 
+test("connections support labels and place an explicit arrow before the target", () => {
+  const board = createSceneBoard();
+  const first = createSceneElement(board, { sceneId: createScene(board).id });
+  const second = createSceneElement(board, { sceneId: createScene(board).id });
+  first.position = { x: 100, y: 100 };
+  second.position = { x: 500, y: 100 };
+  const connection = createConnection(board, first.id, second.id, CONNECTION_TYPES.FLOW, "Weiter");
+  const geometry = connectionGeometry(first, second);
+  assert.equal(connection.label, "Weiter");
+  assert.match(geometry.arrowPoints, /,/);
+  assert.ok(geometry.target.x < second.position.x);
+  assert.ok(geometry.source.x > first.position.x + first.size.width);
+  const svg = sceneBoardToSvg(board);
+  assert.match(svg, /class="connection-arrow"/);
+  assert.match(svg, /Weiter/);
+});
+
 test("connections can be removed without removing their scenes", () => {
   const board = createSceneBoard();
   const first = createSceneElement(board, { sceneId: createScene(board).id });
@@ -79,19 +96,6 @@ test("connections can be removed without removing their scenes", () => {
   assert.equal(board.connections.length, 0);
   assert.equal(board.scenes.length, 2);
   assert.equal(validateSceneBoard(board).valid, true);
-});
-
-test("connections support labels and place the arrow before the target", () => {
-  const board = createSceneBoard();
-  const first = createSceneElement(board, { sceneId: createScene(board).id });
-  const second = createSceneElement(board, { sceneId: createScene(board).id });
-  first.position = { x: 100, y: 100 };
-  second.position = { x: 500, y: 100 };
-  const connection = createConnection(board, first.id, second.id, CONNECTION_TYPES.FLOW, "Weiter");
-  const geometry = connectionGeometry(first, second);
-  assert.equal(connection.label, "Weiter");
-  assert.ok(geometry.target.x < second.position.x);
-  assert.ok(geometry.source.x > first.position.x + first.size.width / 2);
 });
 
 test("history supports undo and redo snapshots", () => {

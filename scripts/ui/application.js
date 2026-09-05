@@ -1,8 +1,8 @@
 import { MODULE_ID, STATUS } from "../domain/constants.js";
 import { clone, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, removeSceneElements, removeConnection } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
-import { HistoryStack } from "../domain/history.js";
 import { connectionGeometry } from "../domain/geometry.js";
+import { HistoryStack } from "../domain/history.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -82,8 +82,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const connections = this.board.connections.map(connection => {
       const sourceElement = byId.get(connection.sourceElementId);
       const targetElement = byId.get(connection.targetElementId);
-      const geometry = sourceElement && targetElement ? connectionGeometry(sourceElement, targetElement) : { source: { x: 0, y: 0 }, target: { x: 0, y: 0 }, label: { x: 0, y: 0 } };
-      return { ...connection, source: geometry.source, target: geometry.target, labelPosition: geometry.label, hasLabel: Boolean(connection.label?.trim()) };
+      const geometry = sourceElement && targetElement
+        ? connectionGeometry(sourceElement, targetElement)
+        : { source: { x: 0, y: 0 }, target: { x: 0, y: 0 }, arrowPoints: "0,0 0,0 0,0", label: { x: 0, y: 0 } };
+      return { ...connection, ...geometry, labelPosition: geometry.label, label: connection.label?.trim() ?? "", hasLabel: Boolean(connection.label?.trim()) };
     });
     const selectedElement = this.board.elements.find(element => this.selectedElementIds.includes(element.id));
     const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
@@ -142,9 +144,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await super._onRender(context, options);
     this.#closeContextMenu();
     if (this.contextMenuHost !== this.element) {
-      this.contextMenuHost?.removeEventListener("contextmenu", this.contextMenuHandler);
+      this.contextMenuHost?.removeEventListener("contextmenu", this.contextMenuHandler, true);
       this.contextMenuHandler = event => this.#onContextMenu(event);
-      this.element.addEventListener("contextmenu", this.contextMenuHandler);
+      this.element.addEventListener("contextmenu", this.contextMenuHandler, true);
       this.contextMenuHost = this.element;
     }
     this.element.tabIndex = 0;
@@ -197,9 +199,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #onContextMenu(event) {
     const target = event.target instanceof Element ? event.target : null;
-    const connectionTarget = target?.closest("[data-connection-id]");
-    const sceneTarget = target?.closest("[data-scene-element]");
-    const canvasTarget = target?.closest("[data-storyboard-canvas]");
+    const path = event.composedPath?.() ?? [];
+    const findTarget = selector => path.find(candidate => candidate instanceof Element && candidate.matches(selector)) ?? target?.closest(selector);
+    const connectionTarget = findTarget("[data-connection-id]");
+    const sceneTarget = findTarget("[data-scene-element]");
+    const canvasTarget = findTarget("[data-storyboard-canvas]");
     if (!connectionTarget && !sceneTarget && !canvasTarget) return;
     event.preventDefault();
     event.stopPropagation();
@@ -272,7 +276,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const connection = this.board.connections.find(candidate => candidate.id === connectionId);
     if (!connection) return;
     const label = window.prompt(localize("MEL_STORYBOARD.PROMPTS.ConnectionLabel"), connection.label ?? "");
-    if (label === null || label === connection.label) return;
+    if (label === null || label.trim() === (connection.label ?? "").trim()) return;
     this.history.capture(this.board);
     connection.label = label.trim();
     connection.updatedAt = new Date().toISOString();
@@ -465,13 +469,24 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #updateConnectionGeometry(movedElementId) {
-    const positions = new Map(this.board.elements.map(element => [element.id, { x: element.position.x + element.size.width / 2, y: element.position.y + element.size.height / 2 }]));
     for (const connection of this.board.connections) {
       if (connection.sourceElementId !== movedElementId && connection.targetElementId !== movedElementId) continue;
-      const source = positions.get(connection.sourceElementId);
-      const target = positions.get(connection.targetElementId);
-      const line = this.element.querySelector(`[data-connection-id="${connection.id}"]`);
-      if (line && source && target) { line.setAttribute("x1", source.x); line.setAttribute("y1", source.y); line.setAttribute("x2", target.x); line.setAttribute("y2", target.y); }
+      const source = this.board.elements.find(element => element.id === connection.sourceElementId);
+      const target = this.board.elements.find(element => element.id === connection.targetElementId);
+      if (!source || !target) continue;
+      const geometry = connectionGeometry(source, target);
+      for (const node of this.element.querySelectorAll(`[data-connection-id="${connection.id}"]`)) {
+        if (node.classList.contains("mel-storyboard-connection")) {
+          node.setAttribute("x1", geometry.source.x);
+          node.setAttribute("y1", geometry.source.y);
+          node.setAttribute("x2", geometry.target.x);
+          node.setAttribute("y2", geometry.target.y);
+        } else if (node.classList.contains("mel-storyboard-connection-arrow")) node.setAttribute("points", geometry.arrowPoints);
+        else if (node.classList.contains("mel-storyboard-connection-label")) {
+          node.setAttribute("x", geometry.label.x);
+          node.setAttribute("y", geometry.label.y);
+        }
+      }
     }
   }
 
