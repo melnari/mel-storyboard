@@ -69,7 +69,7 @@
                   {{#each descriptionLines}}<tspan x="14" dy="{{#if @first}}0{{else}}{{../descriptionLineHeight}}{{/if}}">{{this}}</tspan>{{/each}}
                 </text>
               {{/if}}
-              <text class="mel-storyboard-element-id" x="14" y="{{displayIdY}}">{{displayId}}</text>
+              <text class="mel-storyboard-element-id" x="{{displayIdX}}" y="{{titleY}}" text-anchor="end">{{displayId}}</text>
               <rect class="mel-storyboard-element-status-badge" x="10" y="{{statusBadgeY}}" width="{{statusBadgeWidth}}" height="18" rx="9" />
               <text class="mel-storyboard-element-status" x="18" y="{{statusY}}">{{statusLabel}}</text>
               <rect class="mel-storyboard-element-resize-handle" data-scene-resize data-element-id="{{id}}" x="{{resizeHandleX}}" y="{{resizeHandleY}}" width="10" height="10" rx="2" aria-label="Resize scene" />

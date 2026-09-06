@@ -757,6 +757,7 @@
 
 .mel-storyboard-element-id {
   font-family: monospace;
+  text-anchor: end;
 }
 
 .mel-storyboard-element-status-badge {

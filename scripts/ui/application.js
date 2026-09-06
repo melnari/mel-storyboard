@@ -53,6 +53,10 @@ function estimateTextWidth(text, fontSize = 15) {
   return Math.ceil([...String(text ?? "")].length * fontSize * 0.56) + SCENE_ELEMENT_HORIZONTAL_PADDING;
 }
 
+function measureTextWidth(text, fontSize = 15) {
+  return Math.ceil([...String(text ?? "")].length * fontSize * 0.56);
+}
+
 function wrapText(text, maxCharacters) {
   const paragraphs = String(text ?? "").split(/\r?\n/);
   const lines = [];
@@ -86,7 +90,9 @@ function wrapText(text, maxCharacters) {
 function sceneElementPresentation(element, scene) {
   const title = String(scene?.title ?? element.title ?? localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE")).replace(/\s+/g, " ").trim();
   const description = String(scene?.description ?? "").trim();
-  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, SCENE_ELEMENT_MIN_WIDTH, estimateTextWidth(title));
+  const displayId = scene?.displayId ?? "";
+  const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 42;
+  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, SCENE_ELEMENT_MIN_WIDTH, estimateTextWidth(title), titleAndIdWidth);
   const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / 7));
   const descriptionLines = wrapText(description, descriptionCharacters);
   const titleY = 25;
@@ -100,16 +106,17 @@ function sceneElementPresentation(element, scene) {
     title,
     titleLines: [title],
     descriptionLines,
-    displayId: scene?.displayId ?? "",
+    displayId,
     statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
     size: { width, height },
     titleY,
     descriptionY,
     descriptionLineHeight,
     displayIdY,
+    displayIdX: width - 14,
     statusY,
     statusBadgeY: statusY - 14,
-    statusBadgeWidth: width - 20,
+    statusBadgeWidth: Math.max(40, measureTextWidth(scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "", 11) + 16),
     resizeHandleX: width - 14,
     resizeHandleY: height - 14
   };
@@ -838,7 +845,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       children.push(description);
     }
     children.push(
-      create("text", { class: "mel-storyboard-element-id", x: 14, y: presentation.displayIdY }, presentation.displayId),
+      create("text", { class: "mel-storyboard-element-id", x: presentation.displayIdX, y: presentation.titleY, "text-anchor": "end" }, presentation.displayId),
       create("rect", { class: "mel-storyboard-element-status-badge", x: 10, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
       create("text", { class: "mel-storyboard-element-status", x: 18, y: presentation.statusY }, presentation.statusLabel),
       create("rect", { class: "mel-storyboard-element-resize-handle", "data-scene-resize": "", "data-element-id": element.id, x: presentation.resizeHandleX, y: presentation.resizeHandleY, width: 10, height: 10, rx: 2, "aria-label": "Resize scene" })
