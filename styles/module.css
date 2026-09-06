@@ -452,14 +452,6 @@
   min-height: 1.8rem;
 }
 
-.mel-storyboard-object-create {
-  display: grid;
-  gap: .35rem;
-  margin-top: .35rem;
-  padding-top: .65rem;
-  border-top: 1px solid #3a4350;
-}
-
 .mel-storyboard-connection-counts {
   display: flex;
   gap: .8rem;
