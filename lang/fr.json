@@ -132,6 +132,9 @@
       ,"FoundryObjectUnavailable": "L’objet Foundry lié n’est pas disponible."
       ,"TemplateInUse": "Ce modèle est encore utilisé par une scène."
     },
+    "ERRORS": {
+      "NoteEditor": "L’éditeur de notes n’a pas pu être ouvert."
+    },
     "EXPORT": {
       "Scenes": "Scènes"
     },

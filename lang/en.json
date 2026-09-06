@@ -132,6 +132,9 @@
       ,"FoundryObjectUnavailable": "The linked Foundry object is not available."
       ,"TemplateInUse": "This template is still used by a scene."
     },
+    "ERRORS": {
+      "NoteEditor": "The note editor could not be opened."
+    },
     "EXPORT": {
       "Scenes": "Scenes"
     },

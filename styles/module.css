@@ -620,24 +620,8 @@
   display: none;
 }
 
-.mel-storyboard-object-details-note-editor prose-mirror,
-.mel-storyboard-object-details-note-editor .ProseMirror {
-  pointer-events: auto;
-  user-select: text;
-  cursor: text;
-}
-
 .mel-storyboard-object-details-notes h3 {
   margin: 0;
-}
-
-.mel-storyboard-object-details-notes prose-mirror {
-  display: block;
-  min-height: 10rem;
-  padding: .35rem .45rem;
-  border: 1px solid #59687a;
-  border-radius: 4px;
-  background: #17191f;
 }
 
 .mel-storyboard-object-details-notes .editor {
@@ -647,8 +631,23 @@
   background: #17191f;
 }
 
-.mel-storyboard-object-details-notes .editor prose-mirror {
-  border: 0;
+.mel-storyboard-object-details-note-editor-shell {
+  height: 14rem;
+  min-height: 14rem;
+  --min-height: 14rem;
+  --menu-height: 2rem;
+  --menu-padding: .2rem .45rem;
+  --menu-background: rgba(73, 61, 74, .7);
+}
+
+.mel-storyboard-object-details-note-editor-shell .editor-container {
+  min-height: 0;
+}
+
+.mel-storyboard-object-details-note-editor-shell .editor-content {
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
 }
 
 .mel-storyboard-object-details-actions {

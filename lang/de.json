@@ -132,6 +132,9 @@
       ,"FoundryObjectUnavailable": "Das verknüpfte Foundry-Objekt ist nicht verfügbar."
       ,"TemplateInUse": "Diese Vorlage wird noch von einer Szene verwendet."
     },
+    "ERRORS": {
+      "NoteEditor": "Der Notizeditor konnte nicht geöffnet werden."
+    },
     "EXPORT": {
       "Scenes": "Szenen"
     },

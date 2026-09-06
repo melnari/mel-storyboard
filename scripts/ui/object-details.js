@@ -27,7 +27,10 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.onOpenDocument = options.onOpenDocument;
     this.focusNotes = options.focusNotes ?? false;
     this.noteEditor = null;
+    this.noteEditorShell = null;
+    this.noteEditorGeneration = 0;
     this.editingNote = false;
+    this.savingNote = false;
   }
 
   async _prepareContext() {
@@ -69,6 +72,14 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.bringToFront();
   }
 
+  /**
+   * Create a local Foundry ProseMirror editor without using the
+   * HTMLProseMirrorElement form-control lifecycle.
+   *
+   * The note belongs to the storyboard assignment, not to a Foundry
+   * Document. Consequently this editor intentionally does not use a document
+   * UUID or collaborative editing.
+   */
   async #startNoteEdit() {
     if (this.editingNote) return;
     this.editingNote = true;
@@ -77,31 +88,92 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     editorSection?.removeAttribute("hidden");
     const editorHost = this.element.querySelector("[data-note-editor]");
     if (!editorHost) return;
-    const editorInput = document.createElement("prose-mirror");
-    editorInput.name = "notes";
-    editorInput.value = this.assignmentNotes;
-    editorInput.style.height = "220px";
-    editorHost.replaceChildren(editorInput);
-    this.noteEditor = editorInput;
-    this.noteEditor.addEventListener("open", () => {
-      this.noteEditor?.focus();
-    }, { once: true });
-    queueMicrotask(() => this.noteEditor?.focus());
+
+    const generation = ++this.noteEditorGeneration;
+    const editorShell = document.createElement("div");
+    editorShell.className = "editor prosemirror mel-storyboard-object-details-note-editor-shell";
+    const editorTarget = document.createElement("div");
+    editorTarget.className = "editor-content";
+    editorShell.append(editorTarget);
+    editorHost.replaceChildren(editorShell);
+    this.noteEditorShell = editorShell;
+
+    let editor;
+    try {
+      const { defaultSchema, plugins } = foundry.prosemirror;
+      editor = await foundry.applications.ux.ProseMirrorEditor.create(
+        editorTarget,
+        this.assignmentNotes,
+        {
+          uuid: `MelStoryboard.ObjectDetails.${foundry.utils.randomID()}`,
+          plugins: {
+            menu: plugins.ProseMirrorMenu.build(defaultSchema, {
+              destroyOnSave: false,
+              onSave: () => this.#save()
+            }),
+            keyMaps: plugins.ProseMirrorKeyMaps.build(defaultSchema, {
+              onSave: () => this.#save()
+            })
+          },
+          props: { editable: () => true }
+        }
+      );
+    } catch (error) {
+      console.error("[mel-storyboard] Could not create note editor", error);
+      this.#destroyNoteEditor();
+      this.editingNote = false;
+      this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
+      this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
+      ui.notifications?.error?.("MEL_STORYBOARD.ERRORS.NoteEditor", { localize: true });
+      return;
+    }
+
+    // The application may have been closed while the asynchronous editor
+    // factory was running. Do not retain an orphaned EditorView in that case.
+    if (generation !== this.noteEditorGeneration || !this.editingNote || !editorShell.isConnected) {
+      editor.destroy();
+      return;
+    }
+
+    this.noteEditor = editor;
+    editor.view.focus();
+  }
+
+  #destroyNoteEditor() {
+    this.noteEditorGeneration += 1;
+    this.noteEditor?.destroy();
+    this.noteEditor = null;
+    this.noteEditorShell?.remove();
+    this.noteEditorShell = null;
   }
 
   #cancelNoteEdit() {
-    this.noteEditor?.remove();
-    this.noteEditor = null;
+    this.#destroyNoteEditor();
     this.editingNote = false;
     this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
     this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
   }
 
+  #getEditorValue() {
+    const document = this.noteEditor?.view?.state?.doc;
+    if (!document) return this.assignmentNotes;
+    return foundry.prosemirror.dom.serializeString(document.content);
+  }
+
   async #save() {
-    const editor = this.noteEditor ?? this.element.querySelector("prose-mirror");
-    editor?.save?.();
-    const notes = editor?.value ?? this.assignmentNotes;
-    await this.onSave?.(notes);
-    await this.close();
+    if (this.savingNote) return;
+    this.savingNote = true;
+    try {
+      await this.onSave?.(this.#getEditorValue());
+      await this.close();
+    } finally {
+      this.savingNote = false;
+    }
+  }
+
+  async close(options = {}) {
+    this.#destroyNoteEditor();
+    this.editingNote = false;
+    return super.close(options);
   }
 }

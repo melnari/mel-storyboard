@@ -132,6 +132,9 @@
       ,"FoundryObjectUnavailable": "Het gekoppelde Foundry-object is niet beschikbaar."
       ,"TemplateInUse": "Dit sjabloon wordt nog door een scène gebruikt."
     },
+    "ERRORS": {
+      "NoteEditor": "De notitie-editor kon niet worden geopend."
+    },
     "EXPORT": {
       "Scenes": "Scènes"
     },
