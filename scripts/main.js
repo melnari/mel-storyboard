@@ -43,16 +43,17 @@ Hooks.once("init", () => {
 
 Hooks.on("getSceneControlButtons", controls => {
   if (!game.user?.isGM) return;
-  const control = Array.isArray(controls) ? controls.find(candidate => candidate.name === "tokens") : controls.tokens;
+  const control = Array.isArray(controls) ? controls.find(candidate => candidate.name === "tokens") : controls?.tokens;
   if (!control) return;
-  control.tools ??= [];
-  control.tools.push({
+  control.tools ??= {};
+  control.tools["mel-storyboard"] = {
     name: "mel-storyboard",
     title: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Label",
     icon: "fas fa-sitemap",
+    order: Object.keys(control.tools).length,
     button: true,
     onChange: () => game.melStoryboard.open()
-  });
+  };
 });
 
 function mountStoryboardToggle() {

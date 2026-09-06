@@ -51,17 +51,18 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     if (title) title.textContent = localize("MEL_STORYBOARD.ACTIONS.ObjectDetails");
     const editorHost = this.element.querySelector("[data-note-editor]");
     if (editorHost) {
-      const editorInput = foundry.applications.fields.createEditorInput({
+      const editorInput = foundry.applications.elements.HTMLProseMirrorElement.create({
         name: "notes",
         value: this.assignmentNotes,
         editable: true,
-        button: false,
-        engine: "prosemirror",
+        disabled: false,
+        readonly: false,
         collaborate: false,
-        height: 220
+        height: 220,
+        toggled: false
       });
       editorHost.replaceChildren(editorInput);
-      this.noteEditor = editorInput.querySelector("prose-mirror");
+      this.noteEditor = editorInput;
     }
     this.element.querySelector("[data-action='save']")?.addEventListener("click", () => this.#save());
     this.element.querySelector("[data-action='close']")?.addEventListener("click", () => this.close());
