@@ -54,6 +54,9 @@
       "EditObjectNote": "Edit note",
       "ObjectDetails": "Details",
       "ObjectNote": "Note",
+      "EditPage": "Edit Page",
+      "SaveEntry": "Save Entry",
+      "Cancel": "Cancel",
       "DeleteObject": "Delete",
       "Connect": "Connect",
       "Undo": "Undo",
@@ -102,6 +105,7 @@
       "NoScenes": "No scenes yet.",
       "SelectScene": "Select a scene to inspect it."
       ,"NoObjects": "No objects are assigned to this scene yet."
+      ,"NoObjectNote": "No note has been added yet."
       ,"NoTemplates": "No templates available."
     },
     "DEFAULTS": {

@@ -582,6 +582,44 @@
   min-height: 0;
 }
 
+.mel-storyboard-object-details-note-view {
+  position: relative;
+  min-height: 10rem;
+  padding: .7rem;
+  border: 1px solid #59687a;
+  border-radius: 4px;
+  background: #17191f;
+}
+
+.mel-storyboard-object-details-note-content {
+  min-height: 8.5rem;
+  overflow-wrap: anywhere;
+}
+
+.mel-storyboard-object-details-no-note {
+  margin: 0;
+  color: #aeb8c5;
+  font-style: italic;
+}
+
+.mel-storyboard-object-details-edit-note {
+  position: absolute;
+  right: .6rem;
+  bottom: .6rem;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+
+.mel-storyboard-object-details-note-view:hover .mel-storyboard-object-details-edit-note,
+.mel-storyboard-object-details-edit-note:focus-visible {
+  opacity: 1;
+}
+
+.mel-storyboard-object-details-note-editor[hidden],
+.mel-storyboard-object-details-note-view[hidden] {
+  display: none;
+}
+
 .mel-storyboard-object-details-notes h3 {
   margin: 0;
 }
@@ -616,6 +654,13 @@
 
 .mel-storyboard-object-details-actions button {
   min-width: 6rem;
+}
+
+.mel-storyboard-object-details-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-top: .5rem;
 }
 
 .mel-storyboard-connection-counts {

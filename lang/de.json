@@ -54,6 +54,9 @@
       "EditObjectNote": "Anmerkung bearbeiten",
       "ObjectDetails": "Details",
       "ObjectNote": "Notiz",
+      "EditPage": "Seite bearbeiten",
+      "SaveEntry": "Eintrag speichern",
+      "Cancel": "Abbrechen",
       "DeleteObject": "Löschen",
       "Connect": "Verbinden",
       "Undo": "Rückgängig",
@@ -102,6 +105,7 @@
       "NoScenes": "Noch keine Szenen.",
       "SelectScene": "Szene zur Anzeige auswählen."
       ,"NoObjects": "Der Szene sind noch keine Objekte zugeordnet."
+      ,"NoObjectNote": "Es wurde noch keine Notiz hinzugefügt."
       ,"NoTemplates": "Keine Templates vorhanden."
     },
     "DEFAULTS": {

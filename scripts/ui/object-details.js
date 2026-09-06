@@ -27,21 +27,30 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.onOpenDocument = options.onOpenDocument;
     this.focusNotes = options.focusNotes ?? false;
     this.noteEditor = null;
+    this.editingNote = false;
   }
 
   async _prepareContext() {
+    const labels = {
+      objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
+      objectTitle: localize("MEL_STORYBOARD.LABELS.ObjectTitle"),
+      foundryUuid: localize("MEL_STORYBOARD.LABELS.FoundryUuid"),
+      foundryDocumentType: localize("MEL_STORYBOARD.LABELS.FoundryDocumentType"),
+      objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
+      editPage: localize("MEL_STORYBOARD.ACTIONS.EditPage"),
+      saveEntry: localize("MEL_STORYBOARD.ACTIONS.SaveEntry"),
+      cancel: localize("MEL_STORYBOARD.ACTIONS.Cancel"),
+      close: localize("MEL_STORYBOARD.ACTIONS.Close"),
+      noNote: localize("MEL_STORYBOARD.EMPTY.NoObjectNote")
+    };
+    const noteHtml = this.assignmentNotes?.trim()
+      ? await foundry.applications.ux.TextEditor.enrichHTML(this.assignmentNotes)
+      : `<p class="mel-storyboard-object-details-no-note">${labels.noNote}</p>`;
     return {
       object: { ...this.object, foundryLinkHtml: this.foundryLinkHtml },
       assignmentNotes: this.assignmentNotes,
-      labels: {
-        objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
-        objectTitle: localize("MEL_STORYBOARD.LABELS.ObjectTitle"),
-        foundryUuid: localize("MEL_STORYBOARD.LABELS.FoundryUuid"),
-        foundryDocumentType: localize("MEL_STORYBOARD.LABELS.FoundryDocumentType"),
-        objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
-        save: localize("MEL_STORYBOARD.ACTIONS.Save"),
-        close: localize("MEL_STORYBOARD.ACTIONS.Close")
-      }
+      assignmentNotesHtml: noteHtml,
+      labels
     };
   }
 
@@ -49,28 +58,53 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     await super._onRender(context, options);
     const title = this.element.querySelector(".window-title");
     if (title) title.textContent = localize("MEL_STORYBOARD.ACTIONS.ObjectDetails");
-    const editorHost = this.element.querySelector("[data-note-editor]");
-    if (editorHost) {
-      const editorInput = foundry.applications.elements.HTMLProseMirrorElement.create({
-        name: "notes",
-        value: this.assignmentNotes,
-        editable: true,
-        disabled: false,
-        readonly: false,
-        collaborate: false,
-        height: 220,
-        toggled: false
-      });
-      editorHost.replaceChildren(editorInput);
-      this.noteEditor = editorInput;
-    }
-    this.element.querySelector("[data-action='save']")?.addEventListener("click", () => this.#save());
+    this.element.querySelector("[data-action='edit-note']")?.addEventListener("click", () => this.#startNoteEdit());
+    this.element.querySelector("[data-action='save-note']")?.addEventListener("click", () => this.#save());
+    this.element.querySelector("[data-action='cancel-note']")?.addEventListener("click", () => this.#cancelNoteEdit());
     this.element.querySelector("[data-action='close']")?.addEventListener("click", () => this.close());
     this.element.querySelectorAll("[data-storyboard-foundry-link]").forEach(link => {
       link.addEventListener("click", event => this.onOpenDocument?.(event));
     });
-    if (this.focusNotes) this.noteEditor?.focus();
+    if (this.focusNotes) await this.#startNoteEdit();
     this.bringToFront();
+  }
+
+  async #startNoteEdit() {
+    if (this.editingNote) return;
+    this.editingNote = true;
+    this.element.querySelector("[data-note-view]")?.setAttribute("hidden", "");
+    const editorSection = this.element.querySelector("[data-note-editor-section]");
+    editorSection?.removeAttribute("hidden");
+    const editorHost = this.element.querySelector("[data-note-editor]");
+    if (!editorHost) return;
+    const editorInput = foundry.applications.elements.HTMLProseMirrorElement.create({
+      name: "notes",
+      value: this.assignmentNotes,
+      editable: true,
+      disabled: false,
+      readonly: false,
+      collaborate: false,
+      height: 220,
+      toggled: false
+    });
+    editorHost.replaceChildren(editorInput);
+    this.noteEditor = editorInput;
+    const focusEditor = () => {
+      this.noteEditor?.removeAttribute("disabled");
+      this.noteEditor?.removeAttribute("readonly");
+      this.noteEditor?.querySelector(".ProseMirror")?.setAttribute("contenteditable", "true");
+      this.noteEditor?.focus();
+    };
+    this.noteEditor.addEventListener("open", focusEditor, { once: true });
+    focusEditor();
+  }
+
+  #cancelNoteEdit() {
+    this.noteEditor?.remove();
+    this.noteEditor = null;
+    this.editingNote = false;
+    this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
+    this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
   }
 
   async #save() {

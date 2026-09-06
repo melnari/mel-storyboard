@@ -54,6 +54,9 @@
       "EditObjectNote": "Modifier la note",
       "ObjectDetails": "Détails",
       "ObjectNote": "Note",
+      "EditPage": "Modifier la page",
+      "SaveEntry": "Enregistrer l’entrée",
+      "Cancel": "Annuler",
       "DeleteObject": "Supprimer",
       "Connect": "Relier",
       "Undo": "Annuler",
@@ -102,6 +105,7 @@
       "NoScenes": "Aucune scène pour le moment.",
       "SelectScene": "Sélectionnez une scène à inspecter."
       ,"NoObjects": "Aucun objet n’est encore associé à cette scène."
+      ,"NoObjectNote": "Aucune note n’a encore été ajoutée."
       ,"NoTemplates": "Aucun modèle disponible."
     },
     "DEFAULTS": {

@@ -14,10 +14,21 @@
   </dl>
   <section class="mel-storyboard-object-details-notes">
     <h3>{{labels.objectNote}}</h3>
-    <div data-note-editor></div>
+    <div class="mel-storyboard-object-details-note-view" data-note-view>
+      <div class="mel-storyboard-object-details-note-content">{{{assignmentNotesHtml}}}</div>
+      <button type="button" class="mel-storyboard-object-details-edit-note" data-action="edit-note">
+        <i class="fas fa-pen-to-square" aria-hidden="true"></i> {{labels.editPage}}
+      </button>
+    </div>
+    <div class="mel-storyboard-object-details-note-editor" data-note-editor-section hidden>
+      <div data-note-editor></div>
+      <div class="mel-storyboard-object-details-note-actions">
+        <button type="button" data-action="save-note"><i class="fas fa-save" aria-hidden="true"></i> {{labels.saveEntry}}</button>
+        <button type="button" data-action="cancel-note"><i class="fas fa-xmark" aria-hidden="true"></i> {{labels.cancel}}</button>
+      </div>
+    </div>
   </section>
   <footer class="mel-storyboard-object-details-actions">
-    <button type="button" data-action="save"><i class="fas fa-save" aria-hidden="true"></i> {{labels.save}}</button>
     <button type="button" data-action="close"><i class="fas fa-xmark" aria-hidden="true"></i> {{labels.close}}</button>
   </footer>
 </div>

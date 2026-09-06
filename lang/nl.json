@@ -54,6 +54,9 @@
       "EditObjectNote": "Notitie bewerken",
       "ObjectDetails": "Details",
       "ObjectNote": "Notitie",
+      "EditPage": "Pagina bewerken",
+      "SaveEntry": "Invoer opslaan",
+      "Cancel": "Annuleren",
       "DeleteObject": "Verwijderen",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
@@ -102,6 +105,7 @@
       "NoScenes": "Nog geen scènes.",
       "SelectScene": "Selecteer een scène om deze te bekijken."
       ,"NoObjects": "Aan deze scène zijn nog geen objecten toegewezen."
+      ,"NoObjectNote": "Er is nog geen notitie toegevoegd."
       ,"NoTemplates": "Geen sjablonen beschikbaar."
     },
     "DEFAULTS": {
