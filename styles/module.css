@@ -662,13 +662,6 @@
   min-width: 6rem;
 }
 
-.mel-storyboard-object-details-note-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: .5rem;
-  margin-top: .5rem;
-}
-
 .mel-storyboard-connection-counts {
   display: flex;
   gap: .8rem;

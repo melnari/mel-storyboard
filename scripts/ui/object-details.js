@@ -41,8 +41,6 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
       foundryDocumentType: localize("MEL_STORYBOARD.LABELS.FoundryDocumentType"),
       objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
       editPage: localize("MEL_STORYBOARD.ACTIONS.EditPage"),
-      saveEntry: localize("MEL_STORYBOARD.ACTIONS.SaveEntry"),
-      cancel: localize("MEL_STORYBOARD.ACTIONS.Cancel"),
       close: localize("MEL_STORYBOARD.ACTIONS.Close"),
       noNote: localize("MEL_STORYBOARD.EMPTY.NoObjectNote")
     };
@@ -62,8 +60,6 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     const title = this.element.querySelector(".window-title");
     if (title) title.textContent = localize("MEL_STORYBOARD.ACTIONS.ObjectDetails");
     this.element.querySelector("[data-action='edit-note']")?.addEventListener("click", () => this.#startNoteEdit());
-    this.element.querySelector("[data-action='save-note']")?.addEventListener("click", () => this.#save());
-    this.element.querySelector("[data-action='cancel-note']")?.addEventListener("click", () => this.#cancelNoteEdit());
     this.element.querySelector("[data-action='close']")?.addEventListener("click", () => this.close());
     this.element.querySelectorAll("[data-storyboard-foundry-link]").forEach(link => {
       link.addEventListener("click", event => this.onOpenDocument?.(event));
@@ -87,7 +83,12 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     const editorSection = this.element.querySelector("[data-note-editor-section]");
     editorSection?.removeAttribute("hidden");
     const editorHost = this.element.querySelector("[data-note-editor]");
-    if (!editorHost) return;
+    if (!editorHost) {
+      this.editingNote = false;
+      editorSection?.setAttribute("hidden", "");
+      this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
+      return;
+    }
 
     const generation = ++this.noteEditorGeneration;
     const editorShell = document.createElement("div");
@@ -124,7 +125,7 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
       this.editingNote = false;
       this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
       this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
-      ui.notifications?.error?.("MEL_STORYBOARD.ERRORS.NoteEditor", { localize: true });
+      globalThis.ui?.notifications?.error?.("MEL_STORYBOARD.ERRORS.NoteEditor", { localize: true });
       return;
     }
 
@@ -147,13 +148,6 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.noteEditorShell = null;
   }
 
-  #cancelNoteEdit() {
-    this.#destroyNoteEditor();
-    this.editingNote = false;
-    this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
-    this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
-  }
-
   #getEditorValue() {
     const document = this.noteEditor?.view?.state?.doc;
     if (!document) return this.assignmentNotes;
@@ -164,8 +158,20 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     if (this.savingNote) return;
     this.savingNote = true;
     try {
-      await this.onSave?.(this.#getEditorValue());
-      await this.close();
+      const notes = this.#getEditorValue();
+      await this.onSave?.(notes);
+      this.assignmentNotes = notes;
+      const noteContent = this.element.querySelector("[data-note-content]");
+      if (noteContent) {
+        noteContent.innerHTML = notes.trim()
+          ? await foundry.applications.ux.TextEditor.enrichHTML(notes)
+          : `<p class="mel-storyboard-object-details-no-note">${localize("MEL_STORYBOARD.EMPTY.NoObjectNote")}</p>`;
+      }
+      this.#destroyNoteEditor();
+      this.editingNote = false;
+      this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
+      this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
+      this.bringToFront();
     } finally {
       this.savingNote = false;
     }
