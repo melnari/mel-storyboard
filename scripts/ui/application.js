@@ -96,6 +96,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.contextMenuHandler = null;
     this.contextMenuOutsideHandler = null;
     this.contextMenuKeyHandler = null;
+    this.sidebarCollapsed = false;
+    this.inspectorCollapsed = true;
   }
 
   async _prepareContext() {
@@ -148,6 +150,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       sceneTree,
       selectedElement,
       selectedScene,
+      sidebarCollapsed: this.sidebarCollapsed,
+      inspectorCollapsed: this.inspectorCollapsed,
       canConnect: this.selectedElementIds.length === 2,
       hasScenes: this.board.scenes.length > 0,
       objects,
@@ -170,6 +174,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         exportPng: localize("MEL_STORYBOARD.ACTIONS.ExportPng"),
         exportPdf: localize("MEL_STORYBOARD.ACTIONS.ExportPdf"),
         newScene: localize("MEL_STORYBOARD.ACTIONS.NewScene"),
+        collapseSidebar: localize("MEL_STORYBOARD.ACTIONS.CollapseSidebar"),
+        expandSidebar: localize("MEL_STORYBOARD.ACTIONS.ExpandSidebar"),
+        collapseInspector: localize("MEL_STORYBOARD.ACTIONS.CollapseInspector"),
+        expandInspector: localize("MEL_STORYBOARD.ACTIONS.ExpandInspector"),
         story: localize("MEL_STORYBOARD.LABELS.Story"),
         scenes: localize("MEL_STORYBOARD.LABELS.Scenes"),
         noScenes: localize("MEL_STORYBOARD.EMPTY.NoScenes"),
@@ -266,20 +274,21 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
       return;
     }
+    if (document.documentName === "Scene" && typeof document.view === "function") {
+      await document.view();
+      return;
+    }
     const sheet = document.sheet;
     if (sheet?.render) {
       await sheet.render({ force: true });
       sheet.bringToFront?.();
       return;
     }
-    if (document.documentName === "Scene" && typeof document.view === "function") {
-      await document.view();
-      return;
-    }
     ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
   }
 
   #selectElement(elementId, additive = false) {
+    this.inspectorCollapsed = false;
     this.selectedElementIds = additive
       ? (this.selectedElementIds.includes(elementId) ? this.selectedElementIds.filter(id => id !== elementId) : [...this.selectedElementIds, elementId])
       : [elementId];
@@ -446,6 +455,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
     this.board = await this.store.save(this.board);
     this.selectedElementIds = [element.id];
+    this.inspectorCollapsed = false;
     await this.render({ force: true });
   }
 
@@ -549,6 +559,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const content = document.createElement("div");
     content.innerHTML = template;
     const { DialogV2 } = foundry.applications.api;
+    let noteEditor = null;
     const dialog = new DialogV2({
       window: { title: `${localize("MEL_STORYBOARD.ACTIONS.ObjectDetails")}: ${object.title}` },
       position: { width: 560 },
@@ -561,8 +572,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
           callback: async (_event, _button, currentDialog) => {
             const editor = currentDialog.element?.querySelector("prose-mirror");
             editor?.save?.();
+            const notes = noteEditor?.view?.dom?.innerHTML ?? editor?.value ?? assignment.notes ?? "";
             this.history.capture(this.board);
-            updateObjectAssignment(scene, assignmentId, { notes: editor?.value ?? assignment.notes ?? "" });
+            updateObjectAssignment(scene, assignmentId, { notes });
             this.board = await this.store.save(this.board);
             await this.render({ force: true });
             return true;
@@ -573,19 +585,16 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     });
     await dialog.render({ force: true });
     const editorHost = dialog.element?.querySelector("[data-object-note-editor]");
-    const editorInput = foundry.applications.fields.createEditorInput({
-      name: "notes",
-      value: assignment.notes ?? "",
-      editable: true,
-      engine: "prosemirror",
-      button: false,
-      collaborate: false,
-      height: 180
-    });
-    editorHost?.replaceChildren(editorInput);
+    if (editorHost) {
+      noteEditor = await foundry.applications.ux.ProseMirrorEditor.create(
+        editorHost,
+        assignment.notes ?? "",
+        { collaborate: false, uuid: `mel-storyboard-note-${assignment.id}` }
+      );
+    }
     this.#bindFoundryLinks(dialog.element);
     dialog.bringToFront();
-    if (focusNotes) dialog.element?.querySelector("prose-mirror")?.focus();
+    if (focusNotes) noteEditor?.view?.focus();
   }
 
   async #editObjectNote(assignmentId) {
@@ -638,15 +647,25 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     try {
       if (action === "add-scene") {
         await this.#createScene();
+      } else if (action === "toggle-sidebar") {
+        this.sidebarCollapsed = !this.sidebarCollapsed;
+      } else if (action === "toggle-inspector") {
+        this.inspectorCollapsed = !this.inspectorCollapsed;
       } else if (action === "zoom-out") {
         this.#changeZoom(-0.1);
         return;
       } else if (action === "zoom-in") {
         this.#changeZoom(0.1);
         return;
-      } else if (action === "object-details") await this.#showObjectDetails(event.currentTarget.dataset.assignmentId);
+      } else if (action === "object-details") {
+        await this.#showObjectDetails(event.currentTarget.dataset.assignmentId);
+        return;
+      }
       else if (action === "remove-object") await this.#removeObjectFromScene(event.currentTarget.dataset.assignmentId);
-      else if (action === "edit-object-note") await this.#editObjectNote(event.currentTarget.dataset.assignmentId);
+      else if (action === "edit-object-note") {
+        await this.#editObjectNote(event.currentTarget.dataset.assignmentId);
+        return;
+      }
       else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
         if (this.selectedElementIds.length !== 2) return;
@@ -663,6 +682,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       else if (action === "select-scene") {
         const element = this.board.elements.find(candidate => candidate.sceneId === event.currentTarget.dataset.sceneId);
         this.selectedElementIds = element ? [element.id] : [];
+        this.inspectorCollapsed = false;
       } else if (action === "save-scene") {
         this.board = await this.store.save(this.board);
         ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.Saved"));

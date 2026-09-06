@@ -30,6 +30,10 @@
     },
     "ACTIONS": {
       "NewScene": "Neue Szene",
+      "CollapseSidebar": "Szenennavigation einklappen",
+      "ExpandSidebar": "Szenennavigation ausklappen",
+      "CollapseInspector": "Szenendetails einklappen",
+      "ExpandInspector": "Szenendetails ausklappen",
       "EditScene": "Ändern",
       "RenameScene": "Szene umbenennen",
       "DuplicateScene": "Szene duplizieren",

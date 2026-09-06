@@ -30,6 +30,10 @@
     },
     "ACTIONS": {
       "NewScene": "Nouvelle scène",
+      "CollapseSidebar": "Réduire la navigation des scènes",
+      "ExpandSidebar": "Développer la navigation des scènes",
+      "CollapseInspector": "Réduire les détails de la scène",
+      "ExpandInspector": "Développer les détails de la scène",
       "EditScene": "Modifier",
       "RenameScene": "Renommer la scène",
       "DuplicateScene": "Dupliquer la scène",

@@ -30,6 +30,10 @@
     },
     "ACTIONS": {
       "NewScene": "Nueva escena",
+      "CollapseSidebar": "Contraer navegación de escenas",
+      "ExpandSidebar": "Expandir navegación de escenas",
+      "CollapseInspector": "Contraer detalles de escena",
+      "ExpandInspector": "Expandir detalles de escena",
       "EditScene": "Modificar",
       "RenameScene": "Renombrar escena",
       "DuplicateScene": "Duplicar escena",

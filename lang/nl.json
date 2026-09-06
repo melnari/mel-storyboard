@@ -30,6 +30,10 @@
     },
     "ACTIONS": {
       "NewScene": "Nieuwe scène",
+      "CollapseSidebar": "Scènenavigatie inklappen",
+      "ExpandSidebar": "Scènenavigatie uitklappen",
+      "CollapseInspector": "Scènedetails inklappen",
+      "ExpandInspector": "Scènedetails uitklappen",
       "EditScene": "Wijzigen",
       "RenameScene": "Scène hernoemen",
       "DuplicateScene": "Scène dupliceren",

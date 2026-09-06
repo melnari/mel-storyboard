@@ -21,10 +21,11 @@
   <input type="file" data-json-import accept="application/json,.json" hidden />
 
   <div class="mel-storyboard-layout">
-    <aside class="mel-storyboard-sidebar" aria-label="{{labels.scenes}}">
+    <aside class="mel-storyboard-sidebar {{#if sidebarCollapsed}}is-collapsed{{/if}}" aria-label="{{labels.scenes}}">
       <div class="mel-storyboard-sidebar-heading">
         <span class="mel-storyboard-tree-root"><i class="fas fa-folder-open" aria-hidden="true"></i> {{labels.story}}</span>
         <button type="button" class="icon-button" data-action="add-scene" title="{{labels.newScene}}" aria-label="{{labels.newScene}}"><i class="fas fa-plus"></i></button>
+        <button type="button" class="icon-button" data-action="toggle-sidebar" title="{{#if sidebarCollapsed}}{{labels.expandSidebar}}{{else}}{{labels.collapseSidebar}}{{/if}}" aria-label="{{#if sidebarCollapsed}}{{labels.expandSidebar}}{{else}}{{labels.collapseSidebar}}{{/if}}"><i class="fas {{#if sidebarCollapsed}}fa-chevron-right{{else}}fa-chevron-left{{/if}}" aria-hidden="true"></i></button>
       </div>
       <ul class="mel-storyboard-scene-tree" role="tree" aria-label="{{labels.story}}">
         {{#if hasScenes}}
@@ -70,7 +71,7 @@
       </div>
     </main>
 
-    <aside class="mel-storyboard-inspector" aria-label="{{labels.inspector}}">
+    <aside class="mel-storyboard-inspector {{#if inspectorCollapsed}}is-collapsed{{/if}}" aria-label="{{labels.inspector}}">
       {{#if selectedScene}}
         <header class="mel-storyboard-inspector-header">
           <div>
@@ -78,6 +79,7 @@
             <h2>{{labels.sceneDetails}}</h2>
           </div>
           <span class="mel-storyboard-status-badge">{{selectedScene.statusLabel}}</span>
+          <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
         </header>
         <section class="mel-storyboard-inspector-section">
           <label for="mel-storyboard-scene-title">{{labels.titleField}}</label>
@@ -126,7 +128,10 @@
           </div>
         </section>
       {{else}}
-        <p class="mel-storyboard-empty">{{labels.selectScene}}</p>
+        <header class="mel-storyboard-inspector-header mel-storyboard-inspector-empty-header">
+          <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
+        </header>
+        {{#unless inspectorCollapsed}}<p class="mel-storyboard-empty">{{labels.selectScene}}</p>{{/unless}}
       {{/if}}
     </aside>
   </div>
