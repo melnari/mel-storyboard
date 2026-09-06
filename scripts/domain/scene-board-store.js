@@ -22,6 +22,18 @@ function normalizeSceneBoard(stored) {
     fields: template.fields ?? []
   }));
   board.objects = Array.isArray(board.objects) ? board.objects : [];
+  board.elements = (board.elements ?? []).map(element => ({
+    ...element,
+    position: {
+      x: Number(element.position?.x) || 0,
+      y: Number(element.position?.y) || 0
+    },
+    size: {
+      width: Number(element.size?.width) || 180,
+      height: Number(element.size?.height) || 80
+    },
+    visualConfig: element.visualConfig && typeof element.visualConfig === "object" ? element.visualConfig : {}
+  }));
   board.scenes = (board.scenes ?? []).map(scene => {
     const template = board.templates.find(candidate => candidate.id === scene.templateId) ?? board.templates.find(candidate => candidate.active) ?? board.templates[0];
     return {

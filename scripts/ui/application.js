@@ -3,6 +3,7 @@ import { assignObjectToScene, clone, createBoardObject, createConnection, create
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
+import { SCENE_ELEMENT_MIN_WIDTH, normalizeSceneElementSize, sceneElementPresentation } from "../domain/scene-card.js";
 import { ObjectDetailsApplication } from "./object-details.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -44,87 +45,6 @@ const OBJECT_ICONS = Object.freeze({
   MACRO: "fa-scroll",
   PLAYLIST: "fa-music"
 });
-
-const SCENE_ELEMENT_MIN_WIDTH = 120;
-const SCENE_ELEMENT_MIN_HEIGHT = 96;
-const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
-
-function estimateTextWidth(text, fontSize = 15) {
-  return Math.ceil([...String(text ?? "")].length * fontSize * 0.56) + SCENE_ELEMENT_HORIZONTAL_PADDING;
-}
-
-function measureTextWidth(text, fontSize = 15) {
-  return Math.ceil([...String(text ?? "")].length * fontSize * 0.56);
-}
-
-function wrapText(text, maxCharacters) {
-  const paragraphs = String(text ?? "").split(/\r?\n/);
-  const lines = [];
-  for (const paragraph of paragraphs) {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      if (paragraphs.length > 1) lines.push("");
-      continue;
-    }
-    let line = "";
-    for (const word of words) {
-      if (word.length > maxCharacters) {
-        if (line) {
-          lines.push(line);
-          line = "";
-        }
-        for (let index = 0; index < word.length; index += maxCharacters) lines.push(word.slice(index, index + maxCharacters));
-        continue;
-      }
-      const candidate = line ? `${line} ${word}` : word;
-      if (candidate.length > maxCharacters && line) {
-        lines.push(line);
-        line = word;
-      } else line = candidate;
-    }
-    if (line) lines.push(line);
-  }
-  return lines;
-}
-
-function sceneElementPresentation(element, scene) {
-  const title = String(scene?.title ?? element.title ?? localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE")).replace(/\s+/g, " ").trim();
-  const description = String(scene?.description ?? "").trim();
-  const displayId = scene?.displayId ?? "";
-  const statusLabel = scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "";
-  const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11) + 16);
-  const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 36;
-  const contentWidth = Math.max(SCENE_ELEMENT_MIN_WIDTH, estimateTextWidth(title), titleAndIdWidth, statusBadgeWidth + 20);
-  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
-  const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / 7));
-  const descriptionLines = wrapText(description, descriptionCharacters);
-  const titleY = 25;
-  const descriptionY = titleY + 19;
-  const descriptionLineHeight = 15;
-  const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
-  const statusY = displayIdY + 17;
-  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, statusY + 19);
-  const height = Math.max(Number(element.size?.height) || SCENE_ELEMENT_MIN_HEIGHT, minimumHeight);
-  return {
-    title,
-    titleLines: [title],
-    descriptionLines,
-    displayId,
-    statusLabel,
-    contentWidth,
-    size: { width, height },
-    titleY,
-    descriptionY,
-    descriptionLineHeight,
-    displayIdY,
-    displayIdX: width - 14,
-    statusY,
-    statusBadgeY: statusY - 14,
-    statusBadgeWidth,
-    resizeHandleX: width - 14,
-    resizeHandleY: height - 14
-  };
-}
 
 function buildSceneTree(scenes) {
   const childrenByParent = new Map();
@@ -187,12 +107,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const elements = this.board.elements.map(element => {
       const scene = scenesById.get(element.sceneId);
-      let presentation = sceneElementPresentation(element, scene);
-      const isLegacyDefaultWidth = Number(element.size?.width) === 180 && !element.visualConfig?.sizeLocked;
-      if (isLegacyDefaultWidth && presentation.contentWidth < element.size.width) {
-        element.size.width = presentation.contentWidth;
-        presentation = sceneElementPresentation(element, scene);
-      }
+      const presentation = normalizeSceneElementSize(element, scene, {
+        fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
+        statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : ""
+      });
       // Keep legacy elements usable with the new multi-line layout. The
       // normalized dimensions are persisted with the next board save.
       element.size = presentation.size;
@@ -836,7 +754,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const node = this.element.querySelector(`[data-element-id="${element.id}"]`);
     if (!node) return;
     const scene = this.board.scenes.find(candidate => candidate.id === element.sceneId);
-    const presentation = sceneElementPresentation(element, scene);
+    const presentation = sceneElementPresentation(element, scene, {
+      fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
+      statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : ""
+    });
     element.size = presentation.size;
     node.setAttribute("aria-label", presentation.title);
     const namespace = "http://www.w3.org/2000/svg";

@@ -150,7 +150,14 @@ test("Actor assignments keep Foundry UUIDs instead of copying Actor data", () =>
 
 test("scene board exports are suitable for file transport", () => {
   const board = createSceneBoard();
-  createScene(board, { title: "Export scene" });
+  const scene = createScene(board, { title: "Export scene", description: "A description that is included in the exported scene card." });
+  scene.status = STATUS.ERFOLG;
+  createSceneElement(board, { sceneId: scene.id, title: scene.title });
   assert.match(sceneBoardToJson(board), /Export scene/);
-  assert.match(sceneBoardToSvg(board), /^<svg /);
+  const svg = sceneBoardToSvg(board, { scene: "Scene", status: status => status });
+  assert.match(svg, /^<svg /);
+  assert.match(svg, /element-description/);
+  assert.match(svg, /element-id/);
+  assert.match(svg, /text-anchor="end"/);
+  assert.match(svg, /element-status-badge/);
 });
