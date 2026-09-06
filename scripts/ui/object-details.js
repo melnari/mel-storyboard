@@ -77,14 +77,10 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     editorSection?.removeAttribute("hidden");
     const editorHost = this.element.querySelector("[data-note-editor]");
     if (!editorHost) return;
-    const editorInput = foundry.applications.elements.HTMLProseMirrorElement.create({
-      name: "notes",
-      value: this.assignmentNotes,
-      editable: true,
-      collaborate: false,
-      height: 220,
-      toggled: false
-    });
+    const editorInput = document.createElement("prose-mirror");
+    editorInput.name = "notes";
+    editorInput.value = this.assignmentNotes;
+    editorInput.style.height = "220px";
     editorHost.replaceChildren(editorInput);
     this.noteEditor = editorInput;
     this.noteEditor.addEventListener("open", () => {
