@@ -27,7 +27,6 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.onOpenDocument = options.onOpenDocument;
     this.focusNotes = options.focusNotes ?? false;
     this.noteEditor = null;
-    this.noteEditorObserver = null;
     this.editingNote = false;
   }
 
@@ -88,39 +87,13 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     });
     editorHost.replaceChildren(editorInput);
     this.noteEditor = editorInput;
-    const activateEditor = () => {
-      const editor = this.noteEditor;
-      if (!editor) return false;
-      editor.removeAttribute("disabled");
-      editor.removeAttribute("readonly");
-      editor.disabled = false;
-      const proseMirror = editor.querySelector(".ProseMirror");
-      if (!proseMirror) return false;
-      proseMirror.contentEditable = "true";
-      proseMirror.removeAttribute("aria-disabled");
-      proseMirror.style.pointerEvents = "auto";
-      proseMirror.style.userSelect = "text";
-      proseMirror.focus();
-      return true;
-    };
-    this.noteEditorObserver = new MutationObserver(() => {
-      activateEditor();
-    });
-    this.noteEditorObserver.observe(this.noteEditor, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["contenteditable", "disabled", "readonly"]
-    });
     this.noteEditor.addEventListener("open", () => {
-      activateEditor();
+      this.noteEditor?.focus();
     }, { once: true });
-    queueMicrotask(activateEditor);
+    queueMicrotask(() => this.noteEditor?.focus());
   }
 
   #cancelNoteEdit() {
-    this.noteEditorObserver?.disconnect();
-    this.noteEditorObserver = null;
     this.noteEditor?.remove();
     this.noteEditor = null;
     this.editingNote = false;
