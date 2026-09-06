@@ -27,6 +27,7 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.onOpenDocument = options.onOpenDocument;
     this.focusNotes = options.focusNotes ?? false;
     this.noteEditor = null;
+    this.noteEditorObserver = null;
     this.editingNote = false;
   }
 
@@ -89,17 +90,39 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     });
     editorHost.replaceChildren(editorInput);
     this.noteEditor = editorInput;
-    const focusEditor = () => {
-      this.noteEditor?.removeAttribute("disabled");
-      this.noteEditor?.removeAttribute("readonly");
-      this.noteEditor?.querySelector(".ProseMirror")?.setAttribute("contenteditable", "true");
-      this.noteEditor?.focus();
+    const activateEditor = () => {
+      const editor = this.noteEditor;
+      if (!editor) return false;
+      editor.removeAttribute("disabled");
+      editor.removeAttribute("readonly");
+      try {
+        editor.disabled = false;
+        editor.editable = true;
+      } catch (error) {
+        console.warn("[mel-storyboard] Could not set ProseMirror editable state", error);
+      }
+      const proseMirror = editor.querySelector(".ProseMirror");
+      if (!proseMirror) return false;
+      proseMirror.contentEditable = "true";
+      proseMirror.removeAttribute("aria-disabled");
+      proseMirror.style.pointerEvents = "auto";
+      proseMirror.style.userSelect = "text";
+      proseMirror.focus();
+      return true;
     };
-    this.noteEditor.addEventListener("open", focusEditor, { once: true });
-    focusEditor();
+    this.noteEditorObserver = new MutationObserver(() => {
+      if (activateEditor()) this.noteEditorObserver?.disconnect();
+    });
+    this.noteEditorObserver.observe(this.noteEditor, { childList: true, subtree: true });
+    this.noteEditor.addEventListener("open", () => {
+      if (activateEditor()) this.noteEditorObserver?.disconnect();
+    }, { once: true });
+    queueMicrotask(activateEditor);
   }
 
   #cancelNoteEdit() {
+    this.noteEditorObserver?.disconnect();
+    this.noteEditorObserver = null;
     this.noteEditor?.remove();
     this.noteEditor = null;
     this.editingNote = false;

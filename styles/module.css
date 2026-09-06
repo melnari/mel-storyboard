@@ -620,6 +620,13 @@
   display: none;
 }
 
+.mel-storyboard-object-details-note-editor prose-mirror,
+.mel-storyboard-object-details-note-editor .ProseMirror {
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
+}
+
 .mel-storyboard-object-details-notes h3 {
   margin: 0;
 }
