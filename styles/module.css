@@ -550,6 +550,10 @@
   background: #17191f;
 }
 
+.mel-storyboard-object-details-notes [data-object-note-editor] {
+  min-height: 10rem;
+}
+
 .mel-storyboard-connection-counts {
   display: flex;
   gap: .8rem;

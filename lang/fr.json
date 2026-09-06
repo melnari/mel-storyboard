@@ -59,7 +59,8 @@
       "ExportSvg": "SVG",
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
-      "Save": "Enregistrer"
+      "Save": "Enregistrer",
+      "Close": "Fermer"
     },
   "LABELS": {
     "Story": "Story",
@@ -120,6 +121,7 @@
       "SelectConnectionTarget": "Sélectionnez la scène cible de cette relation.",
       "Copied": "Scène copiée."
       ,"ActorUuidRequired": "Les objets Actor nécessitent un UUID Foundry."
+      ,"FoundryObjectUnavailable": "L’objet Foundry lié n’est pas disponible."
       ,"TemplateInUse": "Ce modèle est encore utilisé par une scène."
     },
     "EXPORT": {
@@ -150,7 +152,10 @@
       "INFORMATION": "Information",
       "EVENT": "Événement",
       "JOURNAL": "Journal",
-      "FOUNDRY_SCENE": "Scène Foundry"
+      "FOUNDRY_SCENE": "Scène Foundry",
+      "ROLLABLE_TABLE": "Table aléatoire",
+      "MACRO": "Macro",
+      "PLAYLIST": "Playlist"
     },
     "STATUS": {
       "OFFEN": "Ouvert",

@@ -59,7 +59,8 @@
       "ExportSvg": "SVG",
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
-      "Save": "Opslaan"
+      "Save": "Opslaan",
+      "Close": "Sluiten"
     },
   "LABELS": {
     "Story": "Story",
@@ -120,6 +121,7 @@
       "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
       "Copied": "Scène gekopieerd."
       ,"ActorUuidRequired": "Actor-objecten vereisen een Foundry-UUID."
+      ,"FoundryObjectUnavailable": "Het gekoppelde Foundry-object is niet beschikbaar."
       ,"TemplateInUse": "Dit sjabloon wordt nog door een scène gebruikt."
     },
     "EXPORT": {
@@ -150,7 +152,10 @@
       "INFORMATION": "Informatie",
       "EVENT": "Gebeurtenis",
       "JOURNAL": "Journal",
-      "FOUNDRY_SCENE": "Foundry-scène"
+      "FOUNDRY_SCENE": "Foundry-scène",
+      "ROLLABLE_TABLE": "Worptabel",
+      "MACRO": "Macro",
+      "PLAYLIST": "Afspeellijst"
     },
     "STATUS": {
       "OFFEN": "Open",

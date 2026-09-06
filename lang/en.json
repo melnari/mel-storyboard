@@ -59,7 +59,8 @@
       "ExportSvg": "SVG",
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
-      "Save": "Save"
+      "Save": "Save",
+      "Close": "Close"
     },
   "LABELS": {
     "Story": "Story",
@@ -120,6 +121,7 @@
       "SelectConnectionTarget": "Select the target scene for this connection.",
       "Copied": "Scene copied."
       ,"ActorUuidRequired": "Actor objects require a Foundry UUID."
+      ,"FoundryObjectUnavailable": "The linked Foundry object is not available."
       ,"TemplateInUse": "This template is still used by a scene."
     },
     "EXPORT": {
@@ -150,7 +152,10 @@
       "INFORMATION": "Information",
       "EVENT": "Event",
       "JOURNAL": "Journal",
-      "FOUNDRY_SCENE": "Foundry scene"
+      "FOUNDRY_SCENE": "Foundry scene",
+      "ROLLABLE_TABLE": "Rollable table",
+      "MACRO": "Macro",
+      "PLAYLIST": "Playlist"
     },
     "STATUS": {
       "OFFEN": "Open",

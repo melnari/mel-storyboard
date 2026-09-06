@@ -23,7 +23,7 @@ function createFoundryLinkHtml(uuid, label, classes = []) {
   if (!uuid) return "";
   const anchor = foundry.applications.ux.TextEditor.createAnchor({
     classes: ["content-link", ...classes],
-    dataset: { uuid },
+    dataset: { uuid, storyboardFoundryLink: "true" },
     attrs: { draggable: "true" },
     name: label
   });
@@ -38,7 +38,10 @@ const OBJECT_ICONS = Object.freeze({
   PLACE: "fa-location-dot",
   ITEM: "fa-cube",
   INFORMATION: "fa-circle-info",
-  EVENT: "fa-calendar-day"
+  EVENT: "fa-calendar-day",
+  ROLLABLE_TABLE: "fa-dice-d20",
+  MACRO: "fa-scroll",
+  PLAYLIST: "fa-music"
 });
 
 function buildSceneTree(scenes) {
@@ -205,6 +208,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       this.keyboardBound = true;
     }
     this.element.querySelectorAll("[data-action]").forEach(element => element.addEventListener("click", event => this.#handleAction(event)));
+    this.#bindFoundryLinks(this.element);
     this.element.querySelectorAll("[data-scene-element]").forEach(element => {
       element.addEventListener("pointerdown", event => this.#startDrag(event));
       element.addEventListener("click", async event => {
@@ -244,6 +248,35 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   _onClose(options) {
     this.#closeContextMenu();
     return super._onClose(options);
+  }
+
+  #bindFoundryLinks(root) {
+    root.querySelectorAll("[data-storyboard-foundry-link]").forEach(link => {
+      link.addEventListener("click", event => this.#openFoundryDocument(event));
+    });
+  }
+
+  async #openFoundryDocument(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const uuid = event.currentTarget?.dataset?.uuid;
+    if (!uuid) return;
+    const document = await fromUuid(uuid);
+    if (!document) {
+      ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
+      return;
+    }
+    const sheet = document.sheet;
+    if (sheet?.render) {
+      await sheet.render({ force: true });
+      sheet.bringToFront?.();
+      return;
+    }
+    if (document.documentName === "Scene" && typeof document.view === "function") {
+      await document.view();
+      return;
+    }
+    ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
   }
 
   #selectElement(elementId, additive = false) {
@@ -539,6 +572,19 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       ]
     });
     await dialog.render({ force: true });
+    const editorHost = dialog.element?.querySelector("[data-object-note-editor]");
+    const editorInput = foundry.applications.fields.createEditorInput({
+      name: "notes",
+      value: assignment.notes ?? "",
+      editable: true,
+      engine: "prosemirror",
+      button: false,
+      collaborate: false,
+      height: 180
+    });
+    editorHost?.replaceChildren(editorInput);
+    this.#bindFoundryLinks(dialog.element);
+    dialog.bringToFront();
     if (focusNotes) dialog.element?.querySelector("prose-mirror")?.focus();
   }
 
@@ -551,24 +597,29 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!raw) return;
     let data;
     try { data = JSON.parse(raw); } catch { return; }
-    const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene"]);
-    if (!data?.uuid || !supportedTypes.has(data.type)) return;
+    const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene", "RollTable", "Macro", "Playlist"]);
+    if (!data?.uuid) return;
     const target = event.target instanceof Element ? event.target.closest("[data-scene-element]") : null;
     const element = this.board.elements.find(candidate => candidate.id === target?.dataset.elementId);
     const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
     if (!scene) return;
     const document = await fromUuid(data.uuid);
     if (!document) throw new Error("The dropped Foundry document could not be resolved.");
-    const objectType = data.type === "Actor"
+    const foundryType = data.type ?? document.documentName;
+    if (!supportedTypes.has(foundryType)) return;
+    const objectType = foundryType === "Actor"
       ? (document.type === "character" ? "PLAYER_CHARACTER" : "NPC")
-      : data.type === "Item" ? "ITEM" : data.type === "Scene" ? "FOUNDRY_SCENE" : "JOURNAL";
+      : foundryType === "Item" ? "ITEM" : foundryType === "Scene" ? "FOUNDRY_SCENE" : "JOURNAL";
+    const extendedObjectType = foundryType === "RollTable"
+      ? "ROLLABLE_TABLE"
+      : foundryType === "Macro" ? "MACRO" : foundryType === "Playlist" ? "PLAYLIST" : objectType;
     this.history.capture(this.board);
     const existing = this.board.objects.find(object => object.foundryUuid === data.uuid);
     const object = existing ?? createBoardObject(this.board, {
-      objectType,
+      objectType: extendedObjectType,
       title: document.name ?? data.uuid,
       foundryUuid: data.uuid,
-      foundryDocumentType: data.type,
+      foundryDocumentType: foundryType,
       image: document.img ?? document.texture?.src ?? ""
     });
     assignObjectToScene(scene, object.id);
