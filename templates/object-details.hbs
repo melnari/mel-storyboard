@@ -1,0 +1,19 @@
+<div class="mel-storyboard-object-details">
+  <div class="mel-storyboard-object-details-header">
+    {{#if object.image}}<img src="{{object.image}}" alt="" aria-hidden="true" />{{/if}}
+    <div>
+      <h2>{{object.title}}</h2>
+      {{#if object.foundryLinkHtml}}{{{object.foundryLinkHtml}}}{{/if}}
+    </div>
+  </div>
+  <dl class="mel-storyboard-object-details-list">
+    <div><dt>{{labels.objectType}}</dt><dd>{{object.typeLabel}}</dd></div>
+    <div><dt>{{labels.objectTitle}}</dt><dd>{{object.title}}</dd></div>
+    <div><dt>{{labels.foundryUuid}}</dt><dd class="mel-storyboard-object-details-uuid">{{object.foundryUuid}}</dd></div>
+    {{#if object.foundryDocumentType}}<div><dt>{{labels.foundryDocumentType}}</dt><dd>{{object.foundryDocumentType}}</dd></div>{{/if}}
+  </dl>
+  <section class="mel-storyboard-object-details-notes">
+    <h3>{{labels.objectNote}}</h3>
+    {{editor assignmentNotes target="notes" button=false engine="prosemirror" collaborate=false}}
+  </section>
+</div>

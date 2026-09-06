@@ -412,20 +412,25 @@
 
 .mel-storyboard-object-card {
   display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: .5rem;
-  padding: .45rem;
+  gap: .45rem;
+  padding: .55rem;
   border: 1px solid #59687a;
   border-radius: 4px;
   background: rgba(49, 56, 70, .55);
 }
 
-.mel-storyboard-object-card > i {
+.mel-storyboard-object-main {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  align-items: start;
+  gap: .5rem;
+}
+
+.mel-storyboard-object-main > i {
   color: #f6c453;
 }
 
-.mel-storyboard-object-card > img {
+.mel-storyboard-object-main > img {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 3px;
@@ -438,7 +443,22 @@
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.mel-storyboard-object-card strong,
+.mel-storyboard-object-title-link {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.mel-storyboard-object-title-link {
+  display: block;
+  color: #f6c453;
+  font-weight: 600;
+}
+
+.mel-storyboard-object-content {
+  min-width: 0;
 }
 
 .mel-storyboard-object-card span,
@@ -447,9 +467,87 @@
   font-size: .75rem;
 }
 
-.mel-storyboard-object-card .icon-button {
-  min-width: 1.8rem;
-  min-height: 1.8rem;
+.mel-storyboard-object-actions {
+  display: flex;
+  justify-content: center;
+  gap: .3rem;
+  padding-top: .35rem;
+  border-top: 1px solid #3a4350;
+}
+
+.mel-storyboard-object-actions .icon-button {
+  min-height: 1.65rem;
+  padding: .2rem .4rem;
+  font-size: .75rem;
+}
+
+.mel-storyboard-object-details {
+  display: grid;
+  gap: .8rem;
+  padding: .1rem;
+}
+
+.mel-storyboard-object-details-header {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+}
+
+.mel-storyboard-object-details-header img {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.mel-storyboard-object-details-header h2 {
+  margin: 0 0 .25rem;
+}
+
+.mel-storyboard-object-details-list {
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+}
+
+.mel-storyboard-object-details-list > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, .35fr) minmax(0, 1fr);
+  gap: .6rem;
+  padding-bottom: .3rem;
+  border-bottom: 1px solid #3a4350;
+}
+
+.mel-storyboard-object-details-list dt {
+  color: #aeb8c5;
+  font-weight: 600;
+}
+
+.mel-storyboard-object-details-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mel-storyboard-object-details-uuid {
+  font-family: monospace;
+  font-size: .8rem;
+}
+
+.mel-storyboard-object-details-notes {
+  display: grid;
+  gap: .35rem;
+}
+
+.mel-storyboard-object-details-notes h3 {
+  margin: 0;
+}
+
+.mel-storyboard-object-details-notes prose-mirror {
+  display: block;
+  min-height: 10rem;
+  border: 1px solid #59687a;
+  border-radius: 4px;
+  background: #17191f;
 }
 
 .mel-storyboard-connection-counts {

@@ -98,15 +98,19 @@
             <div class="mel-storyboard-object-list">
               {{#each selectedObjects}}
                 <article class="mel-storyboard-object-card">
-                  {{#if image}}<img src="{{image}}" alt="" aria-hidden="true" />{{else}}<i class="fas {{icon}}" aria-hidden="true"></i>{{/if}}
-                  <div>
-                    <strong>{{title}}</strong>
-                    <span>{{typeLabel}}</span>
-                    {{#if foundryUuid}}<small>{{foundryUuid}}</small>{{/if}}
-                    {{#if assignmentNotes}}<small>{{assignmentNotes}}</small>{{/if}}
+                  <div class="mel-storyboard-object-main">
+                    {{#if image}}<img src="{{image}}" alt="" aria-hidden="true" />{{else}}<i class="fas {{icon}}" aria-hidden="true"></i>{{/if}}
+                    <div class="mel-storyboard-object-content">
+                      {{#if foundryLinkHtml}}{{{foundryLinkHtml}}}{{else}}<strong>{{title}}</strong>{{/if}}
+                      <span>{{typeLabel}}</span>
+                      {{#if assignmentNotesPreview}}<small>{{assignmentNotesPreview}}</small>{{/if}}
+                    </div>
                   </div>
-                  <button type="button" class="icon-button" data-action="edit-object-note" data-assignment-id="{{assignmentId}}" title="{{@root.labels.editObjectNote}}" aria-label="{{@root.labels.editObjectNote}}"><i class="fas fa-comment"></i></button>
-                  <button type="button" class="icon-button" data-action="remove-object" data-assignment-id="{{assignmentId}}" title="{{@root.labels.removeObject}}" aria-label="{{@root.labels.removeObject}}"><i class="fas fa-xmark"></i></button>
+                  <div class="mel-storyboard-object-actions">
+                    <button type="button" class="icon-button" data-action="object-details" data-assignment-id="{{assignmentId}}" title="{{@root.labels.objectDetails}}" aria-label="{{@root.labels.objectDetails}}"><i class="fas fa-circle-info" aria-hidden="true"></i> {{@root.labels.objectDetails}}</button>
+                    <button type="button" class="icon-button" data-action="edit-object-note" data-assignment-id="{{assignmentId}}" title="{{@root.labels.objectNote}}" aria-label="{{@root.labels.objectNote}}"><i class="fas fa-comment" aria-hidden="true"></i> {{@root.labels.objectNote}}</button>
+                    <button type="button" class="icon-button" data-action="remove-object" data-assignment-id="{{assignmentId}}" title="{{@root.labels.deleteObject}}" aria-label="{{@root.labels.deleteObject}}"><i class="fas fa-xmark" aria-hidden="true"></i> {{@root.labels.deleteObject}}</button>
+                  </div>
                 </article>
               {{/each}}
             </div>

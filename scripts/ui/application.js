@@ -19,6 +19,17 @@ function notifyError(error) {
   ui.notifications.error(error.message ?? String(error));
 }
 
+function createFoundryLinkHtml(uuid, label, classes = []) {
+  if (!uuid) return "";
+  const anchor = foundry.applications.ux.TextEditor.createAnchor({
+    classes: ["content-link", ...classes],
+    dataset: { uuid },
+    attrs: { draggable: "true" },
+    name: label
+  });
+  return anchor.outerHTML;
+}
+
 const OBJECT_ICONS = Object.freeze({
   PLAYER_CHARACTER: "fa-user",
   NPC: "fa-user-gear",
@@ -95,7 +106,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       ...object,
       typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
       icon: OBJECT_ICONS[object.objectType] ?? "fa-cube",
-      image: object.visualConfig?.image ?? ""
+      image: object.visualConfig?.image ?? "",
+      foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title, ["mel-storyboard-object-title-link"])
     }));
     const objectsById = new Map(objects.map(object => [object.id, object]));
     const connections = this.board.connections.map(connection => {
@@ -110,7 +122,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
     const selectedObjects = (selectedSceneRecord?.objectAssignments ?? []).map(assignment => {
       const object = objectsById.get(assignment.objectId);
-      return object ? { ...object, assignmentId: assignment.id, role: assignment.role, assignmentNotes: assignment.notes } : null;
+      return object ? {
+        ...object,
+        assignmentId: assignment.id,
+        role: assignment.role,
+        assignmentNotes: assignment.notes,
+        assignmentNotesPreview: assignment.notes ? foundry.applications.ux.TextEditor.previewHTML(assignment.notes, 140) : ""
+      } : null;
     }).filter(Boolean);
     const selectedScene = selectedSceneRecord ? {
       ...selectedSceneRecord,
@@ -156,8 +174,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         inspector: localize("MEL_STORYBOARD.ACCESSIBILITY.Inspector"),
         sceneDetails: localize("MEL_STORYBOARD.LABELS.SceneDetails"),
         objects: localize("MEL_STORYBOARD.LABELS.Objects"),
-        removeObject: localize("MEL_STORYBOARD.ACTIONS.RemoveObject"),
-        editObjectNote: localize("MEL_STORYBOARD.ACTIONS.EditObjectNote"),
+        objectDetails: localize("MEL_STORYBOARD.ACTIONS.ObjectDetails"),
+        objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
+        deleteObject: localize("MEL_STORYBOARD.ACTIONS.DeleteObject"),
         noObjects: localize("MEL_STORYBOARD.EMPTY.NoObjects"),
         titleField: localize("MEL_STORYBOARD.LABELS.Title"),
         status: localize("MEL_STORYBOARD.LABELS.Status"),
@@ -473,15 +492,58 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.board = await this.store.save(this.board);
   }
 
-  async #editObjectNote(assignmentId) {
+  async #showObjectDetails(assignmentId, { focusNotes = false } = {}) {
     const scene = this.#selectedScene();
     const assignment = scene?.objectAssignments?.find(candidate => candidate.id === assignmentId);
-    if (!scene || !assignment) return;
-    const notes = window.prompt(localize("MEL_STORYBOARD.PROMPTS.ObjectNote"), assignment.notes ?? "");
-    if (notes === null) return;
-    this.history.capture(this.board);
-    updateObjectAssignment(scene, assignmentId, { notes });
-    this.board = await this.store.save(this.board);
+    const object = this.board.objects.find(candidate => candidate.id === assignment?.objectId);
+    if (!scene || !assignment || !object) return;
+    const template = await foundry.applications.handlebars.renderTemplate("modules/mel-storyboard/templates/object-details.hbs", {
+      object: {
+        ...object,
+        typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
+        image: object.visualConfig?.image ?? "",
+        foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title)
+      },
+      assignmentNotes: assignment.notes ?? "",
+      labels: {
+        objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
+        objectTitle: localize("MEL_STORYBOARD.LABELS.ObjectTitle"),
+        foundryUuid: localize("MEL_STORYBOARD.LABELS.FoundryUuid"),
+        foundryDocumentType: localize("MEL_STORYBOARD.LABELS.FoundryDocumentType"),
+        objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote")
+      }
+    });
+    const content = document.createElement("div");
+    content.innerHTML = template;
+    const { DialogV2 } = foundry.applications.api;
+    const dialog = new DialogV2({
+      window: { title: `${localize("MEL_STORYBOARD.ACTIONS.ObjectDetails")}: ${object.title}` },
+      position: { width: 560 },
+      content,
+      buttons: [
+        {
+          action: "save",
+          label: localize("MEL_STORYBOARD.ACTIONS.Save"),
+          default: true,
+          callback: async (_event, _button, currentDialog) => {
+            const editor = currentDialog.element?.querySelector("prose-mirror");
+            editor?.save?.();
+            this.history.capture(this.board);
+            updateObjectAssignment(scene, assignmentId, { notes: editor?.value ?? assignment.notes ?? "" });
+            this.board = await this.store.save(this.board);
+            await this.render({ force: true });
+            return true;
+          }
+        },
+        { action: "close", label: localize("MEL_STORYBOARD.ACTIONS.Close") }
+      ]
+    });
+    await dialog.render({ force: true });
+    if (focusNotes) dialog.element?.querySelector("prose-mirror")?.focus();
+  }
+
+  async #editObjectNote(assignmentId) {
+    await this.#showObjectDetails(assignmentId, { focusNotes: true });
   }
 
   async #onFoundryDrop(event) {
@@ -531,7 +593,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       } else if (action === "zoom-in") {
         this.#changeZoom(0.1);
         return;
-      } else if (action === "remove-object") await this.#removeObjectFromScene(event.currentTarget.dataset.assignmentId);
+      } else if (action === "object-details") await this.#showObjectDetails(event.currentTarget.dataset.assignmentId);
+      else if (action === "remove-object") await this.#removeObjectFromScene(event.currentTarget.dataset.assignmentId);
       else if (action === "edit-object-note") await this.#editObjectNote(event.currentTarget.dataset.assignmentId);
       else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
