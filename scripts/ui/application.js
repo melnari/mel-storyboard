@@ -45,6 +45,76 @@ const OBJECT_ICONS = Object.freeze({
   PLAYLIST: "fa-music"
 });
 
+const SCENE_ELEMENT_MIN_WIDTH = 180;
+const SCENE_ELEMENT_MIN_HEIGHT = 96;
+const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
+
+function estimateTextWidth(text, fontSize = 15) {
+  return Math.ceil([...String(text ?? "")].length * fontSize * 0.56) + SCENE_ELEMENT_HORIZONTAL_PADDING;
+}
+
+function wrapText(text, maxCharacters) {
+  const paragraphs = String(text ?? "").split(/\r?\n/);
+  const lines = [];
+  for (const paragraph of paragraphs) {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      if (paragraphs.length > 1) lines.push("");
+      continue;
+    }
+    let line = "";
+    for (const word of words) {
+      if (word.length > maxCharacters) {
+        if (line) {
+          lines.push(line);
+          line = "";
+        }
+        for (let index = 0; index < word.length; index += maxCharacters) lines.push(word.slice(index, index + maxCharacters));
+        continue;
+      }
+      const candidate = line ? `${line} ${word}` : word;
+      if (candidate.length > maxCharacters && line) {
+        lines.push(line);
+        line = word;
+      } else line = candidate;
+    }
+    if (line) lines.push(line);
+  }
+  return lines;
+}
+
+function sceneElementPresentation(element, scene) {
+  const title = String(scene?.title ?? element.title ?? localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE")).replace(/\s+/g, " ").trim();
+  const description = String(scene?.description ?? "").trim();
+  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, SCENE_ELEMENT_MIN_WIDTH, estimateTextWidth(title));
+  const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / 7));
+  const descriptionLines = wrapText(description, descriptionCharacters);
+  const titleY = 25;
+  const descriptionY = titleY + 19;
+  const descriptionLineHeight = 15;
+  const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
+  const statusY = displayIdY + 17;
+  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, statusY + 19);
+  const height = Math.max(Number(element.size?.height) || SCENE_ELEMENT_MIN_HEIGHT, minimumHeight);
+  return {
+    title,
+    titleLines: [title],
+    descriptionLines,
+    displayId: scene?.displayId ?? "",
+    statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
+    size: { width, height },
+    titleY,
+    descriptionY,
+    descriptionLineHeight,
+    displayIdY,
+    statusY,
+    statusBadgeY: statusY - 14,
+    statusBadgeWidth: width - 20,
+    resizeHandleX: width - 14,
+    resizeHandleY: height - 14
+  };
+}
+
 function buildSceneTree(scenes) {
   const childrenByParent = new Map();
   for (const scene of scenes) {
@@ -89,6 +159,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.selectedElementIds = [];
     this.history = new HistoryStack();
     this.drag = null;
+    this.resize = null;
     this.clipboard = null;
     this.zoom = 1;
     this.connectionSourceId = null;
@@ -105,7 +176,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const elements = this.board.elements.map(element => {
       const scene = scenesById.get(element.sceneId);
-      return { ...element, label: scene?.title || element.title || localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), typeLabel: scene?.displayId ?? "", statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "", isSelected: this.selectedElementIds.includes(element.id) };
+      const presentation = sceneElementPresentation(element, scene);
+      // Keep legacy elements usable with the new multi-line layout. The
+      // normalized dimensions are persisted with the next board save.
+      element.size = presentation.size;
+      return { ...element, ...presentation, isSelected: this.selectedElementIds.includes(element.id) };
     });
     const byId = new Map(elements.map(element => [element.id, element]));
     const objects = (this.board.objects ?? []).map(object => ({
@@ -228,6 +303,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         }
         this.#selectElement(element.dataset.elementId, event.ctrlKey || event.metaKey);
       });
+    });
+    this.element.querySelectorAll("[data-scene-resize]").forEach(handle => {
+      handle.addEventListener("pointerdown", event => this.#startResize(event));
     });
     this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("click", event => {
       if (event.target === event.currentTarget && !this.connectionSourceId) {
@@ -681,7 +759,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #startDrag(event) {
-    if (event.button !== 0 || this.connectionSourceId || event.ctrlKey || event.metaKey) return;
+    if (event.button !== 0 || this.connectionSourceId || event.ctrlKey || event.metaKey || event.target?.closest?.("[data-scene-resize]")) return;
     event.preventDefault();
     const element = this.board.elements.find(candidate => candidate.id === event.currentTarget.dataset.elementId);
     if (!element) return;
@@ -694,6 +772,78 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.drag.end = endEvent => this.#finishDrag(endEvent);
     window.addEventListener("pointermove", this.drag.move);
     window.addEventListener("pointerup", this.drag.end, { once: true });
+  }
+
+  #startResize(event) {
+    if (event.button !== 0 || this.connectionSourceId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const elementId = event.currentTarget.dataset.elementId;
+    const element = this.board.elements.find(candidate => candidate.id === elementId);
+    if (!element) return;
+    this.selectedElementIds = [element.id];
+    const point = this.#svgPoint(this.element.querySelector("[data-storyboard-canvas]"), event);
+    this.history.capture(this.board);
+    this.resize = {
+      element,
+      startX: point.x,
+      startY: point.y,
+      original: clone(element.size)
+    };
+    this.resize.move = moveEvent => this.#resizeMove(moveEvent);
+    this.resize.end = () => this.#finishResize();
+    window.addEventListener("pointermove", this.resize.move);
+    window.addEventListener("pointerup", this.resize.end, { once: true });
+  }
+
+  #resizeMove(event) {
+    if (!this.resize) return;
+    this.resize.pendingEvent = event;
+    if (!this.resize.frame) this.resize.frame = requestAnimationFrame(() => this.#applyResizeFrame());
+  }
+
+  #applyResizeFrame() {
+    if (!this.resize?.pendingEvent) return;
+    const point = this.#svgPoint(this.element.querySelector("[data-storyboard-canvas]"), this.resize.pendingEvent);
+    this.resize.element.size = {
+      width: Math.max(120, this.resize.original.width + point.x - this.resize.startX),
+      height: Math.max(72, this.resize.original.height + point.y - this.resize.startY)
+    };
+    this.#updateSceneElementDom(this.resize.element);
+    this.#updateConnectionGeometry(this.resize.element.id);
+    this.resize.pendingEvent = null;
+    this.resize.frame = null;
+  }
+
+  #updateSceneElementDom(element) {
+    const node = this.element.querySelector(`[data-element-id="${element.id}"]`);
+    if (!node) return;
+    const scene = this.board.scenes.find(candidate => candidate.id === element.sceneId);
+    const presentation = sceneElementPresentation(element, scene);
+    element.size = presentation.size;
+    node.setAttribute("aria-label", presentation.title);
+    const namespace = "http://www.w3.org/2000/svg";
+    const create = (tag, attributes = {}, text = null) => {
+      const child = document.createElementNS(namespace, tag);
+      for (const [name, value] of Object.entries(attributes)) child.setAttribute(name, String(value));
+      if (text !== null) child.textContent = text;
+      return child;
+    };
+    const title = create("text", { class: "mel-storyboard-element-title", x: 14, y: presentation.titleY });
+    for (const [index, line] of presentation.titleLines.entries()) title.append(create("tspan", { x: 14, dy: index ? 18 : 0 }, line));
+    const children = [create("rect", { class: "mel-storyboard-element-frame", width: presentation.size.width, height: presentation.size.height, rx: 10 }), title];
+    if (presentation.descriptionLines.length) {
+      const description = create("text", { class: "mel-storyboard-element-description", x: 14, y: presentation.descriptionY });
+      for (const [index, line] of presentation.descriptionLines.entries()) description.append(create("tspan", { x: 14, dy: index ? presentation.descriptionLineHeight : 0 }, line));
+      children.push(description);
+    }
+    children.push(
+      create("text", { class: "mel-storyboard-element-id", x: 14, y: presentation.displayIdY }, presentation.displayId),
+      create("rect", { class: "mel-storyboard-element-status-badge", x: 10, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
+      create("text", { class: "mel-storyboard-element-status", x: 18, y: presentation.statusY }, presentation.statusLabel),
+      create("rect", { class: "mel-storyboard-element-resize-handle", "data-scene-resize": "", "data-element-id": element.id, x: presentation.resizeHandleX, y: presentation.resizeHandleY, width: 10, height: 10, rx: 2, "aria-label": "Resize scene" })
+    );
+    node.replaceChildren(...children);
   }
 
   #svgPoint(svg, event) {
@@ -747,6 +897,18 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#applyDragFrame();
     window.removeEventListener("pointermove", move);
     this.drag = null;
+    this.board = await this.store.save(this.board);
+    this.selectedElementIds = [element.id];
+    await this.render({ force: true });
+  }
+
+  async #finishResize() {
+    if (!this.resize) return;
+    const { move, element } = this.resize;
+    if (this.resize.frame) cancelAnimationFrame(this.resize.frame);
+    this.#applyResizeFrame();
+    window.removeEventListener("pointermove", move);
+    this.resize = null;
     this.board = await this.store.save(this.board);
     this.selectedElementIds = [element.id];
     await this.render({ force: true });

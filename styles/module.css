@@ -736,14 +736,27 @@
 
 .mel-storyboard-element text {
   fill: #f0f3f7;
-  font-size: 15px;
   pointer-events: none;
 }
 
-.mel-storyboard-element-type,
+.mel-storyboard-element-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mel-storyboard-element-description,
+.mel-storyboard-element-id,
 .mel-storyboard-element-status {
   fill: #aeb8c5 !important;
   font-size: 11px !important;
+}
+
+.mel-storyboard-element-description {
+  fill: #d3dae4 !important;
+}
+
+.mel-storyboard-element-id {
+  font-family: monospace;
 }
 
 .mel-storyboard-element-status-badge {
@@ -756,6 +769,20 @@
 .mel-storyboard-element-status {
   fill: #f6c453 !important;
   font-weight: 600;
+}
+
+.mel-storyboard-element-resize-handle {
+  fill: rgba(246, 196, 83, .55);
+  stroke: #f6c453;
+  stroke-width: 1;
+  cursor: nwse-resize;
+  opacity: 0;
+}
+
+.mel-storyboard-element:hover .mel-storyboard-element-resize-handle,
+.mel-storyboard-element:focus .mel-storyboard-element-resize-handle,
+.mel-storyboard-element.is-selected .mel-storyboard-element-resize-handle {
+  opacity: 1;
 }
 
 .mel-storyboard-connection {

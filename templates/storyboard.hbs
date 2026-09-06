@@ -59,12 +59,20 @@
             {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each board.elements}}
-            <g class="mel-storyboard-element {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{label}}">
-              <rect width="{{size.width}}" height="{{size.height}}" rx="10" />
-              <text x="14" y="27">{{label}}</text>
-              <text class="mel-storyboard-element-type" x="14" y="48">{{typeLabel}}</text>
-              <rect class="mel-storyboard-element-status-badge" x="10" y="53" width="160" height="18" rx="9" />
-              <text class="mel-storyboard-element-status" x="18" y="66">{{statusLabel}}</text>
+            <g class="mel-storyboard-element {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
+              <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="10" />
+              <text class="mel-storyboard-element-title" x="14" y="{{titleY}}">
+                {{#each titleLines}}<tspan x="14" dy="{{#if @first}}0{{else}}18{{/if}}">{{this}}</tspan>{{/each}}
+              </text>
+              {{#if descriptionLines.length}}
+                <text class="mel-storyboard-element-description" x="14" y="{{descriptionY}}">
+                  {{#each descriptionLines}}<tspan x="14" dy="{{#if @first}}0{{else}}{{../descriptionLineHeight}}{{/if}}">{{this}}</tspan>{{/each}}
+                </text>
+              {{/if}}
+              <text class="mel-storyboard-element-id" x="14" y="{{displayIdY}}">{{displayId}}</text>
+              <rect class="mel-storyboard-element-status-badge" x="10" y="{{statusBadgeY}}" width="{{statusBadgeWidth}}" height="18" rx="9" />
+              <text class="mel-storyboard-element-status" x="18" y="{{statusY}}">{{statusLabel}}</text>
+              <rect class="mel-storyboard-element-resize-handle" data-scene-resize data-element-id="{{id}}" x="{{resizeHandleX}}" y="{{resizeHandleY}}" width="10" height="10" rx="2" aria-label="Resize scene" />
             </g>
           {{/each}}
         </svg>
