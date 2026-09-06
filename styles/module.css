@@ -526,6 +526,8 @@
   display: grid;
   gap: .8rem;
   padding: .1rem;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 .mel-storyboard-object-details-header {
@@ -577,6 +579,7 @@
 .mel-storyboard-object-details-notes {
   display: grid;
   gap: .35rem;
+  min-height: 0;
 }
 
 .mel-storyboard-object-details-notes h3 {
@@ -586,13 +589,33 @@
 .mel-storyboard-object-details-notes prose-mirror {
   display: block;
   min-height: 10rem;
+  padding: .35rem .45rem;
   border: 1px solid #59687a;
   border-radius: 4px;
   background: #17191f;
 }
 
-.mel-storyboard-object-details-notes [data-object-note-editor] {
+.mel-storyboard-object-details-notes .editor {
   min-height: 10rem;
+  border: 1px solid #59687a;
+  border-radius: 4px;
+  background: #17191f;
+}
+
+.mel-storyboard-object-details-notes .editor prose-mirror {
+  border: 0;
+}
+
+.mel-storyboard-object-details-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding-top: .55rem;
+  border-top: 1px solid #3a4350;
+}
+
+.mel-storyboard-object-details-actions button {
+  min-width: 6rem;
 }
 
 .mel-storyboard-connection-counts {
@@ -621,6 +644,11 @@
   width: 100%;
   height: 100%;
   overflow: auto;
+  background-color: #111318;
+  background-image:
+    linear-gradient(rgba(160, 175, 195, .14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160, 175, 195, .14) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .mel-storyboard-canvas {

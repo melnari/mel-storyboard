@@ -14,6 +14,10 @@
   </dl>
   <section class="mel-storyboard-object-details-notes">
     <h3>{{labels.objectNote}}</h3>
-    <div data-object-note-editor></div>
+    {{editor assignmentNotes target="notes" button=false editable=true engine="prosemirror" collaborate=false}}
   </section>
+  <footer class="mel-storyboard-object-details-actions">
+    <button type="button" data-action="save"><i class="fas fa-save" aria-hidden="true"></i> {{labels.save}}</button>
+    <button type="button" data-action="close"><i class="fas fa-xmark" aria-hidden="true"></i> {{labels.close}}</button>
+  </footer>
 </div>

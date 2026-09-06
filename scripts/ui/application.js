@@ -3,6 +3,7 @@ import { assignObjectToScene, clone, createBoardObject, createConnection, create
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
+import { ObjectDetailsApplication } from "./object-details.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -96,7 +97,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.contextMenuHandler = null;
     this.contextMenuOutsideHandler = null;
     this.contextMenuKeyHandler = null;
-    this.sidebarCollapsed = false;
+    this.sidebarCollapsed = true;
     this.inspectorCollapsed = true;
   }
 
@@ -540,61 +541,25 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const assignment = scene?.objectAssignments?.find(candidate => candidate.id === assignmentId);
     const object = this.board.objects.find(candidate => candidate.id === assignment?.objectId);
     if (!scene || !assignment || !object) return;
-    const template = await foundry.applications.handlebars.renderTemplate("modules/mel-storyboard/templates/object-details.hbs", {
+    const details = new ObjectDetailsApplication({
       object: {
         ...object,
         typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
-        image: object.visualConfig?.image ?? "",
-        foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title)
+        image: object.visualConfig?.image ?? ""
       },
       assignmentNotes: assignment.notes ?? "",
-      labels: {
-        objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
-        objectTitle: localize("MEL_STORYBOARD.LABELS.ObjectTitle"),
-        foundryUuid: localize("MEL_STORYBOARD.LABELS.FoundryUuid"),
-        foundryDocumentType: localize("MEL_STORYBOARD.LABELS.FoundryDocumentType"),
-        objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote")
+      foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title),
+      focusNotes,
+      onOpenDocument: event => this.#openFoundryDocument(event),
+      onSave: async notes => {
+        this.history.capture(this.board);
+        updateObjectAssignment(scene, assignmentId, { notes });
+        this.board = await this.store.save(this.board);
+        await this.render({ force: true });
       }
     });
-    const content = document.createElement("div");
-    content.innerHTML = template;
-    const { DialogV2 } = foundry.applications.api;
-    let noteEditor = null;
-    const dialog = new DialogV2({
-      window: { title: `${localize("MEL_STORYBOARD.ACTIONS.ObjectDetails")}: ${object.title}` },
-      position: { width: 560 },
-      content,
-      buttons: [
-        {
-          action: "save",
-          label: localize("MEL_STORYBOARD.ACTIONS.Save"),
-          default: true,
-          callback: async (_event, _button, currentDialog) => {
-            const editor = currentDialog.element?.querySelector("prose-mirror");
-            editor?.save?.();
-            const notes = noteEditor?.view?.dom?.innerHTML ?? editor?.value ?? assignment.notes ?? "";
-            this.history.capture(this.board);
-            updateObjectAssignment(scene, assignmentId, { notes });
-            this.board = await this.store.save(this.board);
-            await this.render({ force: true });
-            return true;
-          }
-        },
-        { action: "close", label: localize("MEL_STORYBOARD.ACTIONS.Close") }
-      ]
-    });
-    await dialog.render({ force: true });
-    const editorHost = dialog.element?.querySelector("[data-object-note-editor]");
-    if (editorHost) {
-      noteEditor = await foundry.applications.ux.ProseMirrorEditor.create(
-        editorHost,
-        assignment.notes ?? "",
-        { collaborate: false, uuid: `mel-storyboard-note-${assignment.id}` }
-      );
-    }
-    this.#bindFoundryLinks(dialog.element);
-    dialog.bringToFront();
-    if (focusNotes) noteEditor?.view?.focus();
+    await details.render({ force: true });
+    details.bringToFront();
   }
 
   async #editObjectNote(assignmentId) {
