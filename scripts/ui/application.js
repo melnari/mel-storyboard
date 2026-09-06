@@ -45,7 +45,7 @@ const OBJECT_ICONS = Object.freeze({
   PLAYLIST: "fa-music"
 });
 
-const SCENE_ELEMENT_MIN_WIDTH = 180;
+const SCENE_ELEMENT_MIN_WIDTH = 120;
 const SCENE_ELEMENT_MIN_HEIGHT = 96;
 const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
 
@@ -91,8 +91,11 @@ function sceneElementPresentation(element, scene) {
   const title = String(scene?.title ?? element.title ?? localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE")).replace(/\s+/g, " ").trim();
   const description = String(scene?.description ?? "").trim();
   const displayId = scene?.displayId ?? "";
-  const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 42;
-  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, SCENE_ELEMENT_MIN_WIDTH, estimateTextWidth(title), titleAndIdWidth);
+  const statusLabel = scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "";
+  const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11) + 16);
+  const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 36;
+  const contentWidth = Math.max(SCENE_ELEMENT_MIN_WIDTH, estimateTextWidth(title), titleAndIdWidth, statusBadgeWidth + 20);
+  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
   const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / 7));
   const descriptionLines = wrapText(description, descriptionCharacters);
   const titleY = 25;
@@ -107,7 +110,8 @@ function sceneElementPresentation(element, scene) {
     titleLines: [title],
     descriptionLines,
     displayId,
-    statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
+    statusLabel,
+    contentWidth,
     size: { width, height },
     titleY,
     descriptionY,
@@ -116,7 +120,7 @@ function sceneElementPresentation(element, scene) {
     displayIdX: width - 14,
     statusY,
     statusBadgeY: statusY - 14,
-    statusBadgeWidth: Math.max(40, measureTextWidth(scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "", 11) + 16),
+    statusBadgeWidth,
     resizeHandleX: width - 14,
     resizeHandleY: height - 14
   };
@@ -183,7 +187,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const elements = this.board.elements.map(element => {
       const scene = scenesById.get(element.sceneId);
-      const presentation = sceneElementPresentation(element, scene);
+      let presentation = sceneElementPresentation(element, scene);
+      const isLegacyDefaultWidth = Number(element.size?.width) === 180 && !element.visualConfig?.sizeLocked;
+      if (isLegacyDefaultWidth && presentation.contentWidth < element.size.width) {
+        element.size.width = presentation.contentWidth;
+        presentation = sceneElementPresentation(element, scene);
+      }
       // Keep legacy elements usable with the new multi-line layout. The
       // normalized dimensions are persisted with the next board save.
       element.size = presentation.size;
@@ -813,9 +822,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!this.resize?.pendingEvent) return;
     const point = this.#svgPoint(this.element.querySelector("[data-storyboard-canvas]"), this.resize.pendingEvent);
     this.resize.element.size = {
-      width: Math.max(120, this.resize.original.width + point.x - this.resize.startX),
+      width: Math.max(SCENE_ELEMENT_MIN_WIDTH, this.resize.original.width + point.x - this.resize.startX),
       height: Math.max(72, this.resize.original.height + point.y - this.resize.startY)
     };
+    this.resize.element.visualConfig = { ...(this.resize.element.visualConfig ?? {}), sizeLocked: true };
     this.#updateSceneElementDom(this.resize.element);
     this.#updateConnectionGeometry(this.resize.element.id);
     this.resize.pendingEvent = null;
