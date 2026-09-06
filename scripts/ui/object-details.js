@@ -82,8 +82,6 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
       name: "notes",
       value: this.assignmentNotes,
       editable: true,
-      disabled: false,
-      readonly: false,
       collaborate: false,
       height: 220,
       toggled: false
@@ -95,12 +93,7 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
       if (!editor) return false;
       editor.removeAttribute("disabled");
       editor.removeAttribute("readonly");
-      try {
-        editor.disabled = false;
-        editor.editable = true;
-      } catch (error) {
-        console.warn("[mel-storyboard] Could not set ProseMirror editable state", error);
-      }
+      editor.disabled = false;
       const proseMirror = editor.querySelector(".ProseMirror");
       if (!proseMirror) return false;
       proseMirror.contentEditable = "true";
@@ -111,11 +104,16 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
       return true;
     };
     this.noteEditorObserver = new MutationObserver(() => {
-      if (activateEditor()) this.noteEditorObserver?.disconnect();
+      activateEditor();
     });
-    this.noteEditorObserver.observe(this.noteEditor, { childList: true, subtree: true });
+    this.noteEditorObserver.observe(this.noteEditor, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["contenteditable", "disabled", "readonly"]
+    });
     this.noteEditor.addEventListener("open", () => {
-      if (activateEditor()) this.noteEditorObserver?.disconnect();
+      activateEditor();
     }, { once: true });
     queueMicrotask(activateEditor);
   }
