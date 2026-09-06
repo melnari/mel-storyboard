@@ -26,6 +26,7 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     this.onSave = options.onSave;
     this.onOpenDocument = options.onOpenDocument;
     this.focusNotes = options.focusNotes ?? false;
+    this.noteEditor = null;
   }
 
   async _prepareContext() {
@@ -48,17 +49,31 @@ export class ObjectDetailsApplication extends HandlebarsApplicationMixin(Applica
     await super._onRender(context, options);
     const title = this.element.querySelector(".window-title");
     if (title) title.textContent = localize("MEL_STORYBOARD.ACTIONS.ObjectDetails");
+    const editorHost = this.element.querySelector("[data-note-editor]");
+    if (editorHost) {
+      const editorInput = foundry.applications.fields.createEditorInput({
+        name: "notes",
+        value: this.assignmentNotes,
+        editable: true,
+        button: false,
+        engine: "prosemirror",
+        collaborate: false,
+        height: 220
+      });
+      editorHost.replaceChildren(editorInput);
+      this.noteEditor = editorInput.querySelector("prose-mirror");
+    }
     this.element.querySelector("[data-action='save']")?.addEventListener("click", () => this.#save());
     this.element.querySelector("[data-action='close']")?.addEventListener("click", () => this.close());
     this.element.querySelectorAll("[data-storyboard-foundry-link]").forEach(link => {
       link.addEventListener("click", event => this.onOpenDocument?.(event));
     });
-    if (this.focusNotes) this.element.querySelector("prose-mirror")?.focus();
+    if (this.focusNotes) this.noteEditor?.focus();
     this.bringToFront();
   }
 
   async #save() {
-    const editor = this.element.querySelector("prose-mirror");
+    const editor = this.noteEditor ?? this.element.querySelector("prose-mirror");
     editor?.save?.();
     const notes = editor?.value ?? this.assignmentNotes;
     await this.onSave?.(notes);

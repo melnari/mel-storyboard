@@ -73,7 +73,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     id: "mel-storyboard-application",
     classes: ["mel-storyboard", "standard-form"],
     position: { width: 1280, height: 820 },
-    window: { resizable: true }
+    window: { title: "Mel-Storyboard", resizable: true }
   };
 
   static PARTS = { body: { template: "modules/mel-storyboard/templates/storyboard.hbs" } };
