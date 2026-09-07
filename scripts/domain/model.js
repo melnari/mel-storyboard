@@ -54,6 +54,7 @@ export function createScene(board, { title = "New scene", description = "" } = {
     parentId: null,
     title: title.trim() || "New scene",
     description,
+    notes: "",
     status: STATUS.OFFEN,
     templateId: board.templates.find(template => template.active)?.id ?? null,
     templateVersion: board.templates.find(template => template.active)?.version ?? 1,

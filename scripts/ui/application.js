@@ -5,6 +5,7 @@ import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
 import { SCENE_ELEMENT_MIN_WIDTH, normalizeSceneElementSize, sceneElementPresentation } from "../domain/scene-card.js";
 import { ObjectDetailsApplication } from "./object-details.js";
+import { SceneDetailsApplication } from "./scene-details.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -238,6 +239,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
           return;
         }
         this.#selectElement(element.dataset.elementId, event.ctrlKey || event.metaKey);
+      });
+      element.addEventListener("dblclick", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!this.connectionSourceId) await this.#showSceneDetails(element.dataset.elementId);
       });
     });
     this.element.querySelectorAll("[data-scene-resize]").forEach(handle => {
@@ -637,6 +643,43 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #editObjectNote(assignmentId) {
     await this.#showObjectDetails(assignmentId, { focusNotes: true });
+  }
+
+  async #showSceneDetails(elementId) {
+    const element = this.board.elements.find(candidate => candidate.id === elementId);
+    const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
+    if (!scene) return;
+    const objectsById = new Map((this.board.objects ?? []).map(object => [object.id, object]));
+    const objects = (scene.objectAssignments ?? []).map(assignment => {
+      const object = objectsById.get(assignment.objectId);
+      if (!object) return null;
+      return {
+        ...object,
+        typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
+        icon: OBJECT_ICONS[object.objectType] ?? "fa-cube",
+        image: object.visualConfig?.image ?? "",
+        foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title, ["mel-storyboard-object-title-link"]),
+        assignmentNotesPreview: assignment.notes ? foundry.applications.ux.TextEditor.previewHTML(assignment.notes, 140) : ""
+      };
+    }).filter(Boolean);
+    const details = new SceneDetailsApplication({
+      scene: {
+        ...scene,
+        statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`)
+      },
+      objects,
+      assignmentNotes: scene.notes ?? "",
+      onOpenDocument: event => this.#openFoundryDocument(event),
+      onSave: async notes => {
+        this.history.capture(this.board);
+        scene.notes = notes;
+        scene.updatedAt = new Date().toISOString();
+        this.board = await this.store.save(this.board);
+        await this.render({ force: true });
+      }
+    });
+    await details.render({ force: true });
+    details.bringToFront();
   }
 
   async #onFoundryDrop(event) {

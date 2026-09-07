@@ -39,6 +39,7 @@ function normalizeSceneBoard(stored) {
     return {
       ...scene,
       parentId: scene.parentId ?? null,
+      notes: scene.notes ?? "",
       templateId: scene.templateId ?? template?.id ?? null,
       templateVersion: scene.templateVersion ?? template?.version ?? 1,
       fieldValues: scene.fieldValues ?? {},

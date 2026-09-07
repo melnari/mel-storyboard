@@ -23,6 +23,7 @@ test("scenes get stable UUIDs and unique visible IDs", () => {
   const second = createScene(board, { title: "Second" });
   assert.notEqual(first.id, second.id);
   assert.deepEqual([first.displayId, second.displayId], ["S-001", "S-002"]);
+  assert.equal(first.notes, "");
 });
 
 test("scene status values use the approved domain keys", () => {

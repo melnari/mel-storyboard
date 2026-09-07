@@ -1,0 +1,49 @@
+<div class="mel-storyboard-object-details mel-storyboard-scene-details">
+  <div class="mel-storyboard-object-details-header mel-storyboard-scene-details-header">
+    <div>
+      <h2>{{scene.title}}</h2>
+      <span class="mel-storyboard-status-badge">{{scene.statusLabel}}</span>
+    </div>
+  </div>
+  <dl class="mel-storyboard-object-details-list">
+    <div><dt>{{labels.title}}</dt><dd>{{scene.title}}</dd></div>
+    <div><dt>{{labels.id}}</dt><dd class="mel-storyboard-object-details-uuid">{{scene.displayId}}</dd></div>
+    <div><dt>{{labels.status}}</dt><dd>{{scene.statusLabel}}</dd></div>
+  </dl>
+  <section class="mel-storyboard-object-details-notes">
+    <h3>{{labels.note}}</h3>
+    <div class="mel-storyboard-object-details-note-view" data-note-view>
+      <div class="mel-storyboard-object-details-note-content" data-note-content>{{{assignmentNotesHtml}}}</div>
+      <button type="button" class="mel-storyboard-object-details-edit-note" data-action="edit-note">
+        <i class="fas fa-pen-to-square" aria-hidden="true"></i> {{labels.editPage}}
+      </button>
+    </div>
+    <div class="mel-storyboard-object-details-note-editor" data-note-editor-section hidden>
+      <div data-note-editor></div>
+    </div>
+  </section>
+  <section class="mel-storyboard-object-details-notes mel-storyboard-scene-details-objects">
+    <h3>{{labels.objects}}</h3>
+    {{#if objects.length}}
+      <div class="mel-storyboard-object-list">
+        {{#each objects}}
+          <article class="mel-storyboard-object-card">
+            <div class="mel-storyboard-object-main">
+              {{#if image}}<img src="{{image}}" alt="" aria-hidden="true" />{{else}}<i class="fas {{icon}}" aria-hidden="true"></i>{{/if}}
+              <div class="mel-storyboard-object-content">
+                {{#if foundryLinkHtml}}{{{foundryLinkHtml}}}{{else}}<strong>{{title}}</strong>{{/if}}
+                <span>{{typeLabel}}</span>
+                {{#if assignmentNotesPreview}}<small>{{assignmentNotesPreview}}</small>{{/if}}
+              </div>
+            </div>
+          </article>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="mel-storyboard-empty">{{labels.noObjects}}</p>
+    {{/if}}
+  </section>
+  <footer class="mel-storyboard-object-details-actions">
+    <button type="button" data-action="close"><i class="fas fa-xmark" aria-hidden="true"></i> {{labels.close}}</button>
+  </footer>
+</div>
