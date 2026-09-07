@@ -46,18 +46,24 @@ function wrapText(text, maxCharacters) {
  * The same model is used by the live board and SVG-based exports so that
  * PNG and PDF output do not fall back to the old card layout.
  */
-export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "" } = {}) {
+export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "", playerCharacterCount = 0 } = {}) {
   const title = String(scene?.title ?? element.title ?? fallbackTitle).replace(/\s+/g, " ").trim();
   const description = String(scene?.description ?? "").trim();
   const displayId = scene?.displayId ?? "";
   const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11) + 16);
   const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 36;
-  const contentWidth = Math.max(
+  const textContentWidth = Math.max(
     SCENE_ELEMENT_MIN_WIDTH,
     estimateTextWidth(title),
     titleAndIdWidth,
     statusBadgeWidth + 20
   );
+  const initialWidth = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, textContentWidth);
+  const playerCharacterTokenSize = Math.max(18, Math.min(30, Math.floor(initialWidth * .1)));
+  const playerCharacterRowWidth = playerCharacterCount
+    ? playerCharacterCount * playerCharacterTokenSize + Math.max(0, playerCharacterCount - 1) * 4 + 20
+    : 0;
+  const contentWidth = Math.max(textContentWidth, playerCharacterRowWidth);
   const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
   const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / 7));
   const descriptionLines = wrapText(description, descriptionCharacters);
@@ -66,7 +72,8 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const descriptionLineHeight = 15;
   const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
   const statusY = displayIdY + 17;
-  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, statusY + 19);
+  const playerCharacterRowHeight = playerCharacterCount ? playerCharacterTokenSize + 12 : 0;
+  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, statusY + 19 + playerCharacterRowHeight);
   const height = Math.max(Number(element.size?.height) || SCENE_ELEMENT_MIN_HEIGHT, minimumHeight);
   return {
     title,
@@ -84,6 +91,8 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     statusY,
     statusBadgeY: statusY - 14,
     statusBadgeWidth,
+    playerCharacterTokenSize,
+    playerCharacterTokenY: height - playerCharacterTokenSize - 6,
     resizeHandleX: width - 14,
     resizeHandleY: height - 14
   };

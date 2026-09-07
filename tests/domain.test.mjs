@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, updateObjectAssignment } from "../scripts/domain/model.js";
+import { assignActorToScene, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
@@ -63,6 +63,20 @@ test("scene objects use typed records and Foundry UUID references", () => {
   assert.throws(() => createBoardObject(board, { objectType: "NPC", title: "Missing UUID" }), /Actor UUID/);
   removeObjectAssignment(scene, assignment.id);
   assert.equal(scene.objectAssignments.length, 0);
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("player character assignments can be moved between scenes", () => {
+  const board = createSceneBoard();
+  const source = createScene(board, { title: "Source" });
+  const target = createScene(board, { title: "Target" });
+  const character = createBoardObject(board, { objectType: "PLAYER_CHARACTER", title: "Hero", foundryUuid: "Actor.hero", image: "hero.webp" });
+  const assignment = assignObjectToScene(source, character.id, "PRESENT", "Keep this note");
+  const moved = moveObjectAssignment(board, character.id, source.id, target.id);
+  assert.equal(moved.id, assignment.id);
+  assert.equal(source.objectAssignments.length, 0);
+  assert.equal(target.objectAssignments[0].objectId, character.id);
+  assert.equal(target.objectAssignments[0].notes, "Keep this note");
   assert.equal(validateSceneBoard(board).valid, true);
 });
 

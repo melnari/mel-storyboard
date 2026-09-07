@@ -1,5 +1,5 @@
 import { MODULE_ID, STATUS } from "../domain/constants.js";
-import { assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, pasteSceneElements, removeObjectAssignment, removeSceneElements, removeConnection, updateObjectAssignment } from "../domain/model.js";
+import { assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, pasteSceneElements, removeObjectAssignment, removeSceneElements, removeConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
@@ -91,6 +91,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.selectedElementIds = [];
     this.history = new HistoryStack();
     this.drag = null;
+    this.playerCharacterDrag = null;
     this.resize = null;
     this.canvasPan = null;
     this.suppressCanvasClick = false;
@@ -108,18 +109,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async _prepareContext() {
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
-    const elements = this.board.elements.map(element => {
-      const scene = scenesById.get(element.sceneId);
-      const presentation = normalizeSceneElementSize(element, scene, {
-        fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
-        statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : ""
-      });
-      // Keep legacy elements usable with the new multi-line layout. The
-      // normalized dimensions are persisted with the next board save.
-      element.size = presentation.size;
-      return { ...element, ...presentation, isSelected: this.selectedElementIds.includes(element.id) };
-    });
-    const byId = new Map(elements.map(element => [element.id, element]));
     const objects = (this.board.objects ?? []).map(object => ({
       ...object,
       typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
@@ -128,6 +117,36 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title, ["mel-storyboard-object-title-link"])
     }));
     const objectsById = new Map(objects.map(object => [object.id, object]));
+    const elements = this.board.elements.map(element => {
+      const scene = scenesById.get(element.sceneId);
+      const playerCharacters = (scene?.objectAssignments ?? [])
+        .map(assignment => objectsById.get(assignment.objectId))
+        .filter(object => object?.objectType === "PLAYER_CHARACTER")
+        .map(object => ({ ...object, image: object.image || "icons/svg/mystery-man.svg" }));
+      const presentation = normalizeSceneElementSize(element, scene, {
+        fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
+        statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
+        playerCharacterCount: playerCharacters.length
+      });
+      // Keep legacy elements usable with the new multi-line layout. The
+      // normalized dimensions are persisted with the next board save.
+      element.size = presentation.size;
+      return {
+        ...element,
+        ...presentation,
+        playerCharacterTokens: playerCharacters.map((object, index) => ({
+          ...object,
+          objectId: object.id,
+          tokenX: 10 + index * (presentation.playerCharacterTokenSize + 4),
+          tokenY: presentation.playerCharacterTokenY,
+          tokenSize: presentation.playerCharacterTokenSize,
+          tokenLabelX: presentation.playerCharacterTokenSize / 2,
+          tokenLabelY: presentation.playerCharacterTokenSize + 13
+        })),
+        isSelected: this.selectedElementIds.includes(element.id)
+      };
+    });
+    const byId = new Map(elements.map(element => [element.id, element]));
     const connections = this.board.connections.map(connection => {
       const sourceElement = byId.get(connection.sourceElementId);
       const targetElement = byId.get(connection.targetElementId);
@@ -246,6 +265,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         if (!this.connectionSourceId) await this.#showSceneDetails(element.dataset.elementId);
       });
     });
+    this.#bindPlayerCharacterTokens();
     this.element.querySelectorAll("[data-scene-resize]").forEach(handle => {
       handle.addEventListener("pointerdown", event => this.#startResize(event));
     });
@@ -284,7 +304,20 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   _onClose(options) {
     this.#closeContextMenu();
     this.#finishCanvasPan();
+    this.#finishPlayerCharacterDrag();
     return super._onClose(options);
+  }
+
+  #bindPlayerCharacterTokens() {
+    this.element.querySelectorAll("[data-player-character-token]").forEach(token => {
+      if (token.dataset.playerCharacterBound) return;
+      token.dataset.playerCharacterBound = "true";
+      token.addEventListener("pointerdown", event => this.#startPlayerCharacterDrag(event));
+      token.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+    });
   }
 
   #bindFoundryLinks(root) {
@@ -668,6 +701,71 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     details.bringToFront();
   }
 
+  #startPlayerCharacterDrag(event) {
+    if (event.button !== 0 || this.connectionSourceId) return;
+    const token = event.currentTarget;
+    const objectId = token.dataset.objectId;
+    const sourceElementId = token.dataset.sceneElementId;
+    const object = this.board.objects?.find(candidate => candidate.id === objectId);
+    if (!object || object.objectType !== "PLAYER_CHARACTER") return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.playerCharacterDrag = {
+      objectId,
+      sourceElementId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+      dropTargetId: null,
+      token
+    };
+    this.playerCharacterDrag.move = moveEvent => this.#playerCharacterDragMove(moveEvent);
+    this.playerCharacterDrag.end = endEvent => this.#finishPlayerCharacterDrag(endEvent);
+    token.classList.add("is-dragging");
+    window.addEventListener("pointermove", this.playerCharacterDrag.move);
+    window.addEventListener("pointerup", this.playerCharacterDrag.end, { once: true });
+    window.addEventListener("pointercancel", this.playerCharacterDrag.end, { once: true });
+  }
+
+  #playerCharacterDragMove(event) {
+    if (!this.playerCharacterDrag) return;
+    const drag = this.playerCharacterDrag;
+    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 4) return;
+    drag.moved = true;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
+    const targetId = target?.dataset.elementId ?? null;
+    drag.dropTargetId = targetId && targetId !== drag.sourceElementId ? targetId : null;
+    this.element.querySelectorAll("[data-scene-element]").forEach(element => {
+      element.classList.toggle("is-player-character-drop-target", element.dataset.elementId === drag.dropTargetId);
+    });
+  }
+
+  async #finishPlayerCharacterDrag() {
+    const drag = this.playerCharacterDrag;
+    if (!drag) return;
+    window.removeEventListener("pointermove", drag.move);
+    window.removeEventListener("pointerup", drag.end);
+    window.removeEventListener("pointercancel", drag.end);
+    drag.token?.classList.remove("is-dragging");
+    this.element.querySelectorAll(".is-player-character-drop-target").forEach(element => element.classList.remove("is-player-character-drop-target"));
+    this.playerCharacterDrag = null;
+    if (!drag.moved || !drag.dropTargetId) return;
+    try {
+      const targetElement = this.board.elements.find(element => element.id === drag.dropTargetId);
+      const sourceElement = this.board.elements.find(element => element.id === drag.sourceElementId);
+      const targetScene = this.board.scenes.find(scene => scene.id === targetElement?.sceneId);
+      const sourceScene = this.board.scenes.find(scene => scene.id === sourceElement?.sceneId);
+      if (!sourceScene || !targetScene) return;
+      this.history.capture(this.board);
+      moveObjectAssignment(this.board, drag.objectId, sourceScene.id, targetScene.id);
+      this.board = await this.store.save(this.board);
+      this.selectedElementIds = [drag.dropTargetId];
+      await this.render({ force: true });
+    } catch (error) {
+      notifyError(error);
+    }
+  }
+
   async #onFoundryDrop(event) {
     const raw = event.dataTransfer?.getData("text/plain") || event.dataTransfer?.getData("text");
     if (!raw) return;
@@ -846,7 +944,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scene = this.board.scenes.find(candidate => candidate.id === element.sceneId);
     const presentation = sceneElementPresentation(element, scene, {
       fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
-      statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : ""
+      statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
+      playerCharacterCount: this.#playerCharacterObjects(scene).length
     });
     element.size = presentation.size;
     node.setAttribute("aria-label", presentation.title);
@@ -871,7 +970,34 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       create("text", { class: "mel-storyboard-element-status", x: 18, y: presentation.statusY }, presentation.statusLabel),
       create("rect", { class: "mel-storyboard-element-resize-handle", "data-scene-resize": "", "data-element-id": element.id, x: presentation.resizeHandleX, y: presentation.resizeHandleY, width: 10, height: 10, rx: 2, "aria-label": "Resize scene" })
     );
+    for (const [index, object] of this.#playerCharacterObjects(scene).entries()) {
+      const token = create("g", {
+        class: "mel-storyboard-player-token",
+        "data-player-character-token": "",
+        "data-object-id": object.id,
+        "data-scene-element-id": element.id,
+        transform: `translate(${10 + index * (presentation.playerCharacterTokenSize + 4)} ${presentation.playerCharacterTokenY})`,
+        tabindex: "0",
+        role: "button",
+        "aria-label": object.title
+      });
+      token.append(
+        create("title", {}, object.title),
+        create("rect", { class: "mel-storyboard-player-token-frame", width: presentation.playerCharacterTokenSize, height: presentation.playerCharacterTokenSize, rx: 3 }),
+        create("image", { href: object.visualConfig?.image || "icons/svg/mystery-man.svg", width: presentation.playerCharacterTokenSize, height: presentation.playerCharacterTokenSize, preserveAspectRatio: "xMidYMid slice" }),
+        create("text", { class: "mel-storyboard-player-token-label", x: presentation.playerCharacterTokenSize / 2, y: presentation.playerCharacterTokenSize + 13, "text-anchor": "middle" }, object.title)
+      );
+      children.push(token);
+    }
     node.replaceChildren(...children);
+    this.#bindPlayerCharacterTokens();
+  }
+
+  #playerCharacterObjects(scene) {
+    const objectsById = new Map((this.board.objects ?? []).map(object => [object.id, object]));
+    return (scene?.objectAssignments ?? [])
+      .map(assignment => objectsById.get(assignment.objectId))
+      .filter(object => object?.objectType === "PLAYER_CHARACTER");
   }
 
   #svgPoint(svg, event) {

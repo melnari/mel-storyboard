@@ -139,6 +139,33 @@ export function updateObjectAssignment(scene, assignmentId, { role = null, notes
   return assignment;
 }
 
+export function moveObjectAssignment(board, objectId, sourceSceneId, targetSceneId) {
+  if (sourceSceneId === targetSceneId) throw new Error("The object is already assigned to this scene.");
+  const object = (board.objects ?? []).find(candidate => candidate.id === objectId);
+  const sourceScene = board.scenes.find(scene => scene.id === sourceSceneId);
+  const targetScene = board.scenes.find(scene => scene.id === targetSceneId);
+  if (!object || object.objectType !== "PLAYER_CHARACTER") throw new Error("Only player character objects can be moved this way.");
+  if (!sourceScene || !targetScene) throw new Error("The source or target scene does not exist.");
+  const sourceAssignments = sourceScene.objectAssignments ?? [];
+  const assignmentIndex = sourceAssignments.findIndex(assignment => assignment.objectId === objectId);
+  if (assignmentIndex < 0) throw new Error("The player character is not assigned to the source scene.");
+  targetScene.objectAssignments ??= [];
+  const existingTargetAssignment = targetScene.objectAssignments.find(assignment => assignment.objectId === objectId);
+  const [assignment] = sourceAssignments.splice(assignmentIndex, 1);
+  const now = timestamp();
+  if (existingTargetAssignment) {
+    sourceScene.updatedAt = now;
+    board.updatedAt = now;
+    return existingTargetAssignment;
+  }
+  assignment.updatedAt = now;
+  targetScene.objectAssignments.push(assignment);
+  sourceScene.updatedAt = now;
+  targetScene.updatedAt = now;
+  board.updatedAt = now;
+  return assignment;
+}
+
 export function createBoardTemplate(board, sourceTemplateId, { name = "" } = {}) {
   const source = board.templates.find(template => template.id === sourceTemplateId);
   if (!source) throw new Error("The source template does not exist.");

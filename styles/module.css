@@ -802,6 +802,50 @@
   opacity: 1;
 }
 
+.mel-storyboard-player-token {
+  pointer-events: all;
+  cursor: grab;
+}
+
+.mel-storyboard-player-token:active,
+.mel-storyboard-player-token.is-dragging {
+  cursor: grabbing;
+}
+
+.mel-storyboard-player-token-frame {
+  fill: #20242c !important;
+  stroke: #c7d2e0 !important;
+  stroke-width: 1.5 !important;
+  pointer-events: none;
+}
+
+.mel-storyboard-player-token image {
+  pointer-events: none;
+}
+
+.mel-storyboard-player-token-label {
+  fill: #f0f3f7 !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  opacity: 0;
+  paint-order: stroke;
+  stroke: #111318;
+  stroke-width: 4px;
+  transition: opacity .12s ease;
+}
+
+.mel-storyboard-player-token:hover .mel-storyboard-player-token-label,
+.mel-storyboard-player-token:focus-visible .mel-storyboard-player-token-label,
+.mel-storyboard-player-token.is-dragging .mel-storyboard-player-token-label {
+  opacity: 1;
+}
+
+.mel-storyboard-element.is-player-character-drop-target .mel-storyboard-element-frame {
+  stroke: #f6c453;
+  stroke-dasharray: 6 3;
+  stroke-width: 3;
+}
+
 .mel-storyboard-connection {
   stroke: #9aa4b2;
   stroke-width: 3;
