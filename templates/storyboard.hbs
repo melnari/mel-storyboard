@@ -52,7 +52,7 @@
               <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(160, 175, 195, .14)" stroke-width="1"/>
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
+          <rect data-canvas-background width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
           {{#each board.connections}}
             <line class="mel-storyboard-connection" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
             <polygon class="mel-storyboard-connection-arrow" data-connection-id="{{id}}" points="{{arrowPoints}}" />

@@ -698,11 +698,17 @@
   width: 100%;
   height: 100%;
   overflow: auto;
+  cursor: grab;
   background-color: #111318;
   background-image:
     linear-gradient(rgba(160, 175, 195, .14) 1px, transparent 1px),
     linear-gradient(90deg, rgba(160, 175, 195, .14) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+.mel-storyboard-canvas-scroll.is-panning {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .mel-storyboard-canvas {

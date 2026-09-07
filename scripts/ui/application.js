@@ -91,6 +91,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.history = new HistoryStack();
     this.drag = null;
     this.resize = null;
+    this.canvasPan = null;
+    this.suppressCanvasClick = false;
     this.clipboard = null;
     this.zoom = 1;
     this.connectionSourceId = null;
@@ -241,13 +243,20 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.element.querySelectorAll("[data-scene-resize]").forEach(handle => {
       handle.addEventListener("pointerdown", event => this.#startResize(event));
     });
-    this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("click", event => {
-      if (event.target === event.currentTarget && !this.connectionSourceId) {
+    const canvas = this.element.querySelector("[data-storyboard-canvas]");
+    canvas?.addEventListener("pointerdown", event => this.#startCanvasPan(event));
+    canvas?.addEventListener("click", event => {
+      const isCanvasBackground = event.target === event.currentTarget || event.target?.matches?.("[data-canvas-background]");
+      if (this.suppressCanvasClick) {
+        this.suppressCanvasClick = false;
+        return;
+      }
+      if (isCanvasBackground && !this.connectionSourceId) {
         this.selectedElementIds = [];
         this.render({ force: true });
       }
     });
-    this.element.querySelector("[data-storyboard-canvas]")?.addEventListener("wheel", event => this.#onCanvasWheel(event), { passive: false });
+    canvas?.addEventListener("wheel", event => this.#onCanvasWheel(event), { passive: false });
     if (foundry.applications.ux?.DragDrop) {
       this.documentDragDrop = new foundry.applications.ux.DragDrop({
         dropSelector: "[data-scene-element]",
@@ -268,6 +277,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   _onClose(options) {
     this.#closeContextMenu();
+    this.#finishCanvasPan();
     return super._onClose(options);
   }
 
@@ -338,6 +348,57 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     event.preventDefault();
     const direction = event.deltaY < 0 ? 1 : -1;
     this.#changeZoom(direction * 0.1, event);
+  }
+
+  #startCanvasPan(event) {
+    const isCanvasBackground = event.target === event.currentTarget || event.target?.matches?.("[data-canvas-background]");
+    if (event.button !== 0 || !isCanvasBackground || this.connectionSourceId) return;
+    const scroll = this.element.querySelector(".mel-storyboard-canvas-scroll");
+    if (!scroll) return;
+    event.preventDefault();
+    this.canvasPan = {
+      scroll,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollLeft: scroll.scrollLeft,
+      startScrollTop: scroll.scrollTop,
+      moved: false
+    };
+    this.canvasPan.move = moveEvent => this.#canvasPanMove(moveEvent);
+    this.canvasPan.end = () => this.#finishCanvasPan();
+    scroll.classList.add("is-panning");
+    window.addEventListener("pointermove", this.canvasPan.move);
+    window.addEventListener("pointerup", this.canvasPan.end, { once: true });
+    window.addEventListener("pointercancel", this.canvasPan.end, { once: true });
+  }
+
+  #canvasPanMove(event) {
+    if (!this.canvasPan) return;
+    this.canvasPan.pendingEvent = event;
+    if (!this.canvasPan.frame) this.canvasPan.frame = requestAnimationFrame(() => this.#applyCanvasPanFrame());
+  }
+
+  #applyCanvasPanFrame() {
+    if (!this.canvasPan?.pendingEvent) return;
+    const { scroll, startX, startY, startScrollLeft, startScrollTop, pendingEvent } = this.canvasPan;
+    if (Math.abs(pendingEvent.clientX - startX) > 2 || Math.abs(pendingEvent.clientY - startY) > 2) this.canvasPan.moved = true;
+    scroll.scrollLeft = startScrollLeft - (pendingEvent.clientX - startX);
+    scroll.scrollTop = startScrollTop - (pendingEvent.clientY - startY);
+    this.canvasPan.pendingEvent = null;
+    this.canvasPan.frame = null;
+  }
+
+  #finishCanvasPan() {
+    if (!this.canvasPan) return;
+    const { move, end, scroll, frame } = this.canvasPan;
+    if (frame) cancelAnimationFrame(frame);
+    this.#applyCanvasPanFrame();
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    scroll.classList.remove("is-panning");
+    this.suppressCanvasClick = this.canvasPan.moved;
+    this.canvasPan = null;
   }
 
   #changeZoom(delta, event = null) {
