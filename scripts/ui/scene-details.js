@@ -40,7 +40,6 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
     const labels = {
       note: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
       editPage: localize("MEL_STORYBOARD.ACTIONS.EditPage"),
-      close: localize("MEL_STORYBOARD.ACTIONS.Close"),
       noNote: localize("MEL_STORYBOARD.EMPTY.NoObjectNote")
     };
     const noteHtml = this.assignmentNotes?.trim()
@@ -59,7 +58,6 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
     const title = this.element.querySelector(".window-title");
     if (title) title.textContent = localize("MEL_STORYBOARD.LABELS.SceneDetails");
     this.element.querySelector("[data-action='edit-note']")?.addEventListener("click", () => this.#startNoteEdit());
-    this.element.querySelector("[data-action='close']")?.addEventListener("click", () => this.close());
     this.#bringToFrontSoon();
   }
 
