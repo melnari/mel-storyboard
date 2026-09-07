@@ -14,7 +14,7 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
   static DEFAULT_OPTIONS = {
     id: "mel-storyboard-scene-details",
     classes: ["mel-storyboard", "standard-form"],
-    position: { width: 680, height: 720 },
+    position: { width: 460, height: 620 },
     window: { resizable: true }
   };
 
@@ -27,10 +27,8 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
   constructor(options = {}) {
     super(options);
     this.scene = options.scene;
-    this.objects = options.objects ?? [];
     this.assignmentNotes = options.assignmentNotes ?? "";
     this.onSave = options.onSave;
-    this.onOpenDocument = options.onOpenDocument;
     this.noteEditor = null;
     this.noteEditorShell = null;
     this.noteEditorGeneration = 0;
@@ -40,15 +38,9 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
 
   async _prepareContext() {
     const labels = {
-      title: localize("MEL_STORYBOARD.LABELS.Title"),
-      id: localize("MEL_STORYBOARD.LABELS.SceneId"),
-      status: localize("MEL_STORYBOARD.LABELS.Status"),
-      objectType: localize("MEL_STORYBOARD.LABELS.ObjectType"),
       note: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
       editPage: localize("MEL_STORYBOARD.ACTIONS.EditPage"),
       close: localize("MEL_STORYBOARD.ACTIONS.Close"),
-      objects: localize("MEL_STORYBOARD.LABELS.Objects"),
-      noObjects: localize("MEL_STORYBOARD.EMPTY.NoObjects"),
       noNote: localize("MEL_STORYBOARD.EMPTY.NoObjectNote")
     };
     const noteHtml = this.assignmentNotes?.trim()
@@ -56,7 +48,6 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
       : `<p class="mel-storyboard-object-details-no-note">${labels.noNote}</p>`;
     return {
       scene: this.scene,
-      objects: this.objects,
       assignmentNotes: this.assignmentNotes,
       assignmentNotesHtml: noteHtml,
       labels
@@ -69,10 +60,13 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
     if (title) title.textContent = localize("MEL_STORYBOARD.LABELS.SceneDetails");
     this.element.querySelector("[data-action='edit-note']")?.addEventListener("click", () => this.#startNoteEdit());
     this.element.querySelector("[data-action='close']")?.addEventListener("click", () => this.close());
-    this.element.querySelectorAll("[data-storyboard-foundry-link]").forEach(link => {
-      link.addEventListener("click", event => this.onOpenDocument?.(event));
-    });
+    this.#bringToFrontSoon();
+  }
+
+  #bringToFrontSoon() {
     this.bringToFront();
+    globalThis.requestAnimationFrame?.(() => this.rendered && this.bringToFront());
+    globalThis.setTimeout?.(() => this.rendered && this.bringToFront(), 0);
   }
 
   async #startNoteEdit() {
@@ -168,7 +162,7 @@ export class SceneDetailsApplication extends HandlebarsApplicationMixin(Applicat
       this.editingNote = false;
       this.element.querySelector("[data-note-editor-section]")?.setAttribute("hidden", "");
       this.element.querySelector("[data-note-view]")?.removeAttribute("hidden");
-      this.bringToFront();
+      this.#bringToFrontSoon();
     } finally {
       this.savingNote = false;
     }

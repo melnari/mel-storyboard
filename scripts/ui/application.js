@@ -649,27 +649,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const element = this.board.elements.find(candidate => candidate.id === elementId);
     const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
     if (!scene) return;
-    const objectsById = new Map((this.board.objects ?? []).map(object => [object.id, object]));
-    const objects = (scene.objectAssignments ?? []).map(assignment => {
-      const object = objectsById.get(assignment.objectId);
-      if (!object) return null;
-      return {
-        ...object,
-        typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
-        icon: OBJECT_ICONS[object.objectType] ?? "fa-cube",
-        image: object.visualConfig?.image ?? "",
-        foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title, ["mel-storyboard-object-title-link"]),
-        assignmentNotesPreview: assignment.notes ? foundry.applications.ux.TextEditor.previewHTML(assignment.notes, 140) : ""
-      };
-    }).filter(Boolean);
     const details = new SceneDetailsApplication({
       scene: {
-        ...scene,
-        statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`)
+        title: scene.title
       },
-      objects,
       assignmentNotes: scene.notes ?? "",
-      onOpenDocument: event => this.#openFoundryDocument(event),
       onSave: async notes => {
         this.history.capture(this.board);
         scene.notes = notes;
@@ -679,6 +663,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       }
     });
     await details.render({ force: true });
+    details.bringToFront();
+    await new Promise(resolve => globalThis.requestAnimationFrame?.(resolve) ?? resolve());
     details.bringToFront();
   }
 

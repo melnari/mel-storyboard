@@ -547,27 +547,6 @@
   margin: 0 0 .25rem;
 }
 
-.mel-storyboard-scene-details-header {
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.mel-storyboard-scene-details-header .mel-storyboard-status-badge {
-  display: inline-block;
-  margin-top: .25rem;
-}
-
-.mel-storyboard-scene-details-objects {
-  min-height: 0;
-}
-
-.mel-storyboard-scene-details-objects .mel-storyboard-object-list {
-  max-height: 14rem;
-  overflow-y: auto;
-  padding-right: .25rem;
-  scrollbar-gutter: stable;
-}
-
 .mel-storyboard-object-details-list {
   display: grid;
   gap: .35rem;
