@@ -25,7 +25,7 @@ Hooks.once("init", () => {
     name: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Name",
     label: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Label",
     hint: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Hint",
-    icon: "fas fa-sitemap",
+    icon: "fa-solid fa-sitemap",
     type: StoryboardApplication,
     restricted: true
   });
@@ -46,28 +46,13 @@ Hooks.on("getSceneControlButtons", controls => {
   const control = Array.isArray(controls) ? controls.find(candidate => candidate.name === "tokens") : controls?.tokens;
   if (!control) return;
   control.tools ??= {};
+  const order = Math.max(-1, ...Object.values(control.tools).map(tool => Number(tool.order)).filter(Number.isFinite)) + 1;
   control.tools["mel-storyboard"] = {
     name: "mel-storyboard",
     title: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Label",
-    icon: "fas fa-sitemap",
-    order: Object.keys(control.tools).length,
+    icon: "fa-solid fa-sitemap",
+    order,
     button: true,
-    onChange: () => game.melStoryboard.open()
+    onChange: () => game.melStoryboard.toggle()
   };
 });
-
-function mountStoryboardToggle() {
-  if (!game.user?.isGM || document.querySelector("[data-mel-storyboard-toggle]")) return;
-  const button = document.createElement("button");
-  button.type = "button";
-  button.dataset.melStoryboardToggle = "true";
-  button.className = "mel-storyboard-toggle";
-  button.innerHTML = `<i class="fas fa-sitemap" aria-hidden="true"></i>`;
-  button.title = game.i18n.localize("MEL_STORYBOARD.SETTINGS.OpenDesigner.Label");
-  button.setAttribute("aria-label", button.title);
-  button.addEventListener("click", () => game.melStoryboard.toggle());
-  document.body.append(button);
-}
-
-Hooks.once("ready", mountStoryboardToggle);
-Hooks.on("renderSceneControls", mountStoryboardToggle);
