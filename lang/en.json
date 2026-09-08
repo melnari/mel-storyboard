@@ -40,7 +40,6 @@
       "ConnectScene": "Connect scene",
       "DeleteScene": "Delete scene",
       "DeleteConnection": "Delete connection",
-      "EditConnection": "Edit connection label",
       "ZoomOut": "Zoom out",
       "ZoomIn": "Zoom in",
       "CopyTemplate": "Copy template",
@@ -71,6 +70,7 @@
     "Story": "Story",
     "Scenes": "Scenes",
       "SceneDetails": "Scene Details",
+      "ConnectionDetails": "Connection Details",
       "Template": "Template",
       "TemplateVersion": "Template version",
       "TemplateFields": "Template fields",
@@ -89,6 +89,9 @@
       "Title": "Title",
       "Status": "Status",
       "Description": "Description",
+      "ConnectionLabel": "Connection Label",
+      "ConnectionType": "Connection Type",
+      "ConnectionDescription": "Description",
       "SearchScenes": "Search scenes",
       "Connections": "Connections",
       "Incoming": "Incoming",
@@ -165,6 +168,12 @@
       "ROLLABLE_TABLE": "Rollable table",
       "MACRO": "Macro",
       "PLAYLIST": "Playlist"
+    },
+    "CONNECTION_TYPES": {
+      "UNILATERAL": "unilateral",
+      "UNILATERAL_DEACTIVATED": "unilateral deactivated",
+      "BILATERAL": "bilateral",
+      "BILATERAL_DEACTIVATED": "bilateral deactivated"
     },
     "STATUS": {
       "OFFEN": "Open",

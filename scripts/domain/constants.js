@@ -20,3 +20,7 @@ export const OBJECT_TYPES = Object.freeze([
 export const CONNECTION_TYPES = Object.freeze([
   "FLOW", "DECISION", "SUCCESS", "PARTIAL_SUCCESS", "FAILURE", "INFORMATION", "DEPENDENCY", "PARALLEL", "OPTIONAL", "CUSTOM"
 ]);
+
+export const CONNECTION_DISPLAY_TYPES = Object.freeze([
+  "unilateral", "unilateral deactivated", "bilateral", "bilateral deactivated"
+]);

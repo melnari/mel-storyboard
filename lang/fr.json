@@ -40,7 +40,6 @@
       "ConnectScene": "Relier la scène",
       "DeleteScene": "Supprimer la scène",
       "DeleteConnection": "Supprimer la relation",
-      "EditConnection": "Modifier le libellé",
       "ZoomOut": "Réduire",
       "ZoomIn": "Agrandir",
       "CopyTemplate": "Copier le modèle",
@@ -71,6 +70,7 @@
     "Story": "Story",
     "Scenes": "Scènes",
       "SceneDetails": "Détails de la scène",
+      "ConnectionDetails": "Détails de la relation",
       "Template": "Modèle",
       "TemplateVersion": "Version du modèle",
       "TemplateFields": "Champs du modèle",
@@ -89,6 +89,9 @@
       "Title": "Titre",
       "Status": "Statut",
       "Description": "Description",
+      "ConnectionLabel": "Libellé de la relation",
+      "ConnectionType": "Type de relation",
+      "ConnectionDescription": "Description",
       "SearchScenes": "Rechercher des scènes",
       "Connections": "Relations",
       "Incoming": "Entrantes",
@@ -165,6 +168,12 @@
       "ROLLABLE_TABLE": "Table aléatoire",
       "MACRO": "Macro",
       "PLAYLIST": "Playlist"
+    },
+    "CONNECTION_TYPES": {
+      "UNILATERAL": "unilatérale",
+      "UNILATERAL_DEACTIVATED": "unilatérale désactivée",
+      "BILATERAL": "bilatérale",
+      "BILATERAL_DEACTIVATED": "bilatérale désactivée"
     },
     "STATUS": {
       "OFFEN": "Ouvert",

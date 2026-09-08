@@ -1,5 +1,5 @@
 import { MODULE_ID, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
-import { clone, createDefaultTemplate, createSceneBoard } from "./model.js";
+import { clone, createDefaultTemplate, createSceneBoard, normalizeConnectionType } from "./model.js";
 import { validateSceneBoard } from "./validation.js";
 
 function normalizeSceneBoard(stored) {
@@ -47,6 +47,12 @@ function normalizeSceneBoard(stored) {
       objectAssignments: scene.objectAssignments ?? []
     };
   });
+  board.connections = (board.connections ?? []).map(connection => ({
+    ...connection,
+    connectionType: normalizeConnectionType(connection.connectionType),
+    description: connection.description ?? "",
+    objectAssignments: connection.objectAssignments ?? []
+  }));
   board.schemaVersion = STORE_SCHEMA_VERSION;
   return board;
 }

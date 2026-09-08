@@ -855,10 +855,23 @@
   cursor: context-menu;
 }
 
+.mel-storyboard-connection.is-deactivated {
+  stroke-dasharray: 2 7;
+}
+
+.mel-storyboard-connection.is-selected {
+  stroke: #f6c453;
+  stroke-width: 4;
+}
+
 .mel-storyboard-connection-arrow {
   fill: #9aa4b2;
   pointer-events: all;
   cursor: context-menu;
+}
+
+.mel-storyboard-connection-arrow.is-selected {
+  fill: #f6c453;
 }
 
 .mel-storyboard-connection-label {
@@ -872,6 +885,31 @@
   stroke-width: 5px;
   text-anchor: middle;
   cursor: context-menu;
+}
+
+.mel-storyboard-connection-endpoints {
+  margin: .25rem 0 0;
+  color: #aeb8c5;
+  font-size: .8rem;
+}
+
+.mel-storyboard-connection-description-editor {
+  min-height: 0;
+}
+
+.mel-storyboard-connection-description-editor-shell {
+  height: 10rem;
+  min-height: 10rem;
+  --min-height: 10rem;
+  --menu-height: 2rem;
+  --menu-padding: .2rem .45rem;
+  --menu-background: rgba(73, 61, 74, .7);
+}
+
+.mel-storyboard-connection-description-editor-shell .editor-content {
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
 }
 
 .mel-storyboard-connection-status {

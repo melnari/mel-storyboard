@@ -40,7 +40,6 @@
     "ConnectScene": "Szene verknüpfen",
     "DeleteScene": "Szene löschen",
       "DeleteConnection": "Verbindung löschen",
-      "EditConnection": "Verbindung beschriften",
       "ZoomOut": "Verkleinern",
       "ZoomIn": "Vergrößern",
       "CopyTemplate": "Vorlage kopieren",
@@ -71,6 +70,7 @@
     "Story": "Story",
     "Scenes": "Szenen",
       "SceneDetails": "Szenendetails",
+      "ConnectionDetails": "Verbindungsdetails",
       "Template": "Vorlage",
       "TemplateVersion": "Vorlagenversion",
       "TemplateFields": "Vorlagenfelder",
@@ -89,6 +89,9 @@
       "Title": "Titel",
       "Status": "Status",
       "Description": "Beschreibung",
+      "ConnectionLabel": "Verbindungsbezeichnung",
+      "ConnectionType": "Verbindungstyp",
+      "ConnectionDescription": "Beschreibung",
       "SearchScenes": "Szenen suchen",
       "Connections": "Verbindungen",
       "Incoming": "Eingehend",
@@ -165,6 +168,12 @@
       "ROLLABLE_TABLE": "Würfeltabelle",
       "MACRO": "Makro",
       "PLAYLIST": "Wiedergabeliste"
+    },
+    "CONNECTION_TYPES": {
+      "UNILATERAL": "unilateral",
+      "UNILATERAL_DEACTIVATED": "unilateral deaktiviert",
+      "BILATERAL": "bilateral",
+      "BILATERAL_DEACTIVATED": "bilateral deaktiviert"
     },
     "STATUS": {
       "OFFEN": "Offen",

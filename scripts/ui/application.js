@@ -1,5 +1,5 @@
 import { MODULE_ID, STATUS } from "../domain/constants.js";
-import { assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, pasteSceneElements, removeObjectAssignment, removeSceneElements, removeConnection, updateObjectAssignment } from "../domain/model.js";
+import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, normalizeConnectionType, pasteSceneElements, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
@@ -126,6 +126,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.clipboard = null;
     this.zoom = 1;
     this.connectionSourceId = null;
+    this.selectedConnectionId = null;
+    this.connectionDescriptionEditor = null;
+    this.connectionDescriptionEditorShell = null;
+    this.connectionDescriptionEditorGeneration = 0;
     this.contextMenuElement = null;
     this.contextMenuHost = null;
     this.contextMenuHandler = null;
@@ -193,10 +197,23 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const connections = this.board.connections.map(connection => {
       const sourceElement = byId.get(connection.sourceElementId);
       const targetElement = byId.get(connection.targetElementId);
+      const connectionType = normalizeConnectionType(connection.connectionType);
+      const bilateral = connectionType.startsWith("bilateral");
       const geometry = sourceElement && targetElement
-        ? connectionGeometry(sourceElement, targetElement)
+        ? connectionGeometry(sourceElement, targetElement, { bilateral })
         : { source: { x: 0, y: 0 }, target: { x: 0, y: 0 }, arrowPoints: "0,0 0,0 0,0", label: { x: 0, y: 0 } };
-      return { ...connection, ...geometry, labelPosition: geometry.label, label: connection.label?.trim() ?? "", hasLabel: Boolean(connection.label?.trim()) };
+      return {
+        ...connection,
+        ...geometry,
+        labelPosition: geometry.label,
+        reverseArrowPoints: geometry.reverseArrowPoints ?? "",
+        connectionType,
+        isBilateral: bilateral,
+        isDeactivated: connectionType.endsWith("deactivated"),
+        isSelected: this.selectedConnectionId === connection.id,
+        label: connection.label?.trim() ?? "",
+        hasLabel: Boolean(connection.label?.trim())
+      };
     });
     const selectedElement = this.board.elements.find(element => this.selectedElementIds.includes(element.id));
     const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
@@ -216,6 +233,29 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       incomingCount: this.board.connections.filter(connection => connection.targetElementId === selectedElement.id).length,
       outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement.id).length
     } : null;
+    const selectedConnectionRecord = this.board.connections.find(connection => connection.id === this.selectedConnectionId);
+    const selectedConnection = selectedConnectionRecord ? {
+      ...selectedConnectionRecord,
+      connectionType: normalizeConnectionType(selectedConnectionRecord.connectionType),
+      sourceTitle: scenesById.get(this.board.elements.find(element => element.id === selectedConnectionRecord.sourceElementId)?.sceneId)?.title ?? "",
+      targetTitle: scenesById.get(this.board.elements.find(element => element.id === selectedConnectionRecord.targetElementId)?.sceneId)?.title ?? ""
+    } : null;
+    const connectionTypeOptions = selectedConnection ? [
+      { value: "unilateral", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL"), selected: selectedConnection.connectionType === "unilateral" },
+      { value: "unilateral deactivated", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL_DEACTIVATED"), selected: selectedConnection.connectionType === "unilateral deactivated" },
+      { value: "bilateral", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL"), selected: selectedConnection.connectionType === "bilateral" },
+      { value: "bilateral deactivated", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL_DEACTIVATED"), selected: selectedConnection.connectionType === "bilateral deactivated" }
+    ] : [];
+    const selectedConnectionObjects = (selectedConnectionRecord?.objectAssignments ?? []).map(assignment => {
+      const object = objectsById.get(assignment.objectId);
+      return object ? {
+        ...object,
+        assignmentId: assignment.id,
+        role: assignment.role,
+        assignmentNotes: assignment.notes,
+        assignmentNotesPreview: assignment.notes ? foundry.applications.ux.TextEditor.previewHTML(assignment.notes, 140) : ""
+      } : null;
+    }).filter(Boolean);
     const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: selectedScene?.status === value }));
     const sceneTree = buildSceneTree(this.board.scenes);
     const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80));
@@ -225,6 +265,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       sceneTree,
       selectedElement,
       selectedScene,
+      selectedConnection,
+      connectionTypeOptions,
+      selectedConnectionObjects,
       sidebarCollapsed: this.sidebarCollapsed,
       inspectorCollapsed: this.inspectorCollapsed,
       canConnect: this.selectedElementIds.length === 2,
@@ -259,12 +302,22 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         sceneCanvas: localize("MEL_STORYBOARD.ACCESSIBILITY.SceneCanvas"),
         inspector: localize("MEL_STORYBOARD.ACCESSIBILITY.Inspector"),
         sceneDetails: localize("MEL_STORYBOARD.LABELS.SceneDetails"),
+        connectionDetails: localize("MEL_STORYBOARD.LABELS.ConnectionDetails"),
         objects: localize("MEL_STORYBOARD.LABELS.Objects"),
         objectDetails: localize("MEL_STORYBOARD.ACTIONS.ObjectDetails"),
         objectNote: localize("MEL_STORYBOARD.ACTIONS.ObjectNote"),
         deleteObject: localize("MEL_STORYBOARD.ACTIONS.DeleteObject"),
         noObjects: localize("MEL_STORYBOARD.EMPTY.NoObjects"),
         titleField: localize("MEL_STORYBOARD.LABELS.Title"),
+        connectionLabel: localize("MEL_STORYBOARD.LABELS.ConnectionLabel"),
+        connectionType: localize("MEL_STORYBOARD.LABELS.ConnectionType"),
+        connectionDescription: localize("MEL_STORYBOARD.LABELS.ConnectionDescription"),
+        connectionTypes: {
+          unilateral: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL"),
+          unilateralDeactivated: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL_DEACTIVATED"),
+          bilateral: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL"),
+          bilateralDeactivated: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL_DEACTIVATED")
+        },
         status: localize("MEL_STORYBOARD.LABELS.Status"),
         description: localize("MEL_STORYBOARD.LABELS.Description"),
         save: localize("MEL_STORYBOARD.ACTIONS.Save"),
@@ -277,6 +330,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async _onRender(context, options) {
+    this.#destroyConnectionDescriptionEditor();
     await super._onRender(context, options);
     this.#closeContextMenu();
     if (this.contextMenuHost !== this.element) {
@@ -309,6 +363,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       });
     });
     this.#bindPlayerCharacterTokens();
+    this.element.querySelectorAll("[data-connection-id]").forEach(connection => {
+      connection.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.#selectConnection(connection.dataset.connectionId);
+      });
+    });
     this.element.querySelectorAll("[data-scene-resize]").forEach(handle => {
       handle.addEventListener("pointerdown", event => this.#startResize(event));
     });
@@ -322,13 +383,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       }
       if (isCanvasBackground && !this.connectionSourceId) {
         this.selectedElementIds = [];
+        this.selectedConnectionId = null;
         this.render({ force: true });
       }
     });
     canvas?.addEventListener("wheel", event => this.#onCanvasWheel(event), { passive: false });
     if (foundry.applications.ux?.DragDrop) {
       this.documentDragDrop = new foundry.applications.ux.DragDrop({
-        dropSelector: "[data-scene-element]",
+        dropSelector: "[data-scene-element], [data-connection-id]",
         permissions: { drop: () => Boolean(game.user?.isGM) },
         callbacks: {
           dragenter: event => this.#markDropTarget(event, true),
@@ -342,12 +404,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#applyZoom();
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
+    if (context.selectedConnection) await this.#activateConnectionDescriptionEditor(context.selectedConnection.description ?? "");
   }
 
   _onClose(options) {
     this.#closeContextMenu();
     this.#finishCanvasPan();
     this.#finishPlayerCharacterDrag();
+    this.#destroyConnectionDescriptionEditor();
     return super._onClose(options);
   }
 
@@ -394,10 +458,86 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #selectElement(elementId, additive = false) {
     this.inspectorCollapsed = false;
+    this.selectedConnectionId = null;
     this.selectedElementIds = additive
       ? (this.selectedElementIds.includes(elementId) ? this.selectedElementIds.filter(id => id !== elementId) : [...this.selectedElementIds, elementId])
       : [elementId];
     this.render({ force: true });
+  }
+
+  #selectConnection(connectionId) {
+    if (!this.board.connections.some(connection => connection.id === connectionId)) return;
+    this.selectedConnectionId = connectionId;
+    this.selectedElementIds = [];
+    this.connectionSourceId = null;
+    this.inspectorCollapsed = false;
+    this.render({ force: true });
+  }
+
+  async #activateConnectionDescriptionEditor(description) {
+    const editorHost = this.element.querySelector("[data-connection-description-editor]");
+    if (!editorHost) return;
+    const generation = ++this.connectionDescriptionEditorGeneration;
+    const editorShell = document.createElement("div");
+    editorShell.className = "editor prosemirror mel-storyboard-connection-description-editor-shell";
+    const editorTarget = document.createElement("div");
+    editorTarget.className = "editor-content";
+    editorShell.append(editorTarget);
+    editorHost.replaceChildren(editorShell);
+    this.connectionDescriptionEditorShell = editorShell;
+    let editor;
+    try {
+      const { defaultSchema, plugins } = foundry.prosemirror;
+      editor = await foundry.applications.ux.ProseMirrorEditor.create(editorTarget, description, {
+        uuid: `MelStoryboard.ConnectionDetails.${foundry.utils.randomID()}`,
+        plugins: {
+          menu: plugins.ProseMirrorMenu.build(defaultSchema, {
+            destroyOnSave: false,
+            onSave: () => this.#saveConnectionDetails()
+          }),
+          keyMaps: plugins.ProseMirrorKeyMaps.build(defaultSchema, {
+            onSave: () => this.#saveConnectionDetails()
+          })
+        },
+        props: { editable: () => true }
+      });
+    } catch (error) {
+      console.error("[mel-storyboard] Could not create connection description editor", error);
+      this.#destroyConnectionDescriptionEditor();
+      ui.notifications.error(localize("MEL_STORYBOARD.ERRORS.NoteEditor"));
+      return;
+    }
+    if (generation !== this.connectionDescriptionEditorGeneration || !editorShell.isConnected || !this.selectedConnectionId) {
+      editor.destroy();
+      return;
+    }
+    this.connectionDescriptionEditor = editor;
+  }
+
+  #destroyConnectionDescriptionEditor() {
+    this.connectionDescriptionEditorGeneration += 1;
+    this.connectionDescriptionEditor?.destroy();
+    this.connectionDescriptionEditor = null;
+    this.connectionDescriptionEditorShell?.remove();
+    this.connectionDescriptionEditorShell = null;
+  }
+
+  #getConnectionDescriptionValue() {
+    const document = this.connectionDescriptionEditor?.view?.state?.doc;
+    if (!document) return this.board.connections.find(connection => connection.id === this.selectedConnectionId)?.description ?? "";
+    return foundry.prosemirror.dom.serializeString(document.content);
+  }
+
+  async #saveConnectionDetails() {
+    const connection = this.board.connections.find(candidate => candidate.id === this.selectedConnectionId);
+    if (!connection) return;
+    const label = this.element.querySelector("[data-connection-field='label']")?.value ?? connection.label ?? "";
+    const connectionType = this.element.querySelector("[data-connection-field='connectionType']")?.value ?? connection.connectionType;
+    this.history.capture(this.board);
+    updateConnection(connection, { label, connectionType, description: this.#getConnectionDescriptionValue() });
+    this.board = await this.store.save(this.board);
+    this.#destroyConnectionDescriptionEditor();
+    await this.render({ force: true });
   }
 
   #selectedScene() {
@@ -526,7 +666,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     menu.className = "mel-storyboard-context-menu";
     menu.setAttribute("role", "menu");
     const entries = connectionMenu ? [
-      { label: localize("MEL_STORYBOARD.ACTIONS.EditConnection"), icon: "✎", action: () => this.#editConnection(connectionId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteConnection"), icon: "×", action: () => this.#deleteConnection(connectionId) }
     ] : sceneMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
@@ -571,18 +710,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async #deleteConnection(connectionId) {
     this.history.capture(this.board);
     removeConnection(this.board, connectionId);
-    this.board = await this.store.save(this.board);
-    await this.render({ force: true });
-  }
-
-  async #editConnection(connectionId) {
-    const connection = this.board.connections.find(candidate => candidate.id === connectionId);
-    if (!connection) return;
-    const label = window.prompt(localize("MEL_STORYBOARD.PROMPTS.ConnectionLabel"), connection.label ?? "");
-    if (label === null || label.trim() === (connection.label ?? "").trim()) return;
-    this.history.capture(this.board);
-    connection.label = label.trim();
-    connection.updatedAt = new Date().toISOString();
     this.board = await this.store.save(this.board);
     await this.render({ force: true });
   }
@@ -678,11 +805,28 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.board = await this.store.save(this.board);
   }
 
+  async #removeObjectFromConnection(assignmentId) {
+    const connection = this.board.connections.find(candidate => candidate.id === this.selectedConnectionId);
+    if (!connection || !assignmentId) return;
+    this.history.capture(this.board);
+    removeObjectFromConnection(connection, assignmentId);
+    this.board = await this.store.save(this.board);
+  }
+
   async #showObjectDetails(assignmentId, { focusNotes = false } = {}) {
     const scene = this.#selectedScene();
-    const assignment = scene?.objectAssignments?.find(candidate => candidate.id === assignmentId);
+    await this.#showObjectDetailsForOwner(scene, assignmentId, { focusNotes });
+  }
+
+  async #showConnectionObjectDetails(assignmentId, { focusNotes = false } = {}) {
+    const connection = this.board.connections.find(candidate => candidate.id === this.selectedConnectionId);
+    await this.#showObjectDetailsForOwner(connection, assignmentId, { focusNotes });
+  }
+
+  async #showObjectDetailsForOwner(owner, assignmentId, { focusNotes = false } = {}) {
+    const assignment = owner?.objectAssignments?.find(candidate => candidate.id === assignmentId);
     const object = this.board.objects.find(candidate => candidate.id === assignment?.objectId);
-    if (!scene || !assignment || !object) return;
+    if (!owner || !assignment || !object) return;
     const details = new ObjectDetailsApplication({
       object: {
         ...object,
@@ -695,7 +839,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       onOpenDocument: event => this.#openFoundryDocument(event),
       onSave: async notes => {
         this.history.capture(this.board);
-        updateObjectAssignment(scene, assignmentId, { notes });
+        updateObjectAssignment(owner, assignmentId, { notes });
         this.board = await this.store.save(this.board);
         await this.render({ force: true });
       }
@@ -706,6 +850,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #editObjectNote(assignmentId) {
     await this.#showObjectDetails(assignmentId, { focusNotes: true });
+  }
+
+  async #editConnectionObjectNote(assignmentId) {
+    await this.#showConnectionObjectDetails(assignmentId, { focusNotes: true });
   }
 
   async #showSceneDetails(elementId) {
@@ -803,10 +951,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     try { data = JSON.parse(raw); } catch { return; }
     const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene", "RollTable", "Macro", "Playlist"]);
     if (!data?.uuid) return;
-    const target = event.target instanceof Element ? event.target.closest("[data-scene-element]") : null;
+    const target = event.target instanceof Element ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
     const element = this.board.elements.find(candidate => candidate.id === target?.dataset.elementId);
     const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
-    if (!scene) return;
+    const connection = this.board.connections.find(candidate => candidate.id === target?.dataset.connectionId);
+    if (!scene && !connection) return;
     const document = await fromUuid(data.uuid);
     if (!document) throw new Error("The dropped Foundry document could not be resolved.");
     const foundryType = data.type ?? document.documentName;
@@ -826,14 +975,21 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       foundryDocumentType: foundryType,
       image: foundryArtwork(document)
     });
-    assignObjectToScene(scene, object.id);
+    if (scene) assignObjectToScene(scene, object.id);
+    else assignObjectToConnection(connection, object.id);
     this.board = await this.store.save(this.board);
-    this.selectedElementIds = [element.id];
+    if (scene) {
+      this.selectedElementIds = [element.id];
+      this.selectedConnectionId = null;
+    } else {
+      this.selectedElementIds = [];
+      this.selectedConnectionId = connection.id;
+    }
     await this.render({ force: true });
   }
 
   #markDropTarget(event, active) {
-    const target = event.target instanceof Element ? event.target.closest("[data-scene-element]") : null;
+    const target = event.target instanceof Element ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
     target?.classList.toggle("is-drop-target", active);
   }
 
@@ -861,6 +1017,19 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         await this.#editObjectNote(event.currentTarget.dataset.assignmentId);
         return;
       }
+      else if (action === "connection-object-details") {
+        await this.#showConnectionObjectDetails(event.currentTarget.dataset.assignmentId);
+        return;
+      }
+      else if (action === "remove-connection-object") await this.#removeObjectFromConnection(event.currentTarget.dataset.assignmentId);
+      else if (action === "edit-connection-object-note") {
+        await this.#editConnectionObjectNote(event.currentTarget.dataset.assignmentId);
+        return;
+      }
+      else if (action === "save-connection") {
+        await this.#saveConnectionDetails();
+        return;
+      }
       else if (action === "duplicate-selected") await this.#duplicateSelected();
       else if (action === "connect-selected") {
         if (this.selectedElementIds.length !== 2) return;
@@ -877,6 +1046,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       else if (action === "select-scene") {
         const element = this.board.elements.find(candidate => candidate.sceneId === event.currentTarget.dataset.sceneId);
         this.selectedElementIds = element ? [element.id] : [];
+        this.selectedConnectionId = null;
         this.inspectorCollapsed = false;
       } else if (action === "save-scene") {
         this.board = await this.store.save(this.board);
@@ -1058,14 +1228,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       const source = this.board.elements.find(element => element.id === connection.sourceElementId);
       const target = this.board.elements.find(element => element.id === connection.targetElementId);
       if (!source || !target) continue;
-      const geometry = connectionGeometry(source, target);
+      const geometry = connectionGeometry(source, target, { bilateral: normalizeConnectionType(connection.connectionType).startsWith("bilateral") });
       for (const node of this.element.querySelectorAll(`[data-connection-id="${connection.id}"]`)) {
         if (node.classList.contains("mel-storyboard-connection")) {
           node.setAttribute("x1", geometry.source.x);
           node.setAttribute("y1", geometry.source.y);
           node.setAttribute("x2", geometry.target.x);
           node.setAttribute("y2", geometry.target.y);
-        } else if (node.classList.contains("mel-storyboard-connection-arrow")) node.setAttribute("points", geometry.arrowPoints);
+        } else if (node.classList.contains("mel-storyboard-connection-arrow-reverse")) node.setAttribute("points", geometry.reverseArrowPoints ?? "");
+        else if (node.classList.contains("mel-storyboard-connection-arrow")) node.setAttribute("points", geometry.arrowPoints);
         else if (node.classList.contains("mel-storyboard-connection-label")) {
           node.setAttribute("x", geometry.label.x);
           node.setAttribute("y", geometry.label.y);

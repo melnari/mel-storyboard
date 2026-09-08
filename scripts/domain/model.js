@@ -1,4 +1,4 @@
-import { ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
+import { CONNECTION_DISPLAY_TYPES, ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
 import { nextDisplayId, uuid } from "./ids.js";
 
 export function clone(value) {
@@ -235,16 +235,46 @@ export function migrateSceneTemplate(board, sceneId, templateId, { confirmed = f
   return preview;
 }
 
-export function createConnection(board, sourceElementId, targetElementId, connectionType = "FLOW", label = "") {
+export function normalizeConnectionType(connectionType) {
+  return CONNECTION_DISPLAY_TYPES.includes(connectionType) ? connectionType : CONNECTION_DISPLAY_TYPES[0];
+}
+
+export function createConnection(board, sourceElementId, targetElementId, connectionType = "unilateral", label = "") {
   if (!board.elements.some(element => element.id === sourceElementId)) throw new Error("The source scene does not exist.");
   if (!board.elements.some(element => element.id === targetElementId)) throw new Error("The target scene does not exist.");
   if (sourceElementId === targetElementId) throw new Error("A scene cannot connect to itself.");
   if (board.connections.some(connection => connection.sourceElementId === sourceElementId && connection.targetElementId === targetElementId)) throw new Error("This scene connection already exists.");
   const now = timestamp();
-  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType, label: String(label ?? "").trim(), description: "", visualConfig: {}, createdAt: now, updatedAt: now };
+  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType: normalizeConnectionType(connectionType), label: String(label ?? "").trim(), description: "", objectAssignments: [], visualConfig: {}, createdAt: now, updatedAt: now };
   board.connections.push(connection);
   board.updatedAt = now;
   return connection;
+}
+
+export function updateConnection(connection, { label = null, connectionType = null, description = null } = {}) {
+  if (label !== null) connection.label = String(label ?? "").trim();
+  if (connectionType !== null) connection.connectionType = normalizeConnectionType(connectionType);
+  if (description !== null) connection.description = String(description ?? "");
+  connection.updatedAt = timestamp();
+  return connection;
+}
+
+export function assignObjectToConnection(connection, objectId, role = "", notes = "") {
+  if (!objectId?.trim()) throw new Error("An object ID is required.");
+  connection.objectAssignments ??= [];
+  if (connection.objectAssignments.some(assignment => assignment.objectId === objectId)) throw new Error("This object is already assigned to the connection.");
+  const now = timestamp();
+  const assignment = { id: uuid(), objectId, role: role.trim(), notes, createdAt: now, updatedAt: now };
+  connection.objectAssignments.push(assignment);
+  connection.updatedAt = now;
+  return assignment;
+}
+
+export function removeObjectFromConnection(connection, assignmentId) {
+  const previousLength = connection.objectAssignments?.length ?? 0;
+  connection.objectAssignments = (connection.objectAssignments ?? []).filter(assignment => assignment.id !== assignmentId);
+  if (connection.objectAssignments.length === previousLength) throw new Error("The connection object assignment does not exist.");
+  connection.updatedAt = timestamp();
 }
 
 export function removeConnection(board, connectionId) {

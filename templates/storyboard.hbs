@@ -54,8 +54,9 @@
           </defs>
           <rect data-canvas-background width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
           {{#each board.connections}}
-            <line class="mel-storyboard-connection" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
-            <polygon class="mel-storyboard-connection-arrow" data-connection-id="{{id}}" points="{{arrowPoints}}" />
+            <line class="mel-storyboard-connection {{#if isDeactivated}}is-deactivated{{/if}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
+            <polygon class="mel-storyboard-connection-arrow {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{arrowPoints}}" />
+            {{#if isBilateral}}<polygon class="mel-storyboard-connection-arrow mel-storyboard-connection-arrow-reverse {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{reverseArrowPoints}}" />{{/if}}
             {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each board.elements}}
@@ -88,7 +89,54 @@
     </main>
 
     <aside class="mel-storyboard-inspector {{#if inspectorCollapsed}}is-collapsed{{/if}}" aria-label="{{labels.inspector}}">
-      {{#if selectedScene}}
+      {{#if selectedConnection}}
+        <header class="mel-storyboard-inspector-header">
+          <div>
+            <h2>{{labels.connectionDetails}}</h2>
+            <p class="mel-storyboard-connection-endpoints">{{selectedConnection.sourceTitle}} <i class="fas fa-arrow-right" aria-hidden="true"></i> {{selectedConnection.targetTitle}}</p>
+          </div>
+          <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
+        </header>
+        <section class="mel-storyboard-inspector-section mel-storyboard-connection-details-section">
+          <label for="mel-storyboard-connection-label">{{labels.connectionLabel}}</label>
+          <input id="mel-storyboard-connection-label" type="text" value="{{selectedConnection.label}}" data-connection-field="label" />
+          <label for="mel-storyboard-connection-type">{{labels.connectionType}}</label>
+          <select id="mel-storyboard-connection-type" data-connection-field="connectionType">
+            {{#each connectionTypeOptions}}
+              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+            {{/each}}
+          </select>
+          <label>{{labels.connectionDescription}}</label>
+          <div class="mel-storyboard-connection-description-editor" data-connection-description-editor></div>
+          <button type="button" data-action="save-connection"><i class="fas fa-save" aria-hidden="true"></i> {{labels.save}}</button>
+        </section>
+        <section class="mel-storyboard-inspector-section mel-storyboard-object-section">
+          <h3>{{labels.objects}}</h3>
+          {{#if selectedConnectionObjects.length}}
+            <div class="mel-storyboard-object-list">
+              {{#each selectedConnectionObjects}}
+                <article class="mel-storyboard-object-card">
+                  <div class="mel-storyboard-object-main">
+                    {{#if image}}<img src="{{image}}" alt="" aria-hidden="true" />{{else}}<i class="fas {{icon}}" aria-hidden="true"></i>{{/if}}
+                    <div class="mel-storyboard-object-content">
+                      {{#if foundryLinkHtml}}{{{foundryLinkHtml}}}{{else}}<strong>{{title}}</strong>{{/if}}
+                      <span>{{typeLabel}}</span>
+                      {{#if assignmentNotesPreview}}<small>{{assignmentNotesPreview}}</small>{{/if}}
+                    </div>
+                  </div>
+                  <div class="mel-storyboard-object-actions">
+                    <button type="button" class="icon-button" data-action="connection-object-details" data-assignment-id="{{assignmentId}}" title="{{@root.labels.objectDetails}}" aria-label="{{@root.labels.objectDetails}}"><i class="fas fa-circle-info" aria-hidden="true"></i> {{@root.labels.objectDetails}}</button>
+                    <button type="button" class="icon-button" data-action="edit-connection-object-note" data-assignment-id="{{assignmentId}}" title="{{@root.labels.objectNote}}" aria-label="{{@root.labels.objectNote}}"><i class="fas fa-comment" aria-hidden="true"></i> {{@root.labels.objectNote}}</button>
+                    <button type="button" class="icon-button" data-action="remove-connection-object" data-assignment-id="{{assignmentId}}" title="{{@root.labels.deleteObject}}" aria-label="{{@root.labels.deleteObject}}"><i class="fas fa-xmark" aria-hidden="true"></i> {{@root.labels.deleteObject}}</button>
+                  </div>
+                </article>
+              {{/each}}
+            </div>
+          {{else}}
+            <p class="mel-storyboard-empty">{{labels.noObjects}}</p>
+          {{/if}}
+        </section>
+      {{else if selectedScene}}
         <header class="mel-storyboard-inspector-header">
           <div>
             <p class="mel-storyboard-display-id">{{selectedScene.displayId}}</p>

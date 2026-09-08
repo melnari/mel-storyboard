@@ -40,7 +40,6 @@
       "ConnectScene": "Conectar escena",
       "DeleteScene": "Eliminar escena",
       "DeleteConnection": "Eliminar conexión",
-      "EditConnection": "Editar etiqueta de conexión",
       "ZoomOut": "Alejar",
       "ZoomIn": "Acercar",
       "CopyTemplate": "Copiar plantilla",
@@ -71,6 +70,7 @@
     "Story": "Story",
     "Scenes": "Escenas",
       "SceneDetails": "Detalles de la escena",
+      "ConnectionDetails": "Detalles de la conexión",
       "Template": "Plantilla",
       "TemplateVersion": "Versión de plantilla",
       "TemplateFields": "Campos de plantilla",
@@ -89,6 +89,9 @@
       "Title": "Título",
       "Status": "Estado",
       "Description": "Descripción",
+      "ConnectionLabel": "Etiqueta de conexión",
+      "ConnectionType": "Tipo de conexión",
+      "ConnectionDescription": "Descripción",
       "SearchScenes": "Buscar escenas",
       "Connections": "Conexiones",
       "Incoming": "Entrantes",
@@ -165,6 +168,12 @@
       "ROLLABLE_TABLE": "Tabla aleatoria",
       "MACRO": "Macro",
       "PLAYLIST": "Lista de reproducción"
+    },
+    "CONNECTION_TYPES": {
+      "UNILATERAL": "unilateral",
+      "UNILATERAL_DEACTIVATED": "unilateral desactivada",
+      "BILATERAL": "bilateral",
+      "BILATERAL_DEACTIVATED": "bilateral desactivada"
     },
     "STATUS": {
       "OFFEN": "Abierto",

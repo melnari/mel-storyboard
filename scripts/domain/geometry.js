@@ -11,7 +11,20 @@ function edgeDistance(element, unit) {
   return Math.min(horizontal, vertical);
 }
 
-export function connectionGeometry(sourceElement, targetElement) {
+function buildArrowPoints(point, direction, perpendicular, arrowLength = 12) {
+  const arrowBase = {
+    x: point.x - direction.x * arrowLength,
+    y: point.y - direction.y * arrowLength
+  };
+  const arrowHalfWidth = 5;
+  return [
+    `${point.x},${point.y}`,
+    `${arrowBase.x + perpendicular.x * arrowHalfWidth},${arrowBase.y + perpendicular.y * arrowHalfWidth}`,
+    `${arrowBase.x - perpendicular.x * arrowHalfWidth},${arrowBase.y - perpendicular.y * arrowHalfWidth}`
+  ].join(" ");
+}
+
+export function connectionGeometry(sourceElement, targetElement, { bilateral = false } = {}) {
   const sourceCenter = center(sourceElement);
   const targetCenter = center(targetElement);
   const delta = { x: targetCenter.x - sourceCenter.x, y: targetCenter.y - sourceCenter.y };
@@ -19,29 +32,26 @@ export function connectionGeometry(sourceElement, targetElement) {
   const unit = { x: delta.x / length, y: delta.y / length };
   const sourceEdge = edgeDistance(sourceElement, unit);
   const targetEdge = edgeDistance(targetElement, unit);
+  const arrowInset = 12;
+  const sourceInset = bilateral ? arrowInset : 4;
   const source = {
-    x: sourceCenter.x + unit.x * (sourceEdge + 4),
-    y: sourceCenter.y + unit.y * (sourceEdge + 4)
+    x: sourceCenter.x + unit.x * (sourceEdge + sourceInset),
+    y: sourceCenter.y + unit.y * (sourceEdge + sourceInset)
   };
   const target = {
     x: targetCenter.x - unit.x * (targetEdge + 12),
     y: targetCenter.y - unit.y * (targetEdge + 12)
   };
-  const arrowBase = {
-    x: target.x - unit.x * 12,
-    y: target.y - unit.y * 12
-  };
   const perpendicular = { x: -unit.y, y: unit.x };
-  const arrowHalfWidth = 5;
-  const arrowPoints = [
-    `${target.x},${target.y}`,
-    `${arrowBase.x + perpendicular.x * arrowHalfWidth},${arrowBase.y + perpendicular.y * arrowHalfWidth}`,
-    `${arrowBase.x - perpendicular.x * arrowHalfWidth},${arrowBase.y - perpendicular.y * arrowHalfWidth}`
-  ].join(" ");
+  const arrowPoints = buildArrowPoints(target, unit, perpendicular, arrowInset);
+  const reverseArrowPoints = bilateral
+    ? buildArrowPoints(source, { x: -unit.x, y: -unit.y }, perpendicular, arrowInset)
+    : "";
   return {
     source,
     target,
     arrowPoints,
+    reverseArrowPoints,
     label: {
       x: (source.x + target.x) / 2,
       y: (source.y + target.y) / 2 - 8

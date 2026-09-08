@@ -1,4 +1,5 @@
 import { connectionGeometry } from "./geometry.js";
+import { normalizeConnectionType } from "./model.js";
 import { normalizeSceneElementSize } from "./scene-card.js";
 
 function escapeXml(value) {
@@ -39,11 +40,16 @@ export function sceneBoardToSvg(board, labels = {}) {
     const source = elementById.get(connection.sourceElementId);
     const target = elementById.get(connection.targetElementId);
     if (!source || !target) return "";
-    const geometry = connectionGeometry(source, target);
+    const connectionType = normalizeConnectionType(connection.connectionType);
+    const isBilateral = connectionType.startsWith("bilateral");
+    const isDeactivated = connectionType.endsWith("deactivated");
+    const geometry = connectionGeometry(source, target, { bilateral: isBilateral });
+    const lineAttributes = isDeactivated ? ' stroke-dasharray="2 7"' : "";
     const label = connection.label?.trim()
       ? `<text class="connection-label" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
       : "";
-    return `<line class="connection" x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" /><polygon class="connection-arrow" points="${geometry.arrowPoints}" />${label}`;
+    const reverseArrow = geometry.reverseArrowPoints ? `<polygon class="connection-arrow" points="${geometry.reverseArrowPoints}" />` : "";
+    return `<line class="connection"${lineAttributes} x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" /><polygon class="connection-arrow" points="${geometry.arrowPoints}" />${reverseArrow}${label}`;
   }).join("");
   const elementMarkup = elements.map(element => {
     const scene = sceneById.get(element.sceneId);

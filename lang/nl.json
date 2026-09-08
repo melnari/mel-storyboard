@@ -40,7 +40,6 @@
       "ConnectScene": "Scène verbinden",
       "DeleteScene": "Scène verwijderen",
       "DeleteConnection": "Verbinding verwijderen",
-      "EditConnection": "Verbindingslabel bewerken",
       "ZoomOut": "Uitzoomen",
       "ZoomIn": "Inzoomen",
       "CopyTemplate": "Sjabloon kopiëren",
@@ -71,6 +70,7 @@
     "Story": "Story",
     "Scenes": "Scènes",
       "SceneDetails": "Scènedetails",
+      "ConnectionDetails": "Verbindingsdetails",
       "Template": "Sjabloon",
       "TemplateVersion": "Sjabloonversie",
       "TemplateFields": "Sjabloonvelden",
@@ -89,6 +89,9 @@
       "Title": "Titel",
       "Status": "Status",
       "Description": "Beschrijving",
+      "ConnectionLabel": "Verbindingslabel",
+      "ConnectionType": "Verbindingstype",
+      "ConnectionDescription": "Beschrijving",
       "SearchScenes": "Scènes zoeken",
       "Connections": "Verbindingen",
       "Incoming": "Inkomend",
@@ -165,6 +168,12 @@
       "ROLLABLE_TABLE": "Worptabel",
       "MACRO": "Macro",
       "PLAYLIST": "Afspeellijst"
+    },
+    "CONNECTION_TYPES": {
+      "UNILATERAL": "unilateraal",
+      "UNILATERAL_DEACTIVATED": "unilateraal gedeactiveerd",
+      "BILATERAL": "bilateraal",
+      "BILATERAL_DEACTIVATED": "bilateraal gedeactiveerd"
     },
     "STATUS": {
       "OFFEN": "Open",

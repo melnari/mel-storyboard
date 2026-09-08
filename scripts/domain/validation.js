@@ -37,6 +37,7 @@ export function validateSceneBoard(board) {
   for (const connection of board?.connections ?? []) {
     if (!elementIds.has(connection.sourceElementId)) errors.push(`Connection source is missing: ${connection.sourceElementId}`);
     if (!elementIds.has(connection.targetElementId)) errors.push(`Connection target is missing: ${connection.targetElementId}`);
+    for (const assignment of connection.objectAssignments ?? []) if (!objectIds.has(assignment.objectId)) errors.push(`Connection object assignment references missing object: ${assignment.objectId}`);
   }
   return { valid: errors.length === 0, errors };
 }

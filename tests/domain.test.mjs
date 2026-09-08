@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, updateObjectAssignment } from "../scripts/domain/model.js";
+import { assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
@@ -133,6 +133,42 @@ test("connections support labels and place an explicit arrow before the target",
   const svg = sceneBoardToSvg(board);
   assert.match(svg, /class="connection-arrow"/);
   assert.match(svg, /Weiter/);
+});
+
+test("bilateral connection geometry ends symmetrically at both arrow tips", () => {
+  const board = createSceneBoard();
+  const first = createSceneElement(board, { sceneId: createScene(board).id });
+  const second = createSceneElement(board, { sceneId: createScene(board).id });
+  first.position = { x: 100, y: 100 };
+  second.position = { x: 500, y: 100 };
+  const geometry = connectionGeometry(first, second, { bilateral: true });
+  assert.equal(geometry.source.x, 292);
+  assert.equal(geometry.target.x, 488);
+  assert.equal(geometry.arrowPoints.split(" ")[0], `${geometry.target.x},${geometry.target.y}`);
+  assert.equal(geometry.reverseArrowPoints.split(" ")[0], `${geometry.source.x},${geometry.source.y}`);
+  assert.ok(geometry.reverseArrowPoints);
+});
+
+test("connections support display types, descriptions, and independent object assignments", () => {
+  const board = createSceneBoard();
+  const first = createSceneElement(board, { sceneId: createScene(board).id });
+  const second = createSceneElement(board, { sceneId: createScene(board).id });
+  const object = createBoardObject(board, { objectType: "INFORMATION", title: "Connection clue" });
+  const connection = createConnection(board, first.id, second.id);
+  assert.equal(connection.connectionType, "unilateral");
+  assert.deepEqual(connection.objectAssignments, []);
+  const assignment = assignObjectToConnection(connection, object.id, "clue", "Only relevant for this transition.");
+  updateConnection(connection, { label: "Branch", connectionType: "bilateral deactivated", description: "A disabled two-way transition." });
+  assert.equal(connection.label, "Branch");
+  assert.equal(connection.connectionType, "bilateral deactivated");
+  assert.equal(connection.description, "A disabled two-way transition.");
+  assert.equal(connection.objectAssignments[0].id, assignment.id);
+  removeObjectFromConnection(connection, assignment.id);
+  assert.equal(connection.objectAssignments.length, 0);
+  const svg = sceneBoardToSvg(board);
+  assert.match(svg, /stroke-dasharray="2 7"/);
+  assert.equal((svg.match(/class="connection-arrow"/g) ?? []).length, 2);
+  assert.equal(validateSceneBoard(board).valid, true);
 });
 
 test("connections can be removed without removing their scenes", () => {
