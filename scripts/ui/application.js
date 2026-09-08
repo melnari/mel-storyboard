@@ -13,10 +13,6 @@ function localize(key) {
   return game.i18n?.localize(key) ?? key;
 }
 
-function format(key, data) {
-  return game.i18n?.format(key, data) ?? key;
-}
-
 function notifyError(error) {
   console.error(`[${MODULE_ID}]`, error);
   ui.notifications.error(error.message ?? String(error));
@@ -533,7 +529,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       { label: localize("MEL_STORYBOARD.ACTIONS.EditConnection"), icon: "✎", action: () => this.#editConnection(connectionId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteConnection"), icon: "×", action: () => this.#deleteConnection(connectionId) }
     ] : sceneMenu ? [
-      { label: localize("MEL_STORYBOARD.ACTIONS.EditScene"), icon: "✎", action: () => this.#renameScene(elementId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "×", action: async () => { this.selectedElementIds = [elementId]; await this.#deleteSelected(); } }
     ] : [
@@ -574,7 +569,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #deleteConnection(connectionId) {
-    if (!window.confirm(localize("MEL_STORYBOARD.PROMPTS.DeleteConnection"))) return;
     this.history.capture(this.board);
     removeConnection(this.board, connectionId);
     this.board = await this.store.save(this.board);
@@ -603,8 +597,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #createScene(event = null) {
-    const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.SceneTitle"), localize("MEL_STORYBOARD.DEFAULTS.SceneTitle"));
-    if (!title?.trim()) return;
+    const nextNumber = this.board.scenes.reduce((highest, scene) => {
+      const match = /^Scene\s+(\d+)$/i.exec(scene.title?.trim() ?? "");
+      return Math.max(highest, match ? Number(match[1]) : 0);
+    }, 0) + 1;
+    const title = `Scene ${nextNumber}`;
     this.history.capture(this.board);
     const scene = createScene(this.board, { title });
     const element = createSceneElement(this.board, { sceneId: scene.id, title: scene.title });
@@ -616,18 +613,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.board = await this.store.save(this.board);
     this.selectedElementIds = [element.id];
     this.inspectorCollapsed = false;
-    await this.render({ force: true });
-  }
-
-  async #renameScene(elementId) {
-    const scene = this.board.scenes.find(candidate => candidate.id === this.board.elements.find(element => element.id === elementId)?.sceneId);
-    if (!scene) return;
-    const title = window.prompt(localize("MEL_STORYBOARD.PROMPTS.RenameScene"), scene.title);
-    if (!title?.trim() || title.trim() === scene.title) return;
-    this.history.capture(this.board);
-    scene.title = title.trim();
-    scene.updatedAt = new Date().toISOString();
-    this.board = await this.store.save(this.board);
     await this.render({ force: true });
   }
 
@@ -678,8 +663,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #deleteSelected() {
     if (!this.selectedElementIds.length) return;
-    const scene = this.#selectedScene();
-    if (scene && !window.confirm(format("MEL_STORYBOARD.PROMPTS.DeleteScene", { title: scene.title }))) return;
     this.history.capture(this.board);
     removeSceneElements(this.board, this.selectedElementIds);
     this.board = await this.store.save(this.board);
