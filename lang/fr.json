@@ -10,6 +10,10 @@
         "Label": "Ouvrir le tableau de scènes",
         "Hint": "Ouvrir le tableau de scènes du MJ."
       },
+      "StatusColors": {
+        "Name": "Utiliser les couleurs selon le statut",
+        "Hint": "Utiliser des arrière-plans pastel selon le statut des cartes de scène."
+      },
       "ManageTemplates": {
         "Name": "Gérer les modèles",
         "Label": "Ouvrir la gestion des modèles",
@@ -177,6 +181,7 @@
     },
     "STATUS": {
       "OFFEN": "Ouvert",
+      "WAITING": "En attente",
       "AKTIV": "Actif",
       "ERFOLG": "Réussite",
       "TEILERFOLG": "Réussite partielle",

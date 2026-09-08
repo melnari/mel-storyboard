@@ -30,7 +30,7 @@ test("scenes get stable UUIDs and unique visible IDs", () => {
 test("scene status values use the approved domain keys", () => {
   const board = createSceneBoard();
   const scene = createScene(board);
-  assert.deepEqual(Object.values(STATUS), ["OFFEN", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN"]);
+  assert.deepEqual(Object.values(STATUS), ["OFFEN", "WAITING", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN"]);
   assert.equal(scene.status, STATUS.OFFEN);
 });
 
@@ -253,4 +253,7 @@ test("scene board exports are suitable for file transport", () => {
   assert.match(svg, /element-id/);
   assert.match(svg, /text-anchor="end"/);
   assert.match(svg, /element-status-badge/);
+  const coloredSvg = sceneBoardToSvg(board, { scene: "Scene", status: status => status, statusColors: true });
+  assert.match(coloredSvg, /status-open/);
+  assert.match(coloredSvg, /#313846/);
 });

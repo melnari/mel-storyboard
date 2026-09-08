@@ -10,6 +10,10 @@
         "Label": "Open Scene Board",
         "Hint": "Open the GM scene board."
       },
+      "StatusColors": {
+        "Name": "Use status-based coloring",
+        "Hint": "Use pastel background colors on Scene Cards according to their status."
+      },
       "ManageTemplates": {
         "Name": "Manage templates",
         "Label": "Open template management",
@@ -177,6 +181,7 @@
     },
     "STATUS": {
       "OFFEN": "Open",
+      "WAITING": "Waiting",
       "AKTIV": "Active",
       "ERFOLG": "Success",
       "TEILERFOLG": "Partial success",

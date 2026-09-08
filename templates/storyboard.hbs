@@ -60,7 +60,7 @@
             {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each board.elements}}
-            <g class="mel-storyboard-element {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
+            <g class="mel-storyboard-element {{#if statusColorClass}}status-{{statusColorClass}}{{/if}} {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
               <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="10" />
               <text class="mel-storyboard-element-title" x="14" y="{{titleY}}">
                 {{#each titleLines}}<tspan x="14" dy="{{#if @first}}0{{else}}18{{/if}}">{{this}}</tspan>{{/each}}
@@ -155,7 +155,7 @@
             {{/each}}
           </select>
           <label for="mel-storyboard-scene-description">{{labels.description}}</label>
-          <textarea id="mel-storyboard-scene-description" rows="8" data-scene-field="description">{{selectedScene.description}}</textarea>
+          <div id="mel-storyboard-scene-description" class="mel-storyboard-scene-description-editor" data-scene-description-editor></div>
           <button type="button" data-action="save-scene"><i class="fas fa-save"></i> {{labels.save}}</button>
         </section>
         <section class="mel-storyboard-inspector-section mel-storyboard-object-section">

@@ -10,6 +10,10 @@
         "Label": "Abrir tablero de escenas",
         "Hint": "Abrir el tablero de escenas del DJ."
       },
+      "StatusColors": {
+        "Name": "Usar colores según el estado",
+        "Hint": "Usar fondos pastel según el estado de las tarjetas de escena."
+      },
       "ManageTemplates": {
         "Name": "Gestionar plantillas",
         "Label": "Abrir gestión de plantillas",
@@ -177,6 +181,7 @@
     },
     "STATUS": {
       "OFFEN": "Abierto",
+      "WAITING": "En espera",
       "AKTIV": "Activo",
       "ERFOLG": "Éxito",
       "TEILERFOLG": "Éxito parcial",

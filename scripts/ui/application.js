@@ -1,4 +1,4 @@
-import { MODULE_ID, STATUS } from "../domain/constants.js";
+import { MODULE_ID, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
 import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, normalizeConnectionType, pasteSceneElements, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
 import { connectionGeometry } from "../domain/geometry.js";
@@ -131,6 +131,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.connectionDescriptionEditor = null;
     this.connectionDescriptionEditorShell = null;
     this.connectionDescriptionEditorGeneration = 0;
+    this.sceneDescriptionEditor = null;
+    this.sceneDescriptionEditorShell = null;
+    this.sceneDescriptionEditorGeneration = 0;
     this.contextMenuElement = null;
     this.contextMenuHost = null;
     this.contextMenuHandler = null;
@@ -141,6 +144,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async _prepareContext() {
+    const statusColorsEnabled = Boolean(game.settings.get(MODULE_ID, STATUS_COLOR_SETTING));
+    this.statusColorsEnabled = statusColorsEnabled;
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const objects = await Promise.all((this.board.objects ?? []).map(async object => {
       let image = object.visualConfig?.image ?? "";
@@ -182,6 +187,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       return {
         ...element,
         ...presentation,
+        statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[scene?.status] ?? STATUS_COLOR_CLASSES.OFFEN : "",
         playerCharacterTokens: playerCharacters.map((object, index) => ({
           ...object,
           objectId: object.id,
@@ -332,6 +338,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async _onRender(context, options) {
     this.#destroyConnectionDescriptionEditor();
+    this.#destroySceneDescriptionEditor();
     await super._onRender(context, options);
     this.#closeContextMenu();
     if (this.contextMenuHost !== this.element) {
@@ -408,7 +415,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#applyZoom();
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
-    if (context.selectedConnection) await this.#activateConnectionDescriptionEditor(context.selectedConnection.description ?? "");
+    if (context.selectedConnection) {
+      await this.#activateConnectionDescriptionEditor(context.selectedConnection.description ?? "");
+    } else if (context.selectedScene) {
+      await this.#activateSceneDescriptionEditor(context.selectedScene.description ?? "");
+    }
   }
 
   _onClose(options) {
@@ -417,6 +428,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#finishPlayerCharacterDrag();
     this.#finishConnectionDrag();
     this.#destroyConnectionDescriptionEditor();
+    this.#destroySceneDescriptionEditor();
     return super._onClose(options);
   }
 
@@ -519,6 +531,46 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.connectionDescriptionEditor = editor;
   }
 
+  async #activateSceneDescriptionEditor(description) {
+    const editorHost = this.element.querySelector("[data-scene-description-editor]");
+    if (!editorHost) return;
+    const generation = ++this.sceneDescriptionEditorGeneration;
+    const editorShell = document.createElement("div");
+    editorShell.className = "editor prosemirror mel-storyboard-scene-description-editor-shell";
+    const editorTarget = document.createElement("div");
+    editorTarget.className = "editor-content";
+    editorShell.append(editorTarget);
+    editorHost.replaceChildren(editorShell);
+    this.sceneDescriptionEditorShell = editorShell;
+    let editor;
+    try {
+      const { defaultSchema, plugins } = foundry.prosemirror;
+      editor = await foundry.applications.ux.ProseMirrorEditor.create(editorTarget, description, {
+        uuid: `MelStoryboard.SceneDetails.${foundry.utils.randomID()}`,
+        plugins: {
+          menu: plugins.ProseMirrorMenu.build(defaultSchema, {
+            destroyOnSave: false,
+            onSave: () => this.#saveSceneDetails()
+          }),
+          keyMaps: plugins.ProseMirrorKeyMaps.build(defaultSchema, {
+            onSave: () => this.#saveSceneDetails()
+          })
+        },
+        props: { editable: () => true }
+      });
+    } catch (error) {
+      console.error("[mel-storyboard] Could not create scene description editor", error);
+      this.#destroySceneDescriptionEditor();
+      ui.notifications.error(localize("MEL_STORYBOARD.ERRORS.NoteEditor"));
+      return;
+    }
+    if (generation !== this.sceneDescriptionEditorGeneration || !editorShell.isConnected || !this.selectedElementIds.length) {
+      editor.destroy();
+      return;
+    }
+    this.sceneDescriptionEditor = editor;
+  }
+
   #destroyConnectionDescriptionEditor() {
     this.connectionDescriptionEditorGeneration += 1;
     this.connectionDescriptionEditor?.destroy();
@@ -527,9 +579,23 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.connectionDescriptionEditorShell = null;
   }
 
+  #destroySceneDescriptionEditor() {
+    this.sceneDescriptionEditorGeneration += 1;
+    this.sceneDescriptionEditor?.destroy();
+    this.sceneDescriptionEditor = null;
+    this.sceneDescriptionEditorShell?.remove();
+    this.sceneDescriptionEditorShell = null;
+  }
+
   #getConnectionDescriptionValue() {
     const document = this.connectionDescriptionEditor?.view?.state?.doc;
     if (!document) return this.board.connections.find(connection => connection.id === this.selectedConnectionId)?.description ?? "";
+    return foundry.prosemirror.dom.serializeString(document.content);
+  }
+
+  #getSceneDescriptionValue() {
+    const document = this.sceneDescriptionEditor?.view?.state?.doc;
+    if (!document) return this.#selectedScene()?.description ?? "";
     return foundry.prosemirror.dom.serializeString(document.content);
   }
 
@@ -545,13 +611,29 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
+  async #saveSceneDetails() {
+    const scene = this.#selectedScene();
+    if (!scene) return;
+    const title = this.element.querySelector("[data-scene-field='title']")?.value ?? scene.title;
+    const status = this.element.querySelector("[data-scene-field='status']")?.value ?? scene.status;
+    this.history.capture(this.board);
+    scene.title = title.trim() || scene.title;
+    scene.status = status;
+    scene.description = this.#getSceneDescriptionValue();
+    scene.updatedAt = new Date().toISOString();
+    this.board = await this.store.save(this.board);
+    this.#destroySceneDescriptionEditor();
+    ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.Saved"));
+    await this.render({ force: true });
+  }
+
   #selectedScene() {
     const element = this.board.elements.find(candidate => candidate.id === this.selectedElementIds[0]);
     return this.board.scenes.find(scene => scene.id === element?.sceneId) ?? null;
   }
 
   #exportLabels() {
-    return { title: localize("MEL_STORYBOARD.EXPORT.Scenes"), scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`) };
+    return { title: localize("MEL_STORYBOARD.EXPORT.Scenes"), scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`), statusColors: this.statusColorsEnabled };
   }
 
   #onContextMenu(event) {
@@ -1124,8 +1206,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         this.selectedConnectionId = null;
         this.inspectorCollapsed = false;
       } else if (action === "save-scene") {
-        this.board = await this.store.save(this.board);
-        ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.Saved"));
+        await this.#saveSceneDetails();
+        return;
       } else if (action === "export-json") downloadSceneBoardJson(this.board);
       else if (action === "export-svg") downloadSceneBoardSvg(this.board, this.#exportLabels());
       else if (action === "export-png") await downloadSceneBoardPng(this.board, this.#exportLabels());
@@ -1138,6 +1220,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scene = this.#selectedScene();
     if (!scene) return;
     this.history.capture(this.board);
+    if (this.sceneDescriptionEditor && event.currentTarget.dataset.sceneField !== "description") {
+      scene.description = this.#getSceneDescriptionValue();
+    }
     scene[event.currentTarget.dataset.sceneField] = event.currentTarget.value;
     scene.updatedAt = new Date().toISOString();
     this.board = await this.store.save(this.board);
@@ -1224,6 +1309,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
       playerCharacterCount: this.#playerCharacterObjects(scene).length
     });
+    for (const className of [...node.classList]) {
+      if (className.startsWith("status-")) node.classList.remove(className);
+    }
+    if (this.statusColorsEnabled) node.classList.add(`status-${STATUS_COLOR_CLASSES[scene?.status] ?? STATUS_COLOR_CLASSES.OFFEN}`);
     element.size = presentation.size;
     node.setAttribute("aria-label", presentation.title);
     const namespace = "http://www.w3.org/2000/svg";

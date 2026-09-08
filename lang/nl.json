@@ -10,6 +10,10 @@
         "Label": "Scènebord openen",
         "Hint": "Open het scènebord voor de GM."
       },
+      "StatusColors": {
+        "Name": "Kleuren op basis van status gebruiken",
+        "Hint": "Pastelkleurige achtergronden gebruiken volgens de status van scènekaarten."
+      },
       "ManageTemplates": {
         "Name": "Sjablonen beheren",
         "Label": "Sjabloonbeheer openen",
@@ -177,6 +181,7 @@
     },
     "STATUS": {
       "OFFEN": "Open",
+      "WAITING": "Wachten",
       "AKTIV": "Actief",
       "ERFOLG": "Succes",
       "TEILERFOLG": "Gedeeltelijk succes",

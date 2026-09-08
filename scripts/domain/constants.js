@@ -4,11 +4,24 @@ export const STORE_SCHEMA_VERSION = 4;
 
 export const STATUS = Object.freeze({
   OFFEN: "OFFEN",
+  WAITING: "WAITING",
   AKTIV: "AKTIV",
   ERFOLG: "ERFOLG",
   TEILERFOLG: "TEILERFOLG",
   FEHLSCHLAG: "FEHLSCHLAG",
   UEBERSPRUNGEN: "UEBERSPRUNGEN"
+});
+
+export const STATUS_COLOR_SETTING = "statusColors";
+
+export const STATUS_COLOR_CLASSES = Object.freeze({
+  OFFEN: "open",
+  WAITING: "waiting",
+  AKTIV: "active",
+  ERFOLG: "success",
+  TEILERFOLG: "partial-success",
+  FEHLSCHLAG: "failure",
+  UEBERSPRUNGEN: "skipped"
 });
 
 export const ELEMENT_TYPES = Object.freeze(["SCENE"]);

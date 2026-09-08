@@ -1,4 +1,4 @@
-import { MODULE_ID } from "./domain/constants.js";
+import { MODULE_ID, STATUS_COLOR_SETTING } from "./domain/constants.js";
 import { SceneBoardStore, registerSceneBoardSetting } from "./domain/scene-board-store.js";
 import { StoryboardApplication } from "./ui/application.js";
 
@@ -21,6 +21,19 @@ Hooks.once("init", () => {
       } else game.melStoryboard.open();
     }
   };
+  game.settings.register(MODULE_ID, STATUS_COLOR_SETTING, {
+    name: "MEL_STORYBOARD.SETTINGS.StatusColors.Name",
+    hint: "MEL_STORYBOARD.SETTINGS.StatusColors.Hint",
+    scope: "world",
+    config: true,
+    restricted: true,
+    type: Boolean,
+    default: false,
+    onChange: () => {
+      const application = game.melStoryboard?.application;
+      if (application?.element?.isConnected) application.render({ force: true });
+    }
+  });
   game.settings.registerMenu(MODULE_ID, "openDesigner", {
     name: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Name",
     label: "MEL_STORYBOARD.SETTINGS.OpenDesigner.Label",

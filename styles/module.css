@@ -796,6 +796,191 @@
   opacity: 0;
 }
 
+/* Optional status-based Scene Card palette. The foreground colors are kept
+ * dark on the pastel backgrounds to preserve readable contrast. */
+.mel-storyboard-element.status-open .mel-storyboard-element-frame {
+  fill: #313846 !important;
+  stroke: #9aa4b2 !important;
+}
+
+.mel-storyboard-element.status-open text {
+  fill: #f0f3f7 !important;
+}
+
+.mel-storyboard-element.status-open .mel-storyboard-element-description,
+.mel-storyboard-element.status-open .mel-storyboard-element-id {
+  fill: #d3dae4 !important;
+}
+
+.mel-storyboard-element.status-open .mel-storyboard-element-status-badge {
+  fill: rgba(246, 196, 83, .12) !important;
+  stroke: #59687a !important;
+}
+
+.mel-storyboard-element.status-open .mel-storyboard-element-status {
+  fill: #f6c453 !important;
+}
+
+.mel-storyboard-element.status-waiting .mel-storyboard-element-frame {
+  fill: #e2e5ea !important;
+  stroke: #8a97a6 !important;
+}
+
+.mel-storyboard-element.status-waiting text {
+  fill: #20252d !important;
+}
+
+.mel-storyboard-element.status-waiting .mel-storyboard-element-description,
+.mel-storyboard-element.status-waiting .mel-storyboard-element-id {
+  fill: #3f4a57 !important;
+}
+
+.mel-storyboard-element.status-waiting .mel-storyboard-element-status-badge {
+  fill: rgba(72, 84, 99, .13) !important;
+  stroke: #6f7d8c !important;
+}
+
+.mel-storyboard-element.status-waiting .mel-storyboard-element-status {
+  fill: #485463 !important;
+}
+
+.mel-storyboard-element.status-active .mel-storyboard-element-frame {
+  fill: #cfe1f4 !important;
+  stroke: #7899b8 !important;
+}
+
+.mel-storyboard-element.status-active text {
+  fill: #1e3044 !important;
+}
+
+.mel-storyboard-element.status-active .mel-storyboard-element-description,
+.mel-storyboard-element.status-active .mel-storyboard-element-id {
+  fill: #40566c !important;
+}
+
+.mel-storyboard-element.status-active .mel-storyboard-element-status-badge {
+  fill: rgba(36, 95, 157, .13) !important;
+  stroke: #7899b8 !important;
+}
+
+.mel-storyboard-element.status-active .mel-storyboard-element-status {
+  fill: #245f9d !important;
+}
+
+.mel-storyboard-element.status-success .mel-storyboard-element-frame {
+  fill: #d2ead6 !important;
+  stroke: #82ad8b !important;
+}
+
+.mel-storyboard-element.status-success text {
+  fill: #1e3a25 !important;
+}
+
+.mel-storyboard-element.status-success .mel-storyboard-element-description,
+.mel-storyboard-element.status-success .mel-storyboard-element-id {
+  fill: #46664d !important;
+}
+
+.mel-storyboard-element.status-success .mel-storyboard-element-status-badge {
+  fill: rgba(46, 125, 70, .13) !important;
+  stroke: #82ad8b !important;
+}
+
+.mel-storyboard-element.status-success .mel-storyboard-element-status {
+  fill: #2e7d46 !important;
+}
+
+.mel-storyboard-element.status-partial-success .mel-storyboard-element-frame {
+  fill: #f6dfbd !important;
+  stroke: #c69a62 !important;
+}
+
+.mel-storyboard-element.status-partial-success text {
+  fill: #4a2d14 !important;
+}
+
+.mel-storyboard-element.status-partial-success .mel-storyboard-element-description,
+.mel-storyboard-element.status-partial-success .mel-storyboard-element-id {
+  fill: #705333 !important;
+}
+
+.mel-storyboard-element.status-partial-success .mel-storyboard-element-status-badge {
+  fill: rgba(164, 96, 25, .13) !important;
+  stroke: #c69a62 !important;
+}
+
+.mel-storyboard-element.status-partial-success .mel-storyboard-element-status {
+  fill: #a46019 !important;
+}
+
+.mel-storyboard-element.status-failure .mel-storyboard-element-frame {
+  fill: #f3cccc !important;
+  stroke: #c9898e !important;
+}
+
+.mel-storyboard-element.status-failure text {
+  fill: #4a2023 !important;
+}
+
+.mel-storyboard-element.status-failure .mel-storyboard-element-description,
+.mel-storyboard-element.status-failure .mel-storyboard-element-id {
+  fill: #71464a !important;
+}
+
+.mel-storyboard-element.status-failure .mel-storyboard-element-status-badge {
+  fill: rgba(163, 58, 66, .13) !important;
+  stroke: #c9898e !important;
+}
+
+.mel-storyboard-element.status-failure .mel-storyboard-element-status {
+  fill: #a33a42 !important;
+}
+
+.mel-storyboard-element.status-skipped .mel-storyboard-element-frame {
+  fill: #e2d3f0 !important;
+  stroke: #aa91bf !important;
+}
+
+.mel-storyboard-element.status-skipped text {
+  fill: #352342 !important;
+}
+
+.mel-storyboard-element.status-skipped .mel-storyboard-element-description,
+.mel-storyboard-element.status-skipped .mel-storyboard-element-id {
+  fill: #614c73 !important;
+}
+
+.mel-storyboard-element.status-skipped .mel-storyboard-element-status-badge {
+  fill: rgba(116, 73, 162, .13) !important;
+  stroke: #aa91bf !important;
+}
+
+.mel-storyboard-element.status-skipped .mel-storyboard-element-status {
+  fill: #7449a2 !important;
+}
+
+.mel-storyboard-element.is-selected .mel-storyboard-element-frame {
+  stroke: #f6c453 !important;
+  stroke-width: 3 !important;
+}
+
+.mel-storyboard-element.is-drop-target .mel-storyboard-element-frame,
+.mel-storyboard-element.is-connection-drop-target .mel-storyboard-element-frame {
+  stroke: #f6c453 !important;
+  stroke-dasharray: 6 3 !important;
+  stroke-width: 3 !important;
+}
+
+.mel-storyboard-element.is-player-character-drop-target .mel-storyboard-element-frame {
+  stroke: #f6c453 !important;
+  stroke-dasharray: 6 3 !important;
+  stroke-width: 3 !important;
+}
+
+.mel-storyboard-element.is-connection-drop-target .mel-storyboard-element-frame {
+  stroke: #6ed6a0 !important;
+}
+
 .mel-storyboard-element:hover .mel-storyboard-element-resize-handle,
 .mel-storyboard-element:focus .mel-storyboard-element-resize-handle,
 .mel-storyboard-element.is-selected .mel-storyboard-element-resize-handle {
@@ -926,6 +1111,25 @@
 }
 
 .mel-storyboard-connection-description-editor-shell .editor-content {
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
+}
+
+.mel-storyboard-scene-description-editor {
+  min-height: 0;
+}
+
+.mel-storyboard-scene-description-editor-shell {
+  height: 10rem;
+  min-height: 10rem;
+  --min-height: 10rem;
+  --menu-height: 2rem;
+  --menu-padding: .2rem .45rem;
+  --menu-background: rgba(73, 61, 74, .7);
+}
+
+.mel-storyboard-scene-description-editor-shell .editor-content {
   pointer-events: auto;
   user-select: text;
   cursor: text;

@@ -4,7 +4,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 ## Current version
 
-`0.0.6`
+`0.0.7`
 
 The current release focuses on the Scene board. Story, Storyline, project, map, and separate template-management features are not part of the active user interface.
 
@@ -34,6 +34,8 @@ The interface consists of three areas:
 - A collapsible inspector on the right for Scene Details or Connection Details.
 
 Scene Cards display the title, description, display ID, and status. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
+
+The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, and Skipped. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
 
 Player Characters assigned to a Scene are shown as small artwork tokens at the bottom of the card. Hovering a token shows the Actor name. A Player Character token can be dragged to another Scene Card to move the assignment.
 
@@ -72,6 +74,8 @@ The available Connection Types are:
 - `unilateral deactivated` — one direction shown as a dotted connection;
 - `bilateral` — symmetrical arrows in both directions;
 - `bilateral deactivated` — symmetrical dotted connection with arrows in both directions.
+
+Scene statuses are `Open`, `Waiting`, `Active`, `Success`, `Partial Success`, `Failure`, and `Skipped`.
 
 The Connection Details Object list supports the same Details, Note, and Delete actions as Scene Objects. Connection Objects are assigned directly to the Connection and do not need to be assigned to either Scene.
 

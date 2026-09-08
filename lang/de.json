@@ -10,6 +10,10 @@
         "Label": "Szenenboard öffnen",
         "Hint": "Das Szenenboard für die Spielleitung öffnen."
       },
+      "StatusColors": {
+        "Name": "Färbung anhand des Status verwenden",
+        "Hint": "Pastellfarbene Hintergründe der Szenenkarten abhängig vom Status verwenden."
+      },
       "ManageTemplates": {
         "Name": "Templates verwalten",
         "Label": "Template-Verwaltung öffnen",
@@ -177,6 +181,7 @@
     },
     "STATUS": {
       "OFFEN": "Offen",
+      "WAITING": "Wartend",
       "AKTIV": "Aktiv",
       "ERFOLG": "Erfolg",
       "TEILERFOLG": "Teilerfolg",
