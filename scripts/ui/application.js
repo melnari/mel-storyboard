@@ -38,12 +38,31 @@ function isPlaceholderArtwork(path) {
 }
 
 function foundryArtwork(document) {
+  const source = document?.toObject?.() ?? document?._source ?? {};
   const candidates = [
     document?.img,
+    source.img,
     document?.prototypeToken?.texture?.src,
-    document?.texture?.src
+    source.prototypeToken?.texture?.src,
+    document?.token?.texture?.src,
+    document?.texture?.src,
+    source.texture?.src
   ];
   return candidates.find(path => !isPlaceholderArtwork(path)) ?? candidates.find(Boolean) ?? "";
+}
+
+async function resolveFoundryDocument(uuid) {
+  if (!uuid) return null;
+  try {
+    const document = await fromUuid(uuid);
+    if (document) return document;
+  } catch {
+    // Fall back to the world collection below. Some player-owned Actors can
+    // be resolved from the collection even when UUID resolution is delayed.
+  }
+  const [documentName, id] = String(uuid).split(".");
+  if (documentName === "Actor" && id) return game.actors?.get(id) ?? globalThis.fromUuidSync?.(uuid) ?? null;
+  return globalThis.fromUuidSync?.(uuid) ?? null;
 }
 
 const OBJECT_ICONS = Object.freeze({
@@ -124,11 +143,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const objects = await Promise.all((this.board.objects ?? []).map(async object => {
       let image = object.visualConfig?.image ?? "";
-      if (object.objectType === "PLAYER_CHARACTER" && object.foundryUuid && isPlaceholderArtwork(image)) {
+      if (object.objectType === "PLAYER_CHARACTER" && object.foundryUuid) {
         try {
-          const document = await fromUuid(object.foundryUuid);
+          const document = await resolveFoundryDocument(object.foundryUuid);
           const resolvedArtwork = foundryArtwork(document);
-          if (resolvedArtwork) {
+          if (resolvedArtwork && !isPlaceholderArtwork(resolvedArtwork)) {
             object.visualConfig = { ...(object.visualConfig ?? {}), image: resolvedArtwork };
             image = resolvedArtwork;
           }
