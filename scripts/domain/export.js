@@ -104,7 +104,10 @@ export async function downloadSceneBoardPng(board, labels) {
   canvas.height = image.height;
   canvas.getContext("2d").drawImage(image, 0, 0);
   URL.revokeObjectURL(url);
-  canvas.toBlob(result => downloadBlob(result, "mel-storyboard-scenes.png", "image/png"));
+  const png = await new Promise((resolve, reject) => {
+    canvas.toBlob(result => result ? resolve(result) : reject(new Error("The PNG export could not be created.")), "image/png");
+  });
+  downloadBlob(png, "mel-storyboard-scenes.png", "image/png");
 }
 
 export function printSceneBoardAsPdf(board, labels) {

@@ -5,6 +5,7 @@ import { HistoryStack } from "../scripts/domain/history.js";
 import { assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
+import { SceneBoardStore } from "../scripts/domain/scene-board-store.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
 
 test("new scene boards contain only scene-oriented records", () => {
@@ -169,6 +170,47 @@ test("connections support display types, descriptions, and independent object as
   assert.match(svg, /stroke-dasharray="2 7"/);
   assert.equal((svg.match(/class="connection-arrow"/g) ?? []).length, 2);
   assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("JSON export and import preserve connection data and normalize legacy connections", async () => {
+  const board = createSceneBoard();
+  const firstScene = createScene(board, { title: "First" });
+  const secondScene = createScene(board, { title: "Second" });
+  const firstElement = createSceneElement(board, { sceneId: firstScene.id });
+  const secondElement = createSceneElement(board, { sceneId: secondScene.id });
+  const object = createBoardObject(board, { objectType: "INFORMATION", title: "Transition object" });
+  const connection = createConnection(board, firstElement.id, secondElement.id, "bilateral deactivated", "Both ways");
+  connection.description = "Connection description";
+  assignObjectToConnection(connection, object.id, "context", "Connection-only note");
+  const exported = JSON.parse(sceneBoardToJson(board));
+  assert.equal(exported.connections[0].connectionType, "bilateral deactivated");
+  assert.equal(exported.connections[0].description, "Connection description");
+  assert.equal(exported.connections[0].objectAssignments[0].objectId, object.id);
+
+  const stored = {};
+  const settings = {
+    get: () => board,
+    set: async (_moduleId, _key, value) => { stored.board = value; }
+  };
+  const previousGame = globalThis.game;
+  globalThis.game = { user: { isGM: true } };
+  try {
+    const imported = await new SceneBoardStore(settings).import(exported);
+    assert.equal(imported.connections[0].connectionType, "bilateral deactivated");
+    assert.equal(imported.connections[0].objectAssignments.length, 1);
+    const legacy = structuredClone(exported);
+    delete legacy.connections[0].description;
+    delete legacy.connections[0].objectAssignments;
+    legacy.connections[0].connectionType = "FLOW";
+    const normalizedLegacy = await new SceneBoardStore(settings).import(legacy);
+    assert.equal(normalizedLegacy.connections[0].connectionType, "unilateral");
+    assert.equal(normalizedLegacy.connections[0].description, "");
+    assert.deepEqual(normalizedLegacy.connections[0].objectAssignments, []);
+    await assert.rejects(() => new SceneBoardStore(settings).import({ schemaVersion: 999 }), /Unsupported scene board schema version/);
+  } finally {
+    if (previousGame === undefined) delete globalThis.game;
+    else globalThis.game = previousGame;
+  }
 });
 
 test("connections can be removed without removing their scenes", () => {

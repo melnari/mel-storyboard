@@ -2,7 +2,7 @@ import { MODULE_ID, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
 import { clone, createDefaultTemplate, createSceneBoard, normalizeConnectionType } from "./model.js";
 import { validateSceneBoard } from "./validation.js";
 
-function normalizeSceneBoard(stored) {
+function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
   if (!stored || typeof stored !== "object") return createSceneBoard();
   let board = clone(stored);
   if (board.schemaVersion === 2 && Array.isArray(board.scenes) && Array.isArray(board.elements)) {
@@ -10,7 +10,10 @@ function normalizeSceneBoard(stored) {
     board.scenes = board.scenes.map(scene => ({ ...scene, status: statusMap[scene.status] ?? scene.status, parentId: scene.parentId ?? null }));
     board.schemaVersion = 3;
   }
-  if (board.schemaVersion !== 3 && board.schemaVersion !== STORE_SCHEMA_VERSION) return createSceneBoard();
+  if (board.schemaVersion !== 3 && board.schemaVersion !== STORE_SCHEMA_VERSION) {
+    if (resetInvalid) return createSceneBoard();
+    throw new Error(`Unsupported scene board schema version: ${board.schemaVersion ?? "missing"}`);
+  }
   const defaultTemplate = createDefaultTemplate();
   board.templates = (Array.isArray(board.templates) && board.templates.length ? board.templates : [defaultTemplate]).map(template => ({
     ...template,
@@ -43,15 +46,15 @@ function normalizeSceneBoard(stored) {
       templateId: scene.templateId ?? template?.id ?? null,
       templateVersion: scene.templateVersion ?? template?.version ?? 1,
       fieldValues: scene.fieldValues ?? {},
-      actorAssignments: scene.actorAssignments ?? [],
-      objectAssignments: scene.objectAssignments ?? []
+      actorAssignments: Array.isArray(scene.actorAssignments) ? scene.actorAssignments : [],
+      objectAssignments: Array.isArray(scene.objectAssignments) ? scene.objectAssignments : []
     };
   });
-  board.connections = (board.connections ?? []).map(connection => ({
+  board.connections = (Array.isArray(board.connections) ? board.connections : []).map(connection => ({
     ...connection,
     connectionType: normalizeConnectionType(connection.connectionType),
     description: connection.description ?? "",
-    objectAssignments: connection.objectAssignments ?? []
+    objectAssignments: Array.isArray(connection.objectAssignments) ? connection.objectAssignments : []
   }));
   board.schemaVersion = STORE_SCHEMA_VERSION;
   return board;
@@ -95,7 +98,7 @@ export class SceneBoardStore {
 
   async import(board) {
     this.#assertGM();
-    const normalized = normalizeSceneBoard(board);
+    const normalized = normalizeSceneBoard(board, { resetInvalid: false });
     const result = validateSceneBoard(normalized);
     if (!result.valid) throw new Error(`Scene board validation failed: ${result.errors.join(" ")}`);
     return this.save(normalized);

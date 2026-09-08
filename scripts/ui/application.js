@@ -119,6 +119,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.selectedElementIds = [];
     this.history = new HistoryStack();
     this.drag = null;
+    this.connectionDrag = null;
     this.playerCharacterDrag = null;
     this.resize = null;
     this.canvasPan = null;
@@ -348,6 +349,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#bindFoundryLinks(this.element);
     this.element.querySelectorAll("[data-scene-element]").forEach(element => {
       element.addEventListener("pointerdown", event => this.#startDrag(event));
+      element.addEventListener("pointerdown", event => {
+        if (event.button === 1) this.#startConnectionDrag(event);
+      });
       element.addEventListener("click", async event => {
         event.stopPropagation();
         if (this.connectionSourceId && this.connectionSourceId !== element.dataset.elementId) {
@@ -411,6 +415,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#closeContextMenu();
     this.#finishCanvasPan();
     this.#finishPlayerCharacterDrag();
+    this.#finishConnectionDrag();
     this.#destroyConnectionDescriptionEditor();
     return super._onClose(options);
   }
@@ -592,6 +597,76 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     window.addEventListener("pointermove", this.canvasPan.move);
     window.addEventListener("pointerup", this.canvasPan.end, { once: true });
     window.addEventListener("pointercancel", this.canvasPan.end, { once: true });
+  }
+
+  #startConnectionDrag(event) {
+    if (event.button !== 1 || this.connectionSourceId || this.connectionDrag) return;
+    const sourceElementId = event.currentTarget?.dataset.elementId;
+    const source = this.board.elements.find(element => element.id === sourceElementId);
+    const svg = this.element.querySelector("[data-storyboard-canvas]");
+    if (!source || !svg) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const preview = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    preview.classList.add("mel-storyboard-connection-preview");
+    preview.setAttribute("x1", source.position.x + source.size.width / 2);
+    preview.setAttribute("y1", source.position.y + source.size.height / 2);
+    preview.setAttribute("x2", source.position.x + source.size.width / 2);
+    preview.setAttribute("y2", source.position.y + source.size.height / 2);
+    svg.append(preview);
+    this.connectionDrag = { sourceElementId, source, preview, targetElementId: null };
+    this.connectionDrag.move = moveEvent => this.#connectionDragMove(moveEvent);
+    this.connectionDrag.end = endEvent => this.#finishConnectionDrag(endEvent);
+    event.currentTarget.classList.add("is-connection-drag-source");
+    window.addEventListener("pointermove", this.connectionDrag.move);
+    window.addEventListener("pointerup", this.connectionDrag.end, { once: true });
+    window.addEventListener("pointercancel", this.connectionDrag.end, { once: true });
+  }
+
+  #connectionDragMove(event) {
+    if (!this.connectionDrag) return;
+    const svg = this.element.querySelector("[data-storyboard-canvas]");
+    if (!svg) return;
+    const point = this.#svgPoint(svg, event);
+    this.connectionDrag.preview.setAttribute("x2", point.x);
+    this.connectionDrag.preview.setAttribute("y2", point.y);
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
+    const targetElementId = target?.dataset.elementId && target.dataset.elementId !== this.connectionDrag.sourceElementId
+      ? target.dataset.elementId
+      : null;
+    this.connectionDrag.targetElementId = targetElementId;
+    this.element.querySelectorAll("[data-scene-element]").forEach(element => {
+      element.classList.toggle("is-connection-drop-target", element.dataset.elementId === targetElementId);
+    });
+  }
+
+  async #finishConnectionDrag(event = null) {
+    const drag = this.connectionDrag;
+    if (!drag) return;
+    window.removeEventListener("pointermove", drag.move);
+    window.removeEventListener("pointerup", drag.end);
+    window.removeEventListener("pointercancel", drag.end);
+    drag.preview?.remove();
+    this.element.querySelectorAll(".is-connection-drag-source, .is-connection-drop-target").forEach(element => {
+      element.classList.remove("is-connection-drag-source", "is-connection-drop-target");
+    });
+    this.connectionDrag = null;
+    const releaseTarget = event && document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
+    const releaseTargetId = releaseTarget?.dataset.elementId && releaseTarget.dataset.elementId !== drag.sourceElementId
+      ? releaseTarget.dataset.elementId
+      : drag.targetElementId;
+    if (!releaseTargetId) return;
+    try {
+      this.history.capture(this.board);
+      const connection = createConnection(this.board, drag.sourceElementId, releaseTargetId);
+      this.board = await this.store.save(this.board);
+      this.selectedElementIds = [];
+      this.selectedConnectionId = connection.id;
+      this.inspectorCollapsed = false;
+      await this.render({ force: true });
+    } catch (error) {
+      notifyError(error);
+    }
   }
 
   #canvasPanMove(event) {
@@ -1075,6 +1150,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     try {
       this.board = await this.store.import(sceneBoardFromJson(await file.text()));
       this.selectedElementIds = [];
+      this.selectedConnectionId = null;
+      this.connectionSourceId = null;
       await this.render({ force: true });
     } catch (error) { notifyError(error); }
     finally { event.currentTarget.value = ""; }

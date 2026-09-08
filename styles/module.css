@@ -846,6 +846,25 @@
   stroke-width: 3;
 }
 
+.mel-storyboard-element.is-connection-drag-source .mel-storyboard-element-frame {
+  stroke: #f6c453;
+  stroke-width: 3;
+}
+
+.mel-storyboard-element.is-connection-drop-target .mel-storyboard-element-frame {
+  stroke: #6ed6a0;
+  stroke-dasharray: 6 3;
+  stroke-width: 3;
+}
+
+.mel-storyboard-connection-preview {
+  stroke: #f6c453;
+  stroke-width: 3;
+  stroke-dasharray: 6 4;
+  fill: none;
+  pointer-events: none;
+}
+
 .mel-storyboard-connection {
   stroke: #9aa4b2;
   stroke-width: 3;
