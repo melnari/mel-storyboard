@@ -72,7 +72,7 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const descriptionLineHeight = 15;
   const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
   const statusY = displayIdY + 17;
-  const playerCharacterRowHeight = playerCharacterCount ? playerCharacterTokenSize + 12 : 0;
+  const playerCharacterRowHeight = playerCharacterCount ? playerCharacterTokenSize + 17 : 0;
   const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, statusY + 19 + playerCharacterRowHeight);
   const height = Math.max(Number(element.size?.height) || SCENE_ELEMENT_MIN_HEIGHT, minimumHeight);
   return {
@@ -92,7 +92,7 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     statusBadgeY: statusY - 14,
     statusBadgeWidth,
     playerCharacterTokenSize,
-    playerCharacterTokenY: height - playerCharacterTokenSize - 6,
+    playerCharacterTokenY: height - playerCharacterTokenSize - 17,
     resizeHandleX: width - 14,
     resizeHandleY: height - 14
   };

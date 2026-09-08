@@ -33,6 +33,19 @@ function createFoundryLinkHtml(uuid, label, classes = []) {
   return anchor.outerHTML;
 }
 
+function isPlaceholderArtwork(path) {
+  return !path || /(?:^|\/)mystery-man\.svg$/i.test(path);
+}
+
+function foundryArtwork(document) {
+  const candidates = [
+    document?.img,
+    document?.prototypeToken?.texture?.src,
+    document?.texture?.src
+  ];
+  return candidates.find(path => !isPlaceholderArtwork(path)) ?? candidates.find(Boolean) ?? "";
+}
+
 const OBJECT_ICONS = Object.freeze({
   PLAYER_CHARACTER: "fa-user",
   NPC: "fa-user-gear",
@@ -109,12 +122,27 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async _prepareContext() {
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
-    const objects = (this.board.objects ?? []).map(object => ({
-      ...object,
-      typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
-      icon: OBJECT_ICONS[object.objectType] ?? "fa-cube",
-      image: object.visualConfig?.image ?? "",
-      foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title, ["mel-storyboard-object-title-link"])
+    const objects = await Promise.all((this.board.objects ?? []).map(async object => {
+      let image = object.visualConfig?.image ?? "";
+      if (object.objectType === "PLAYER_CHARACTER" && object.foundryUuid && isPlaceholderArtwork(image)) {
+        try {
+          const document = await fromUuid(object.foundryUuid);
+          const resolvedArtwork = foundryArtwork(document);
+          if (resolvedArtwork) {
+            object.visualConfig = { ...(object.visualConfig ?? {}), image: resolvedArtwork };
+            image = resolvedArtwork;
+          }
+        } catch (error) {
+          console.warn(`[${MODULE_ID}] Could not resolve player character artwork`, error);
+        }
+      }
+      return {
+        ...object,
+        typeLabel: localize(`MEL_STORYBOARD.OBJECT_TYPES.${object.objectType}`),
+        icon: OBJECT_ICONS[object.objectType] ?? "fa-cube",
+        image,
+        foundryLinkHtml: createFoundryLinkHtml(object.foundryUuid, object.title, ["mel-storyboard-object-title-link"])
+      };
     }));
     const objectsById = new Map(objects.map(object => [object.id, object]));
     const elements = this.board.elements.map(element => {
@@ -794,7 +822,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       title: document.name ?? data.uuid,
       foundryUuid: data.uuid,
       foundryDocumentType: foundryType,
-      image: document.img ?? document.texture?.src ?? ""
+      image: foundryArtwork(document)
     });
     assignObjectToScene(scene, object.id);
     this.board = await this.store.save(this.board);

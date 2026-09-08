@@ -816,11 +816,11 @@
   fill: #20242c !important;
   stroke: #c7d2e0 !important;
   stroke-width: 1.5 !important;
-  pointer-events: none;
+  pointer-events: all;
 }
 
 .mel-storyboard-player-token image {
-  pointer-events: none;
+  pointer-events: all;
 }
 
 .mel-storyboard-player-token-label {
