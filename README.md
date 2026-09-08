@@ -1,36 +1,155 @@
-# Mel Storyboard
+# Mel-Storyboard
 
-Mel Storyboard is a Foundry VTT 14.x add-on module for the GM-focused visual planning and documentation of scenes and their directed flow.
+Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who plan branching adventures visually. It provides a Foundry-native scene board for arranging Scenes, documenting their content, and connecting them into a directed or bilateral flow.
 
-## Current status
+## Current version
 
-The project is in early development. Version `0.1.0` provides a Foundry-native scene board with scene creation, renaming, deletion, duplication, movement, directed connections, search, scene details, undo/redo, copy/paste, and JSON/SVG/PNG/PDF export.
+`0.0.6`
 
-The module deliberately has no Story or Storyline management. The active data model contains only scenes, scene board elements, directed connections, scene templates, and scene-related assignments.
+The current release focuses on the Scene board. Story, Storyline, project, map, and separate template-management features are not part of the active user interface.
 
 ## Requirements
 
-- Foundry Virtual Tabletop 14.x.
-- A GM user for scene board editing.
+- Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.360`.
+- A Game Master user for editing the board.
 
-The module is system-independent and uses Foundry users, world settings, and document permissions. It does not provide a separate login or external server.
+Mel-Storyboard is system-independent. It uses Foundry users, world settings, document permissions, and native Foundry document links. It does not require a separate account, login, server, or external application.
 
-The scene board can be opened from the Settings menu, the left-side Storyboard toggle, or `Ctrl+Alt+S`. Right-clicking a scene opens actions for renaming, duplicating, deleting, and starting a directed connection. During connection mode, click the target scene to define the direction.
+## Opening the Storyboard
+
+The Storyboard can be opened through:
+
+- the module entry in Foundry Game Settings;
+- the Storyboard icon in the Foundry Scene Controls;
+- the `Ctrl+Alt+S` keybinding.
+
+The application is a Foundry-native window and cannot be detached into a separate window.
+
+## Scene board
+
+The interface consists of three areas:
+
+- A collapsible navigation tree on the left. The root is named `Story`; Scenes are shown below it with their display ID and title.
+- A central canvas with a grid and Scene Cards.
+- A collapsible inspector on the right for Scene Details or Connection Details.
+
+Scene Cards display the title, description, display ID, and status. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
+
+Player Characters assigned to a Scene are shown as small artwork tokens at the bottom of the card. Hovering a token shows the Actor name. A Player Character token can be dragged to another Scene Card to move the assignment.
+
+## Scene actions
+
+- Create a Scene from the left navigation or the canvas context menu. New Scenes receive sequential names such as `Scene 1`, `Scene 2`, and so on.
+- Select a Scene to open its Scene Details in the right inspector.
+- Edit the title, status, and description in Scene Details and save the changes.
+- Double-click a Scene Card to open its focused Scene Details window with its note field.
+- Right-click a Scene Card to connect or delete it.
+- Duplicate Scenes as independent Scene and Scene Card records.
+- Move Scene Cards by dragging with the left mouse button.
+- Click the canvas background to clear the current selection.
+- Pan the canvas by dragging its background with the left mouse button.
+- Zoom with the `+` and `-` toolbar buttons or the mouse wheel.
+- Undo and redo changes from the toolbar or with the usual keyboard shortcuts.
+
+## Connections
+
+Connections can be created in two ways:
+
+1. Choose the connection action from a Scene context menu and select the target Scene.
+2. Press and hold the middle mouse button on a Scene Card, drag to another Scene Card, and release.
+
+Click a Connection to open Connection Details in the right inspector. The following fields and actions are available:
+
+- Connection Label;
+- Connection Type;
+- Rich Text Description using Foundry's editor;
+- Save button;
+- independent Object assignments through Drag & Drop.
+
+The available Connection Types are:
+
+- `unilateral` — one arrow in the source-to-target direction;
+- `unilateral deactivated` — one direction shown as a dotted connection;
+- `bilateral` — symmetrical arrows in both directions;
+- `bilateral deactivated` — symmetrical dotted connection with arrows in both directions.
+
+The Connection Details Object list supports the same Details, Note, and Delete actions as Scene Objects. Connection Objects are assigned directly to the Connection and do not need to be assigned to either Scene.
+
+Right-clicking a Connection provides the delete action. Connection Labels are edited in Connection Details rather than through the context menu.
+
+## Foundry Object links
+
+Foundry documents can be dragged onto a Scene Card or Connection. The module supports:
+
+- Actors, including Player Characters and NPCs;
+- Items;
+- Journals and Journal Pages;
+- Scenes;
+- Rollable Tables;
+- Macros;
+- Playlists.
+
+Assigned Objects show their title, artwork or icon, type, and optional note. The title links back to the corresponding Foundry document. Foundry Scenes are opened with their native `View` behavior for the GM.
+
+Object Details provide the document type, title, UUID, Foundry document type, and a Foundry-compatible Rich Text note editor. Notes are stored on the assignment, so a note can be maintained independently for each Scene or Connection assignment.
+
+## Import and export
+
+The `Import/Export` menu provides:
+
+- JSON import;
+- JSON export;
+- SVG export;
+- PNG export;
+- PDF export.
+
+JSON preserves the editable board data, including Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Connection Types, labels, descriptions, and linked Objects.
+
+SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, Connection labels, arrows, bilateral Connections, and dotted deactivated Connections.
+
+Imported boards are validated and normalized. Older Connections without the current Connection fields default to `unilateral`. Unsupported schema versions are rejected with an error instead of replacing the board with empty data.
+
+## Storage and permissions
+
+The board is stored in a Foundry world setting. Editing is restricted to the GM. Foundry document access remains subject to Foundry's own permissions and document availability.
+
+## Languages
+
+The module uses English (`en`) as its default and fallback language and includes:
+
+- German (`de`);
+- French (`fr`);
+- Spanish (`es`);
+- Dutch (`nl`).
+
+User-authored Scene, Connection, and Object content is not automatically translated.
+
+## Installation
+
+The module can be installed from its manifest URL:
+
+```text
+https://raw.githubusercontent.com/melnari/mel-storyboard/main/module.json
+```
+
+It can also be installed manually by placing the repository in:
+
+```text
+Data/modules/mel-storyboard/
+```
+
+Enable `Mel-Storyboard` in the Foundry module management screen and reload the world.
 
 ## Development
 
-The repository intentionally has no runtime dependencies. Run the checks with:
+The repository has no runtime package dependencies. Run the automated checks from the project directory:
 
 ```text
 npm test
 npm run check
 ```
 
-The module can be installed in a Foundry data directory by placing this repository in `Data/modules/mel-storyboard/`.
-
-## Languages
-
-The module ships English (`en`) as the default and fallback language, plus German, French, Spanish, and Dutch. User-authored scene content is never automatically translated.
+The checks cover domain behavior, import/export data handling, Connection geometry, JavaScript syntax, manifest paths, JSON files, and localization keys.
 
 ## License
 

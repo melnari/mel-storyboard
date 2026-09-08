@@ -18,7 +18,6 @@
   "readme": "https://github.com/melnari/mel-storyboard/blob/main/README.md",
   "license": "LICENSE",
   "bugs": "https://github.com/melnari/mel-storyboard/issues",
-  "changelog": "https://github.com/melnari/mel-storyboard/blob/main/CHANGELOG.md",
   "esmodules": [
     "scripts/main.js"
   ],

@@ -31,7 +31,6 @@ for (const file of [
   ...manifest.styles,
   ...manifest.languages.map(language => language.path),
   "README.md",
-  "CHANGELOG.md",
   "LICENSE"
 ]) {
   await access(join(root, file), constants.F_OK);
