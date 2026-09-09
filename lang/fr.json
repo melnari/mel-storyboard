@@ -164,6 +164,7 @@
       "ConfirmDeleteChapter": "Supprimer le chapitre \"{name}\" et toutes ses scènes et liaisons ?",
       "SelectConnectionTarget": "Sélectionnez la scène cible de cette relation.",
       "Copied": "Scène copiée."
+      ,"RemovedCrossChapterConnections": "{count} liaison(s) supprimée(s), car la scène a été déplacée vers un autre chapitre."
       ,"ActorUuidRequired": "Les objets Actor nécessitent un UUID Foundry."
       ,"FoundryObjectUnavailable": "L’objet Foundry lié n’est pas disponible."
       ,"TemplateInUse": "Ce modèle est encore utilisé par une scène."

@@ -164,6 +164,7 @@
       "ConfirmDeleteChapter": "Delete chapter \"{name}\" and all scenes and connections inside it?",
       "SelectConnectionTarget": "Select the target scene for this connection.",
       "Copied": "Scene copied."
+      ,"RemovedCrossChapterConnections": "{count} connection(s) removed because the scene moved to another chapter."
       ,"ActorUuidRequired": "Actor objects require a Foundry UUID."
       ,"FoundryObjectUnavailable": "The linked Foundry object is not available."
       ,"TemplateInUse": "This template is still used by a scene."

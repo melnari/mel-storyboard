@@ -164,6 +164,7 @@
       "ConfirmDeleteChapter": "Hoofdstuk \"{name}\" en alle scènes en verbindingen daarin verwijderen?",
       "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
       "Copied": "Scène gekopieerd."
+      ,"RemovedCrossChapterConnections": "{count} verbinding(en) verwijderd omdat de scène naar een ander hoofdstuk is verplaatst."
       ,"ActorUuidRequired": "Actor-objecten vereisen een Foundry-UUID."
       ,"FoundryObjectUnavailable": "Het gekoppelde Foundry-object is niet beschikbaar."
       ,"TemplateInUse": "Dit sjabloon wordt nog door een scène gebruikt."

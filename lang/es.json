@@ -164,6 +164,7 @@
       "ConfirmDeleteChapter": "¿Eliminar el capítulo \"{name}\" y todas sus escenas y conexiones?",
       "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
       "Copied": "Escena copiada."
+      ,"RemovedCrossChapterConnections": "Se eliminaron {count} conexión(es) porque la escena se movió a otro capítulo."
       ,"ActorUuidRequired": "Los objetos Actor requieren un UUID de Foundry."
       ,"FoundryObjectUnavailable": "El objeto de Foundry vinculado no está disponible."
       ,"TemplateInUse": "Esta plantilla todavía está siendo utilizada por una escena."

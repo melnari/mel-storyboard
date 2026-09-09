@@ -236,7 +236,7 @@
           <h3>{{labels.chapterNodes}}</h3>
           {{#if chapterNodes.length}}
             {{#each chapterNodes}}
-              <div class="mel-storyboard-chapter-node-row" data-node-id="{{id}}"><span class="mel-storyboard-tree-id">{{displayId}}</span><span>{{title}}</span><small>{{#if isEntry}}{{@root.labels.entry}}{{else}}{{@root.labels.exit}}{{/if}}</small></div>
+              <button type="button" class="mel-storyboard-chapter-node-row" data-action="jump-node" data-node-id="{{id}}"><span class="mel-storyboard-tree-id">{{displayId}}</span><span>{{title}}</span><small>{{#if isEntry}}{{@root.labels.entry}}{{else}}{{@root.labels.exit}}{{/if}}</small></button>
             {{/each}}
           {{else}}
             <p class="mel-storyboard-empty">{{labels.noChapterNodes}}</p>

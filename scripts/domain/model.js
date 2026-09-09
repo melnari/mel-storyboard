@@ -263,18 +263,62 @@ export function normalizeConnectionType(connectionType) {
   return CONNECTION_DISPLAY_TYPES.includes(connectionType) ? connectionType : CONNECTION_DISPLAY_TYPES[0];
 }
 
-export function createConnection(board, sourceElementId, targetElementId, connectionType = "unilateral", label = "") {
-  const sourceElement = board.elements.find(element => element.id === sourceElementId);
-  const targetElement = board.elements.find(element => element.id === targetElementId);
-  if (!sourceElement) throw new Error("The source scene does not exist.");
-  if (!targetElement) throw new Error("The target scene does not exist.");
-  if (sourceElementId === targetElementId) throw new Error("A scene cannot connect to itself.");
-  const sourceScene = board.scenes.find(scene => scene.id === sourceElement.sceneId);
-  const targetScene = board.scenes.find(scene => scene.id === targetElement.sceneId);
-  if (sourceScene?.chapterId !== targetScene?.chapterId) throw new Error("Scene connections must stay within one chapter.");
-  if (board.connections.some(connection => connection.sourceElementId === sourceElementId && connection.targetElementId === targetElementId)) throw new Error("This scene connection already exists.");
+function chapterNodeRecord(board, nodeId) {
+  for (const chapter of board.chapters ?? []) {
+    const node = (chapter.nodes ?? []).find(candidate => candidate.id === nodeId);
+    if (node) return { ...node, chapterId: chapter.id };
+  }
+  return null;
+}
+
+function connectionEndpoint(board, id, type = null) {
+  if (type !== "CHAPTER_NODE") {
+    const element = board.elements.find(candidate => candidate.id === id);
+    if (element) {
+      const scene = board.scenes.find(candidate => candidate.id === element.sceneId);
+      return { id, type: "SCENE", chapterId: scene?.chapterId ?? null, element, scene };
+    }
+  }
+  if (type !== "SCENE") {
+    const node = chapterNodeRecord(board, id);
+    if (node) return { id, type: "CHAPTER_NODE", chapterId: node.chapterId, node };
+  }
+  return null;
+}
+
+function connectionIsAllowed(source, target) {
+  if (!source || !target || source.chapterId !== target.chapterId) return false;
+  if (source.type === "SCENE" && target.type === "SCENE") return true;
+  return source.type === "CHAPTER_NODE" && source.node.nodeType === "ENTRY" && target.type === "SCENE"
+    || source.type === "SCENE" && target.type === "CHAPTER_NODE" && target.node.nodeType === "EXIT";
+}
+
+export function createConnection(board, sourceId, targetId, connectionType = "unilateral", label = "", sourceType = null, targetType = null) {
+  const source = connectionEndpoint(board, sourceId, sourceType);
+  const target = connectionEndpoint(board, targetId, targetType);
+  if (!source) throw new Error("The source scene or chapter node does not exist.");
+  if (!target) throw new Error("The target scene or chapter node does not exist.");
+  if (sourceId === targetId && source.type === target.type) throw new Error("An endpoint cannot connect to itself.");
+  if (!connectionIsAllowed(source, target)) throw new Error("Connections must stay within one chapter and use Entry → Scene, Scene → Exit, or Scene → Scene endpoints.");
+  const duplicate = board.connections.some(connection => (connection.sourceType ?? "SCENE") === source.type && (connection.targetType ?? "SCENE") === target.type && (connection.sourceElementId ?? connection.sourceNodeId) === sourceId && (connection.targetElementId ?? connection.targetNodeId) === targetId);
+  if (duplicate) throw new Error("This connection already exists.");
   const now = timestamp();
-  const connection = { id: uuid(), sourceElementId, targetElementId, connectionType: normalizeConnectionType(connectionType), label: String(label ?? "").trim(), description: "", objectAssignments: [], visualConfig: {}, createdAt: now, updatedAt: now };
+  const connection = {
+    id: uuid(),
+    sourceElementId: source.type === "SCENE" ? sourceId : null,
+    targetElementId: target.type === "SCENE" ? targetId : null,
+    sourceNodeId: source.type === "CHAPTER_NODE" ? sourceId : null,
+    targetNodeId: target.type === "CHAPTER_NODE" ? targetId : null,
+    sourceType: source.type,
+    targetType: target.type,
+    connectionType: normalizeConnectionType(connectionType),
+    label: String(label ?? "").trim(),
+    description: "",
+    objectAssignments: [],
+    visualConfig: {},
+    createdAt: now,
+    updatedAt: now
+  };
   board.connections.push(connection);
   board.updatedAt = now;
   return connection;
@@ -321,6 +365,7 @@ export function removeChapterNode(board, nodeId) {
   }
   if (!removed) throw new Error("The chapter node does not exist.");
   board.chapterConnections = (board.chapterConnections ?? []).filter(connection => connection.sourceNodeId !== nodeId && connection.targetNodeId !== nodeId);
+  board.connections = (board.connections ?? []).filter(connection => connection.sourceNodeId !== nodeId && connection.targetNodeId !== nodeId);
   board.updatedAt = timestamp();
 }
 
@@ -353,6 +398,14 @@ export function moveSceneToChapter(board, sceneId, targetChapterId, targetIndex 
   if (!scene || !targetChapter) throw new Error("The scene or target chapter does not exist.");
   scene.chapterId = targetChapter.id;
   scene.updatedAt = timestamp();
+  const removedConnections = [];
+  board.connections = board.connections.filter(connection => {
+    const source = connectionEndpoint(board, connection.sourceElementId ?? connection.sourceNodeId, connection.sourceType ?? (connection.sourceNodeId ? "CHAPTER_NODE" : "SCENE"));
+    const target = connectionEndpoint(board, connection.targetElementId ?? connection.targetNodeId, connection.targetType ?? (connection.targetNodeId ? "CHAPTER_NODE" : "SCENE"));
+    const keep = !source || !target || source.chapterId === target.chapterId;
+    if (!keep) removedConnections.push(connection);
+    return keep;
+  });
   const targetSceneIds = new Set(board.scenes.filter(candidate => candidate.chapterId === targetChapter.id && candidate.id !== scene.id).map(candidate => candidate.id));
   const orderedScenes = board.scenes.filter(candidate => targetSceneIds.has(candidate.id));
   const index = targetIndex === null ? orderedScenes.length : Math.max(0, Math.min(Number(targetIndex), orderedScenes.length));
@@ -363,7 +416,7 @@ export function moveSceneToChapter(board, sceneId, targetChapterId, targetIndex 
     return candidate;
   });
   board.updatedAt = timestamp();
-  return scene;
+  return { scene, removedConnections };
 }
 
 export function reorderScenes(board, chapterId, orderedSceneIds) {
@@ -390,11 +443,11 @@ export function removeChapter(board, chapterId) {
   if (!chapter) throw new Error("The chapter does not exist.");
   const sceneIds = new Set(board.scenes.filter(scene => scene.chapterId === chapterId).map(scene => scene.id));
   const elementIds = new Set(board.elements.filter(element => sceneIds.has(element.sceneId)).map(element => element.id));
-  board.connections = board.connections.filter(connection => !elementIds.has(connection.sourceElementId) && !elementIds.has(connection.targetElementId));
+  const nodeIds = new Set(chapter.nodes?.map(node => node.id) ?? []);
+  board.connections = board.connections.filter(connection => !elementIds.has(connection.sourceElementId) && !elementIds.has(connection.targetElementId) && !nodeIds.has(connection.sourceNodeId) && !nodeIds.has(connection.targetNodeId));
   board.elements = board.elements.filter(element => !elementIds.has(element.id));
   board.scenes = board.scenes.filter(scene => !sceneIds.has(scene.id));
   board.chapters = board.chapters.filter(candidate => candidate.id !== chapterId);
-  const nodeIds = new Set(chapter.nodes?.map(node => node.id) ?? []);
   board.chapterConnections = (board.chapterConnections ?? []).filter(connection => !nodeIds.has(connection.sourceNodeId) && !nodeIds.has(connection.targetNodeId));
   board.updatedAt = timestamp();
 }

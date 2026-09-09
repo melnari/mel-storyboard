@@ -486,6 +486,11 @@
 }
 
 .mel-storyboard-chapter-node-row {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border: 0;
   display: grid;
   grid-template-columns: 3.5rem minmax(0, 1fr) auto;
   align-items: center;
@@ -493,6 +498,38 @@
   padding: .35rem .45rem;
   border-radius: 3px;
   background: rgba(49, 56, 70, .5);
+  cursor: pointer;
+}
+
+.mel-storyboard-chapter-node-row:hover,
+.mel-storyboard-chapter-node-row:focus-visible {
+  outline: 1px solid #f6c453;
+  background: rgba(246, 196, 83, .12);
+}
+
+.mel-storyboard-chapter-node-canvas {
+  cursor: grab;
+}
+
+.mel-storyboard-chapter-node-canvas.is-dragging {
+  cursor: grabbing;
+  opacity: .7;
+}
+
+.mel-storyboard-chapter-node-canvas.is-connection-drag-source .mel-storyboard-chapter-node-circle {
+  stroke: #6ed6a0;
+  stroke-width: 4;
+}
+
+.mel-storyboard-chapter-node-canvas.is-connection-drop-target .mel-storyboard-chapter-node-circle {
+  stroke: #6ed6a0;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 4px #6ed6a0);
+}
+
+.mel-storyboard-chapter-node-canvas.is-focused .mel-storyboard-chapter-node-circle {
+  stroke-width: 4;
+  filter: drop-shadow(0 0 5px #f6c453);
 }
 
 .mel-storyboard-chapter-node-row small {

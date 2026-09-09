@@ -71,12 +71,30 @@ export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
   });
   board.connections = (Array.isArray(board.connections) ? board.connections : []).map(connection => ({
     ...connection,
+    sourceType: connection.sourceType ?? (connection.sourceNodeId ? "CHAPTER_NODE" : "SCENE"),
+    targetType: connection.targetType ?? (connection.targetNodeId ? "CHAPTER_NODE" : "SCENE"),
     connectionType: normalizeConnectionType(connection.connectionType),
     description: connection.description ?? "",
     objectAssignments: Array.isArray(connection.objectAssignments) ? connection.objectAssignments : []
   }));
   const sceneChapterByElementId = new Map(board.elements.map(element => [element.id, board.scenes.find(scene => scene.id === element.sceneId)?.chapterId]));
-  board.connections = board.connections.filter(connection => sceneChapterByElementId.get(connection.sourceElementId) === sceneChapterByElementId.get(connection.targetElementId));
+  const nodeById = new Map(board.chapters.flatMap(chapter => chapter.nodes.map(node => [node.id, { node, chapterId: chapter.id }])));
+  const connectionEndpoint = (connection, side) => {
+    const type = connection[`${side}Type`];
+    const id = type === "CHAPTER_NODE" ? connection[`${side}NodeId`] : connection[`${side}ElementId`];
+    if (!id) return null;
+    return type === "CHAPTER_NODE" ? nodeById.get(id) : { chapterId: sceneChapterByElementId.get(id), node: null };
+  };
+  board.connections = board.connections.filter(connection => {
+    const source = connectionEndpoint(connection, "source");
+    const target = connectionEndpoint(connection, "target");
+    if (!source || !target || source.chapterId !== target.chapterId) return false;
+    const sourceIsScene = connection.sourceType === "SCENE";
+    const targetIsScene = connection.targetType === "SCENE";
+    return sourceIsScene && targetIsScene
+      || !sourceIsScene && source.node?.nodeType === "ENTRY" && targetIsScene
+      || sourceIsScene && !targetIsScene && target.node?.nodeType === "EXIT";
+  });
   const nodeIds = new Set(board.chapters.flatMap(chapter => chapter.nodes.map(node => node.id)));
   board.chapterConnections = (Array.isArray(board.chapterConnections) ? board.chapterConnections : []).filter(connection => nodeIds.has(connection.sourceNodeId) && nodeIds.has(connection.targetNodeId)).map(connection => ({
     ...connection,

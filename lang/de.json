@@ -164,6 +164,7 @@
       "ConfirmDeleteChapter": "Kapitel \"{name}\" mit allen enthaltenen Szenen und Verbindungen löschen?",
       "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.",
       "Copied": "Szene kopiert."
+      ,"RemovedCrossChapterConnections": "{count} Verbindung(en) wurden entfernt, weil die Szene in ein anderes Kapitel verschoben wurde."
       ,"ActorUuidRequired": "Für Actor-Objekte ist eine Foundry-UUID erforderlich."
       ,"FoundryObjectUnavailable": "Das verknüpfte Foundry-Objekt ist nicht verfügbar."
       ,"TemplateInUse": "Diese Vorlage wird noch von einer Szene verwendet."

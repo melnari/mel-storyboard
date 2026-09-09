@@ -1,5 +1,5 @@
 import { MODULE_ID, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
-import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, reorderScenes, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
+import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
 import { connectionGeometry } from "../domain/geometry.js";
@@ -124,6 +124,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.activeChapterId = this.board.chapters?.[0]?.id ?? null;
     this.expandedChapterIds = new Set(this.activeChapterId ? [this.activeChapterId] : []);
     this.connectionSourceId = null;
+    this.connectionSourceType = null;
     this.selectedConnectionId = null;
     this.connectionDescriptionEditor = null;
     this.connectionDescriptionEditorShell = null;
@@ -203,14 +204,27 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         isSelected: this.selectedElementIds.includes(element.id)
       };
     });
-    const byId = new Map(elements.map(element => [element.id, element]));
+    const chapterNodes = (activeChapter?.nodes ?? []).map(node => ({ ...node, isEntry: node.nodeType === "ENTRY", isExit: node.nodeType === "EXIT" }));
+    const nodeById = new Map(chapterNodes.map(node => [node.id, node]));
+    const geometryById = new Map(elements.map(element => [element.id, element]));
+    for (const node of chapterNodes) geometryById.set(node.id, { ...node, position: { x: node.position.x - 18, y: node.position.y - 18 }, size: { width: 36, height: 36 } });
+    const endpoint = (connection, side) => {
+      const type = connection[`${side}Type`] ?? (connection[`${side}NodeId`] ? "CHAPTER_NODE" : "SCENE");
+      const id = type === "CHAPTER_NODE" ? connection[`${side}NodeId`] : connection[`${side}ElementId`];
+      return { id, type, element: geometryById.get(id) };
+    };
     const connections = this.board.connections.filter(connection => {
-      const source = this.board.elements.find(element => element.id === connection.sourceElementId);
-      const target = this.board.elements.find(element => element.id === connection.targetElementId);
-      return source && target && visibleSceneIds.has(source.sceneId) && visibleSceneIds.has(target.sceneId);
+      const source = endpoint(connection, "source");
+      const target = endpoint(connection, "target");
+      if (!source.element || !target.element) return false;
+      const sourceVisible = source.type === "CHAPTER_NODE" ? nodeById.has(source.id) : visibleSceneIds.has(source.element.sceneId);
+      const targetVisible = target.type === "CHAPTER_NODE" ? nodeById.has(target.id) : visibleSceneIds.has(target.element.sceneId);
+      return sourceVisible && targetVisible;
     }).map(connection => {
-      const sourceElement = byId.get(connection.sourceElementId);
-      const targetElement = byId.get(connection.targetElementId);
+      const source = endpoint(connection, "source");
+      const target = endpoint(connection, "target");
+      const sourceElement = source.element;
+      const targetElement = target.element;
       const connectionType = normalizeConnectionType(connection.connectionType);
       const bilateral = connectionType.startsWith("bilateral");
       const geometry = sourceElement && targetElement
@@ -244,15 +258,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const selectedScene = selectedSceneRecord ? {
       ...selectedSceneRecord,
       statusLabel: localize(`MEL_STORYBOARD.STATUS.${selectedSceneRecord.status}`),
-      incomingCount: this.board.connections.filter(connection => connection.targetElementId === selectedElement.id).length,
-      outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement.id).length
+      incomingCount: this.board.connections.filter(connection => connection.targetElementId === selectedElement?.id).length,
+      outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement?.id).length
     } : null;
     const selectedConnectionRecord = this.board.connections.find(connection => connection.id === this.selectedConnectionId);
     const selectedConnection = selectedConnectionRecord ? {
       ...selectedConnectionRecord,
       connectionType: normalizeConnectionType(selectedConnectionRecord.connectionType),
-      sourceTitle: scenesById.get(this.board.elements.find(element => element.id === selectedConnectionRecord.sourceElementId)?.sceneId)?.title ?? "",
-      targetTitle: scenesById.get(this.board.elements.find(element => element.id === selectedConnectionRecord.targetElementId)?.sceneId)?.title ?? ""
+      sourceTitle: this.#connectionEndpointTitle(selectedConnectionRecord, "source", scenesById),
+      targetTitle: this.#connectionEndpointTitle(selectedConnectionRecord, "target", scenesById)
     } : null;
     const connectionTypeOptions = selectedConnection ? [
       { value: "unilateral", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL"), selected: selectedConnection.connectionType === "unilateral" },
@@ -278,9 +292,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       statusLabel: localize(`MEL_STORYBOARD.STATUS.${activeChapter.status}`),
       statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[activeChapter.status] ?? STATUS_COLOR_CLASSES.OFFEN : ""
     } : null;
-    const chapterNodes = (activeChapter?.nodes ?? []).map(node => ({ ...node, isEntry: node.nodeType === "ENTRY", isExit: node.nodeType === "EXIT" }));
-    const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80));
-    const maxY = Math.max(800, ...elements.map(element => element.position.y + element.size.height + 80));
+    const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80), ...chapterNodes.map(node => node.position.x + 100));
+    const maxY = Math.max(800, ...elements.map(element => element.position.y + element.size.height + 80), ...chapterNodes.map(node => node.position.y + 100));
     const chapterNodeById = new Map((this.board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => [node.id, { ...node, chapterId: chapter.id }])));
     const chapterConnectionVisuals = (this.board.chapterConnections ?? []).flatMap(connection => {
       const source = chapterNodeById.get(connection.sourceNodeId);
@@ -404,14 +417,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#bindFoundryLinks(this.element);
     this.#bindChapterTreeDragDrop();
     this.element.querySelectorAll("[data-scene-element]").forEach(element => {
-      element.addEventListener("pointerdown", event => this.#startDrag(event));
+      element.addEventListener("pointerdown", event => this.#startSceneDrag(event));
       element.addEventListener("pointerdown", event => {
         if (event.button === 1) this.#startConnectionDrag(event);
       });
       element.addEventListener("click", async event => {
         event.stopPropagation();
         if (this.connectionSourceId && this.connectionSourceId !== element.dataset.elementId) {
-          await this.#connectTo(element.dataset.elementId);
+          await this.#connectTo(element.dataset.elementId, "SCENE");
           return;
         }
         this.#selectElement(element.dataset.elementId, event.ctrlKey || event.metaKey);
@@ -420,6 +433,24 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         event.preventDefault();
         event.stopPropagation();
         if (!this.connectionSourceId) await this.#showSceneDetails(element.dataset.elementId);
+      });
+    });
+    this.element.querySelectorAll("[data-chapter-node]").forEach(node => {
+      node.addEventListener("pointerdown", event => {
+        if (event.button === 0) this.#startChapterNodeDrag(event);
+        if (event.button === 1) this.#startConnectionDrag(event);
+      });
+      node.addEventListener("click", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (this.connectionSourceId && this.connectionSourceId !== node.dataset.nodeId) {
+          await this.#connectTo(node.dataset.nodeId, "CHAPTER_NODE");
+        }
+      });
+      node.addEventListener("dblclick", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!this.connectionSourceId) await this.#jumpToLinkedNode(node.dataset.nodeId);
       });
     });
     this.#bindPlayerCharacterTokens();
@@ -479,6 +510,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#finishCanvasPan();
     this.#finishPlayerCharacterDrag();
     this.#finishConnectionDrag();
+    this.#finishChapterNodeDrag();
     this.#destroyConnectionDescriptionEditor();
     this.#destroySceneDescriptionEditor();
     this.#destroyChapterDescriptionEditor();
@@ -554,19 +586,25 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       const sourceIndex = targetScenes.indexOf(payload.id);
       if (sourceIndex >= 0) targetScenes.splice(sourceIndex, 1);
       targetScenes.splice(Math.max(0, targetScenes.indexOf(targetScene.id)), 0, payload.id);
-      moveSceneToChapter(this.board, payload.id, targetScene.chapterId, targetScenes.indexOf(payload.id));
-      const chapterSceneIds = this.board.scenes.filter(scene => scene.chapterId === targetScene.chapterId).map(scene => scene.id);
-      reorderScenes(this.board, targetScene.chapterId, [...targetScenes, ...chapterSceneIds.filter(id => !targetScenes.includes(id))]);
+      const moveResult = moveSceneToChapter(this.board, payload.id, targetScene.chapterId, targetScenes.indexOf(payload.id));
+      this.#notifyRemovedChapterConnections(moveResult.removedConnections);
     } else if (payload.type === "scene" && target.dataset.chapterId) {
       const targetChapter = this.board.chapters.find(chapter => chapter.id === target.dataset.chapterId);
       if (!targetChapter) return;
       this.history.capture(this.board);
-      moveSceneToChapter(this.board, payload.id, targetChapter.id);
+      const moveResult = moveSceneToChapter(this.board, payload.id, targetChapter.id);
+      this.#notifyRemovedChapterConnections(moveResult.removedConnections);
       this.activeChapterId = targetChapter.id;
       this.expandedChapterIds.add(targetChapter.id);
     } else return;
     this.board = await this.store.save(this.board);
     await this.render({ force: true });
+  }
+
+  #notifyRemovedChapterConnections(connections = []) {
+    if (!connections.length) return;
+    const message = localize("MEL_STORYBOARD.NOTIFICATIONS.RemovedCrossChapterConnections").replace("{count}", String(connections.length));
+    ui.notifications.warn(message);
   }
 
   async #openFoundryDocument(event) {
@@ -612,6 +650,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.selectedConnectionId = connectionId;
     this.selectedElementIds = [];
     this.connectionSourceId = null;
+    this.connectionSourceType = null;
     this.inspectorCollapsed = false;
     this.render({ force: true });
   }
@@ -886,20 +925,24 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #startConnectionDrag(event) {
     if (event.button !== 1 || this.connectionSourceId || this.connectionDrag) return;
-    const sourceElementId = event.currentTarget?.dataset.elementId;
-    const source = this.board.elements.find(element => element.id === sourceElementId);
+    const sourceType = event.currentTarget?.matches?.("[data-chapter-node]") ? "CHAPTER_NODE" : "SCENE";
+    const sourceId = sourceType === "CHAPTER_NODE" ? event.currentTarget?.dataset.nodeId : event.currentTarget?.dataset.elementId;
+    const source = sourceType === "CHAPTER_NODE"
+      ? this.board.chapters.flatMap(chapter => chapter.nodes ?? []).find(node => node.id === sourceId)
+      : this.board.elements.find(element => element.id === sourceId);
     const svg = this.element.querySelector("[data-storyboard-canvas]");
     if (!source || !svg) return;
     event.preventDefault();
     event.stopPropagation();
     const preview = document.createElementNS("http://www.w3.org/2000/svg", "line");
     preview.classList.add("mel-storyboard-connection-preview");
-    preview.setAttribute("x1", source.position.x + source.size.width / 2);
-    preview.setAttribute("y1", source.position.y + source.size.height / 2);
-    preview.setAttribute("x2", source.position.x + source.size.width / 2);
-    preview.setAttribute("y2", source.position.y + source.size.height / 2);
+    const center = sourceType === "CHAPTER_NODE" ? source.position : { x: source.position.x + source.size.width / 2, y: source.position.y + source.size.height / 2 };
+    preview.setAttribute("x1", center.x);
+    preview.setAttribute("y1", center.y);
+    preview.setAttribute("x2", center.x);
+    preview.setAttribute("y2", center.y);
     svg.append(preview);
-    this.connectionDrag = { sourceElementId, source, preview, targetElementId: null };
+    this.connectionDrag = { sourceId, sourceType, source, preview, target: null };
     this.connectionDrag.move = moveEvent => this.#connectionDragMove(moveEvent);
     this.connectionDrag.end = endEvent => this.#finishConnectionDrag(endEvent);
     event.currentTarget.classList.add("is-connection-drag-source");
@@ -915,13 +958,17 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const point = this.#svgPoint(svg, event);
     this.connectionDrag.preview.setAttribute("x2", point.x);
     this.connectionDrag.preview.setAttribute("y2", point.y);
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
-    const targetElementId = target?.dataset.elementId && target.dataset.elementId !== this.connectionDrag.sourceElementId
-      ? target.dataset.elementId
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element], [data-chapter-node]");
+    const targetType = target?.matches?.("[data-chapter-node]") ? "CHAPTER_NODE" : "SCENE";
+    const targetId = targetType === "CHAPTER_NODE" ? target?.dataset.nodeId : target?.dataset.elementId;
+    const validTargetId = targetId && !(targetType === this.connectionDrag.sourceType && targetId === this.connectionDrag.sourceId)
+      ? targetId
       : null;
-    this.connectionDrag.targetElementId = targetElementId;
-    this.element.querySelectorAll("[data-scene-element]").forEach(element => {
-      element.classList.toggle("is-connection-drop-target", element.dataset.elementId === targetElementId);
+    this.connectionDrag.target = validTargetId ? { id: validTargetId, type: targetType } : null;
+    this.element.querySelectorAll("[data-scene-element], [data-chapter-node]").forEach(element => {
+      const id = element.matches("[data-chapter-node]") ? element.dataset.nodeId : element.dataset.elementId;
+      const type = element.matches("[data-chapter-node]") ? "CHAPTER_NODE" : "SCENE";
+      element.classList.toggle("is-connection-drop-target", id === validTargetId && type === targetType);
     });
   }
 
@@ -936,14 +983,16 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       element.classList.remove("is-connection-drag-source", "is-connection-drop-target");
     });
     this.connectionDrag = null;
-    const releaseTarget = event && document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
-    const releaseTargetId = releaseTarget?.dataset.elementId && releaseTarget.dataset.elementId !== drag.sourceElementId
-      ? releaseTarget.dataset.elementId
-      : drag.targetElementId;
+    const releaseTarget = event && document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element], [data-chapter-node]");
+    const releaseTargetType = releaseTarget?.matches?.("[data-chapter-node]") ? "CHAPTER_NODE" : "SCENE";
+    const releaseTargetRawId = releaseTargetType === "CHAPTER_NODE" ? releaseTarget?.dataset.nodeId : releaseTarget?.dataset.elementId;
+    const releaseTargetId = releaseTargetRawId && !(releaseTargetType === drag.sourceType && releaseTargetRawId === drag.sourceId)
+      ? { id: releaseTargetRawId, type: releaseTargetType }
+      : drag.target;
     if (!releaseTargetId) return;
     try {
       this.history.capture(this.board);
-      const connection = createConnection(this.board, drag.sourceElementId, releaseTargetId);
+      const connection = createConnection(this.board, drag.sourceId, releaseTargetId.id, "unilateral", "", drag.sourceType, releaseTargetId.type);
       this.board = await this.store.save(this.board);
       this.selectedElementIds = [];
       this.selectedConnectionId = connection.id;
@@ -1038,16 +1087,17 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteNode"), icon: "×", action: () => this.#deleteChapterNode(nodeId) }
     ] : chapterMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.ChapterDetails"), icon: "ⓘ", action: () => this.#selectChapter(chapterId) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "+", action: async () => { this.activeChapterId = chapterId; await this.#createScene(); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.NewEntryNode"), icon: "○", action: () => this.#createChapterNode(chapterId, "ENTRY") },
       { label: localize("MEL_STORYBOARD.ACTIONS.NewExitNode"), icon: "○", action: () => this.#createChapterNode(chapterId, "EXIT") },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteChapter"), icon: "×", action: () => this.#deleteChapter(chapterId) }
     ] : isStoryRoot ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.NewChapter"), icon: "+", action: () => this.#createChapter() }
     ] : sceneMenu ? [
-      { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
+      { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; this.connectionSourceType = "SCENE"; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "×", action: async () => { this.selectedElementIds = [elementId]; await this.#deleteSelected(); } }
     ] : [
-      { label: localize("MEL_STORYBOARD.ACTIONS.NewChapter"), icon: "+", action: () => this.#createChapter() }
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "+", action: () => this.#createScene(event) }
     ];
     for (const entry of entries) {
       const item = document.createElement("button");
@@ -1133,6 +1183,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.selectedElementIds = [];
     this.selectedConnectionId = null;
     this.connectionSourceId = null;
+    this.connectionSourceType = null;
     this.inspectorCollapsed = false;
     this.render({ force: true });
   }
@@ -1240,14 +1291,55 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
-  async #connectTo(targetId) {
+  async #connectTo(targetId, targetType = "SCENE") {
     if (!this.connectionSourceId || this.connectionSourceId === targetId) return;
-    this.history.capture(this.board);
-    createConnection(this.board, this.connectionSourceId, targetId);
-    this.board = await this.store.save(this.board);
-    this.selectedElementIds = [this.connectionSourceId, targetId];
+    try {
+      const connection = createConnection(this.board, this.connectionSourceId, targetId, "unilateral", "", this.connectionSourceType ?? "SCENE", targetType);
+      this.history.capture(this.board);
+      this.board = await this.store.save(this.board);
+      this.selectedElementIds = [];
+      this.selectedConnectionId = connection.id;
+      this.connectionSourceId = null;
+      this.connectionSourceType = null;
+      await this.render({ force: true });
+    } catch (error) {
+      notifyError(error);
+    }
+  }
+
+  #connectionEndpointTitle(connection, side, scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]))) {
+    const type = connection[`${side}Type`] ?? (connection[`${side}NodeId`] ? "CHAPTER_NODE" : "SCENE");
+    if (type === "CHAPTER_NODE") {
+      const nodeId = connection[`${side}NodeId`];
+      const node = this.board.chapters.flatMap(chapter => chapter.nodes ?? []).find(candidate => candidate.id === nodeId);
+      return node?.title ?? nodeId ?? "";
+    }
+    const element = this.board.elements.find(candidate => candidate.id === connection[`${side}ElementId`]);
+    return scenesById.get(element?.sceneId)?.title ?? "";
+  }
+
+  async #jumpToLinkedNode(nodeId) {
+    const link = (this.board.chapterConnections ?? []).find(connection => connection.sourceNodeId === nodeId || connection.targetNodeId === nodeId);
+    if (!link) return;
+    const targetNodeId = link.sourceNodeId === nodeId ? link.targetNodeId : link.sourceNodeId;
+    const targetChapter = this.board.chapters.find(chapter => (chapter.nodes ?? []).some(node => node.id === targetNodeId));
+    if (!targetChapter) return;
+    this.activeChapterId = targetChapter.id;
+    this.expandedChapterIds.add(targetChapter.id);
+    this.selectedElementIds = [];
+    this.selectedConnectionId = null;
     this.connectionSourceId = null;
+    this.connectionSourceType = null;
+    this.inspectorCollapsed = false;
     await this.render({ force: true });
+    const focus = () => {
+      const target = this.element.querySelector(`[data-chapter-node][data-node-id="${targetNodeId}"]`);
+      target?.scrollIntoView?.({ block: "center", inline: "center" });
+      target?.classList.add("is-focused");
+      globalThis.setTimeout?.(() => target?.classList.remove("is-focused"), 700);
+    };
+    if (globalThis.requestAnimationFrame) requestAnimationFrame(focus);
+    else focus();
   }
 
   #onKeyDown(event) {
@@ -1558,6 +1650,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       } else if (action === "toggle-chapter") {
         this.#toggleChapter(event.currentTarget.dataset.chapterId);
         return;
+      } else if (action === "jump-node") {
+        await this.#jumpToLinkedNode(event.currentTarget.dataset.nodeId);
+        return;
       } else if (action === "save-scene") {
         await this.#saveSceneDetails();
         return;
@@ -1637,6 +1732,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
           this.selectedElementIds = [];
           this.selectedConnectionId = null;
           this.connectionSourceId = null;
+          this.connectionSourceType = null;
           this.activeChapterId = target === "replace" ? this.board.chapters[0]?.id : (target === "existing" ? chapterId : this.board.chapters.at(-1)?.id);
           this.board = await this.store.save(this.board);
           await this.render({ force: true });
@@ -1687,7 +1783,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       elementMap.set(source.id, element.id);
       return element;
     });
-    const connections = (imported.connections ?? []).map(source => ({ ...clone(source), id: uuid(), sourceElementId: elementMap.get(source.sourceElementId), targetElementId: elementMap.get(source.targetElementId), objectAssignments: (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId })) })).filter(connection => connection.sourceElementId && connection.targetElementId);
+    const connections = (imported.connections ?? []).map(source => {
+      const sourceType = source.sourceType ?? (source.sourceNodeId ? "CHAPTER_NODE" : "SCENE");
+      const targetType = source.targetType ?? (source.targetNodeId ? "CHAPTER_NODE" : "SCENE");
+      const sourceId = sourceType === "CHAPTER_NODE" ? nodeMap.get(source.sourceNodeId) : elementMap.get(source.sourceElementId);
+      const targetId = targetType === "CHAPTER_NODE" ? nodeMap.get(source.targetNodeId) : elementMap.get(source.targetElementId);
+      return { ...clone(source), id: uuid(), sourceType, targetType, sourceElementId: sourceType === "SCENE" ? sourceId : null, targetElementId: targetType === "SCENE" ? targetId : null, sourceNodeId: sourceType === "CHAPTER_NODE" ? sourceId : null, targetNodeId: targetType === "CHAPTER_NODE" ? targetId : null, objectAssignments: (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId })) };
+    }).filter(connection => (connection.sourceType === "CHAPTER_NODE" ? connection.sourceNodeId : connection.sourceElementId) && (connection.targetType === "CHAPTER_NODE" ? connection.targetNodeId : connection.targetElementId));
     this.board.objects.push(...importedObjects);
     this.board.templates.push(...importedTemplates);
     const chapterConnections = (imported.chapterConnections ?? []).map(source => ({ ...clone(source), id: uuid(), sourceNodeId: nodeMap.get(source.sourceNodeId), targetNodeId: nodeMap.get(source.targetNodeId) })).filter(connection => connection.sourceNodeId && connection.targetNodeId);
@@ -1735,10 +1837,16 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     });
     this.board.scenes.push(...scenes);
     this.board.elements.push(...elements);
-    this.board.connections.push(...(imported.connections ?? []).filter(connection => elementMap.has(connection.sourceElementId) && elementMap.has(connection.targetElementId)).map(source => ({ ...clone(source), id: uuid(), sourceElementId: elementMap.get(source.sourceElementId), targetElementId: elementMap.get(source.targetElementId), objectAssignments: (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId })) })));
+    this.board.connections.push(...(imported.connections ?? []).map(source => {
+      const sourceType = source.sourceType ?? (source.sourceNodeId ? "CHAPTER_NODE" : "SCENE");
+      const targetType = source.targetType ?? (source.targetNodeId ? "CHAPTER_NODE" : "SCENE");
+      const sourceId = sourceType === "CHAPTER_NODE" ? nodeMap.get(source.sourceNodeId) : elementMap.get(source.sourceElementId);
+      const targetId = targetType === "CHAPTER_NODE" ? nodeMap.get(source.targetNodeId) : elementMap.get(source.targetElementId);
+      return { ...clone(source), id: uuid(), sourceType, targetType, sourceElementId: sourceType === "SCENE" ? sourceId : null, targetElementId: targetType === "SCENE" ? targetId : null, sourceNodeId: sourceType === "CHAPTER_NODE" ? sourceId : null, targetNodeId: targetType === "CHAPTER_NODE" ? targetId : null, objectAssignments: (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId })) };
+    }).filter(connection => (connection.sourceType === "CHAPTER_NODE" ? connection.sourceNodeId : connection.sourceElementId) && (connection.targetType === "CHAPTER_NODE" ? connection.targetNodeId : connection.targetElementId)));
   }
 
-  #startDrag(event) {
+  #startSceneDrag(event) {
     if (event.button !== 0 || this.connectionSourceId || event.ctrlKey || event.metaKey || event.target?.closest?.("[data-scene-resize]")) return;
     event.preventDefault();
     const element = this.board.elements.find(candidate => candidate.id === event.currentTarget.dataset.elementId);
@@ -1752,6 +1860,59 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.drag.end = endEvent => this.#finishDrag(endEvent);
     window.addEventListener("pointermove", this.drag.move);
     window.addEventListener("pointerup", this.drag.end, { once: true });
+  }
+
+  #startChapterNodeDrag(event) {
+    if (event.button !== 0 || this.connectionSourceId || this.connectionDrag || this.resize) return;
+    const nodeId = event.currentTarget?.dataset.nodeId;
+    const node = this.board.chapters.flatMap(chapter => chapter.nodes ?? []).find(candidate => candidate.id === nodeId);
+    const svg = this.element.querySelector("[data-storyboard-canvas]");
+    if (!node || !svg) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const point = this.#svgPoint(svg, event);
+    this.history.capture(this.board);
+    this.chapterNodeDrag = { node, startX: point.x, startY: point.y, original: clone(node.position), target: event.currentTarget, moved: false };
+    this.chapterNodeDrag.move = moveEvent => this.#chapterNodeDragMove(moveEvent);
+    this.chapterNodeDrag.end = () => this.#finishChapterNodeDrag();
+    event.currentTarget.classList.add("is-dragging");
+    window.addEventListener("pointermove", this.chapterNodeDrag.move);
+    window.addEventListener("pointerup", this.chapterNodeDrag.end, { once: true });
+    window.addEventListener("pointercancel", this.chapterNodeDrag.end, { once: true });
+  }
+
+  #chapterNodeDragMove(event) {
+    if (!this.chapterNodeDrag) return;
+    this.chapterNodeDrag.pendingEvent = event;
+    if (!this.chapterNodeDrag.frame) this.chapterNodeDrag.frame = requestAnimationFrame(() => this.#applyChapterNodeDragFrame());
+  }
+
+  #applyChapterNodeDragFrame() {
+    if (!this.chapterNodeDrag?.pendingEvent) return;
+    const point = this.#svgPoint(this.element.querySelector("[data-storyboard-canvas]"), this.chapterNodeDrag.pendingEvent);
+    const { node, original, startX, startY } = this.chapterNodeDrag;
+    if (Math.hypot(point.x - startX, point.y - startY) > 2) this.chapterNodeDrag.moved = true;
+    node.position = { x: Math.max(18, original.x + point.x - startX), y: Math.max(18, original.y + point.y - startY) };
+    this.chapterNodeDrag.target?.setAttribute("transform", `translate(${node.position.x} ${node.position.y})`);
+    this.#updateConnectionGeometry(node.id);
+    this.chapterNodeDrag.pendingEvent = null;
+    this.chapterNodeDrag.frame = null;
+  }
+
+  async #finishChapterNodeDrag() {
+    if (!this.chapterNodeDrag) return;
+    const drag = this.chapterNodeDrag;
+    if (drag.frame) cancelAnimationFrame(drag.frame);
+    this.#applyChapterNodeDragFrame();
+    window.removeEventListener("pointermove", drag.move);
+    window.removeEventListener("pointerup", drag.end);
+    window.removeEventListener("pointercancel", drag.end);
+    drag.target?.classList.remove("is-dragging");
+    this.chapterNodeDrag = null;
+    if (!drag.moved) return;
+    this.board = await this.store.save(this.board);
+    this.selectedElementIds = [];
+    await this.render({ force: true });
   }
 
   #startResize(event) {
@@ -1886,9 +2047,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #updateConnectionGeometry(movedElementId) {
     for (const connection of this.board.connections) {
-      if (connection.sourceElementId !== movedElementId && connection.targetElementId !== movedElementId) continue;
-      const source = this.board.elements.find(element => element.id === connection.sourceElementId);
-      const target = this.board.elements.find(element => element.id === connection.targetElementId);
+      const sourceType = connection.sourceType ?? (connection.sourceNodeId ? "CHAPTER_NODE" : "SCENE");
+      const targetType = connection.targetType ?? (connection.targetNodeId ? "CHAPTER_NODE" : "SCENE");
+      const sourceId = sourceType === "CHAPTER_NODE" ? connection.sourceNodeId : connection.sourceElementId;
+      const targetId = targetType === "CHAPTER_NODE" ? connection.targetNodeId : connection.targetElementId;
+      if (sourceId !== movedElementId && targetId !== movedElementId) continue;
+      const source = this.#connectionGeometryEndpoint(sourceId, sourceType);
+      const target = this.#connectionGeometryEndpoint(targetId, targetType);
       if (!source || !target) continue;
       const geometry = connectionGeometry(source, target, { bilateral: normalizeConnectionType(connection.connectionType).startsWith("bilateral") });
       for (const node of this.element.querySelectorAll(`[data-connection-id="${connection.id}"]`)) {
@@ -1905,6 +2070,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         }
       }
     }
+  }
+
+  #connectionGeometryEndpoint(id, type) {
+    if (type === "CHAPTER_NODE") {
+      const node = this.board.chapters.flatMap(chapter => chapter.nodes ?? []).find(candidate => candidate.id === id);
+      return node ? { position: { x: node.position.x - 18, y: node.position.y - 18 }, size: { width: 36, height: 36 } } : null;
+    }
+    return this.board.elements.find(element => element.id === id) ?? null;
   }
 
   async #finishDrag() {

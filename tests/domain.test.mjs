@@ -44,6 +44,47 @@ test("chapter entry and exit nodes can link different chapters", () => {
   assert.equal(validateSceneBoard(board).valid, true);
 });
 
+test("entry and exit nodes can connect to scenes in their own chapter", () => {
+  const board = createSceneBoard();
+  const chapterId = board.chapters[0].id;
+  const scene = createScene(board, { title: "Middle", chapterId });
+  const element = createSceneElement(board, { sceneId: scene.id });
+  const entry = createChapterNode(board, chapterId, { nodeType: "ENTRY" });
+  const exit = createChapterNode(board, chapterId, { nodeType: "EXIT" });
+  assert.doesNotThrow(() => createConnection(board, entry.id, element.id, "unilateral", "", "CHAPTER_NODE", "SCENE"));
+  assert.doesNotThrow(() => createConnection(board, element.id, exit.id, "unilateral", "", "SCENE", "CHAPTER_NODE"));
+  assert.throws(() => createConnection(board, exit.id, element.id, "unilateral", "", "CHAPTER_NODE", "SCENE"), /Entry/);
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("moving a scene removes connections that would cross chapter boundaries", () => {
+  const board = createSceneBoard();
+  const sourceChapter = board.chapters[0];
+  const targetChapter = createChapter(board, { title: "Chapter 2" });
+  const first = createScene(board, { title: "First", chapterId: sourceChapter.id });
+  const second = createScene(board, { title: "Second", chapterId: sourceChapter.id });
+  const firstElement = createSceneElement(board, { sceneId: first.id });
+  const secondElement = createSceneElement(board, { sceneId: second.id });
+  const connection = createConnection(board, firstElement.id, secondElement.id);
+  const entry = createChapterNode(board, sourceChapter.id, { nodeType: "ENTRY" });
+  const exit = createChapterNode(board, sourceChapter.id, { nodeType: "EXIT" });
+  const entryConnection = createConnection(board, entry.id, secondElement.id, "unilateral", "", "CHAPTER_NODE", "SCENE");
+  const exitConnection = createConnection(board, firstElement.id, exit.id, "unilateral", "", "SCENE", "CHAPTER_NODE");
+  const result = moveSceneToChapter(board, second.id, targetChapter.id);
+  assert.deepEqual(result.removedConnections.map(item => item.id), [connection.id, entryConnection.id]);
+  assert.deepEqual(board.connections.map(item => item.id), [exitConnection.id]);
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("moving a scene onto another scene preserves the requested order", () => {
+  const board = createSceneBoard();
+  const first = createScene(board, { title: "First" });
+  const second = createScene(board, { title: "Second" });
+  const third = createScene(board, { title: "Third" });
+  moveSceneToChapter(board, third.id, first.chapterId, 0);
+  assert.deepEqual(board.scenes.map(scene => scene.title), ["Third", "First", "Second"]);
+});
+
 test("scenes get stable UUIDs and unique visible IDs", () => {
   const board = createSceneBoard();
   const first = createScene(board, { title: "First" });

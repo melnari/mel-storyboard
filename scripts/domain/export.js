@@ -7,10 +7,10 @@ function escapeXml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character]);
 }
 
-function boardBounds(elements) {
+function boardBounds(elements, nodes = []) {
   return {
-    width: Math.max(800, ...elements.map(element => element.position.x + element.size.width + 80)),
-    height: Math.max(600, ...elements.map(element => element.position.y + element.size.height + 80))
+    width: Math.max(800, ...elements.map(element => element.position.x + element.size.width + 80), ...nodes.map(node => (node.position?.x ?? 0) + 100)),
+    height: Math.max(600, ...elements.map(element => element.position.y + element.size.height + 80), ...nodes.map(node => (node.position?.y ?? 0) + 100))
   };
 }
 
@@ -39,11 +39,21 @@ export function sceneBoardToSvg(board, labels = {}) {
       statusColorClass: labels.statusColors ? STATUS_COLOR_CLASSES[scene?.status] ?? STATUS_COLOR_CLASSES.OFFEN : ""
     };
   });
-  const { width, height } = boardBounds(elements);
+  const nodesForBounds = (board.chapters ?? []).flatMap(chapter => chapter.nodes ?? []);
+  const { width, height } = boardBounds(elements, nodesForBounds);
   const elementById = new Map(elements.map(element => [element.id, element]));
+  const nodeById = new Map((board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => [node.id, {
+    position: { x: (node.position?.x ?? 0) - 18, y: (node.position?.y ?? 0) - 18 },
+    size: { width: 36, height: 36 }
+  }])));
+  const endpoint = (connection, side) => {
+    const type = connection[`${side}Type`] ?? (connection[`${side}NodeId`] ? "CHAPTER_NODE" : "SCENE");
+    const id = type === "CHAPTER_NODE" ? connection[`${side}NodeId`] : connection[`${side}ElementId`];
+    return type === "CHAPTER_NODE" ? nodeById.get(id) : elementById.get(id);
+  };
   const lines = board.connections.map(connection => {
-    const source = elementById.get(connection.sourceElementId);
-    const target = elementById.get(connection.targetElementId);
+    const source = endpoint(connection, "source");
+    const target = endpoint(connection, "target");
     if (!source || !target) return "";
     const connectionType = normalizeConnectionType(connection.connectionType);
     const isBilateral = connectionType.startsWith("bilateral");
@@ -104,14 +114,19 @@ export function scopeSceneBoard(board, chapterIds = null) {
   const scenes = (board.scenes ?? []).filter(scene => selectedIds.has(scene.chapterId));
   const sceneIds = new Set(scenes.map(scene => scene.id));
   const elements = (board.elements ?? []).filter(element => sceneIds.has(element.sceneId));
-  const elementIds = new Set(elements.map(element => element.id));
   const nodes = new Set(chapters.flatMap(chapter => (chapter.nodes ?? []).map(node => node.id)));
+  const elementIds = new Set(elements.map(element => element.id));
+  const endpointInScope = (connection, side) => {
+    const type = connection[`${side}Type`] ?? (connection[`${side}NodeId`] ? "CHAPTER_NODE" : "SCENE");
+    const id = type === "CHAPTER_NODE" ? connection[`${side}NodeId`] : connection[`${side}ElementId`];
+    return type === "CHAPTER_NODE" ? nodes.has(id) : elementIds.has(id);
+  };
   return {
     ...clone(board),
     chapters: clone(chapters),
     scenes: clone(scenes),
     elements: clone(elements),
-    connections: clone((board.connections ?? []).filter(connection => elementIds.has(connection.sourceElementId) && elementIds.has(connection.targetElementId))),
+    connections: clone((board.connections ?? []).filter(connection => endpointInScope(connection, "source") && endpointInScope(connection, "target"))),
     chapterConnections: clone((board.chapterConnections ?? []).filter(connection => nodes.has(connection.sourceNodeId) && nodes.has(connection.targetNodeId)))
   };
 }
