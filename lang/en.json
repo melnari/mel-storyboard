@@ -34,6 +34,17 @@
     },
     "ACTIONS": {
       "NewScene": "New scene",
+      "NewChapter": "New chapter",
+      "ChapterDetails": "Chapter details",
+      "NewEntryNode": "New entry node",
+      "NewExitNode": "New exit node",
+      "DeleteChapter": "Delete chapter",
+      "RenameNode": "Rename node",
+      "DeleteNode": "Delete node",
+      "LinkNode": "Link node",
+      "DeleteChapterConnection": "Delete chapter connection",
+      "ExportScope": "Export scope",
+      "ImportTarget": "Import target",
       "CollapseSidebar": "Collapse scene navigation",
       "ExpandSidebar": "Expand scene navigation",
       "CollapseInspector": "Collapse scene details",
@@ -73,6 +84,21 @@
   "LABELS": {
     "Story": "Story",
     "Scenes": "Scenes",
+      "ChapterDetails": "Chapter Details",
+      "ChapterNodes": "Chapter nodes",
+      "Entry": "Entry",
+      "Exit": "Exit",
+      "TargetNode": "Target node",
+      "ExportScope": "Export scope",
+      "EntireStoryboard": "Entire storyboard",
+      "CurrentChapter": "Current chapter",
+      "SelectedChapters": "Selected chapters",
+      "Chapters": "Chapters",
+      "ImportTarget": "Import target",
+      "ReplaceStoryboard": "Replace entire storyboard",
+      "NewChapter": "Add as new chapter",
+      "ExistingChapter": "Add to existing chapter",
+      "Chapter": "Chapter",
       "SceneDetails": "Scene Details",
       "ConnectionDetails": "Connection Details",
       "Template": "Template",
@@ -108,6 +134,8 @@
     },
     "EMPTY": {
       "NoScenes": "No scenes yet.",
+      "NoChapters": "No chapters yet.",
+      "NoChapterNodes": "No entry or exit nodes yet.",
       "SelectScene": "Select a scene to inspect it."
       ,"NoObjects": "No objects are assigned to this scene yet."
       ,"NoObjectNote": "No note has been added yet."
@@ -131,6 +159,9 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Scene board saved.",
+      "NoChapterNodeTargets": "No compatible chapter node targets are available.",
+      "LastChapter": "The last chapter cannot be deleted.",
+      "ConfirmDeleteChapter": "Delete chapter \"{name}\" and all scenes and connections inside it?",
       "SelectConnectionTarget": "Select the target scene for this connection.",
       "Copied": "Scene copied."
       ,"ActorUuidRequired": "Actor objects require a Foundry UUID."

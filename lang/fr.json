@@ -34,6 +34,17 @@
     },
     "ACTIONS": {
       "NewScene": "Nouvelle scène",
+      "NewChapter": "Nouveau chapitre",
+      "ChapterDetails": "Détails du chapitre",
+      "NewEntryNode": "Nouveau nœud d'entrée",
+      "NewExitNode": "Nouveau nœud de sortie",
+      "DeleteChapter": "Supprimer le chapitre",
+      "RenameNode": "Renommer le nœud",
+      "DeleteNode": "Supprimer le nœud",
+      "LinkNode": "Lier le nœud",
+      "DeleteChapterConnection": "Supprimer la liaison de chapitre",
+      "ExportScope": "Portée de l'exportation",
+      "ImportTarget": "Cible de l'importation",
       "CollapseSidebar": "Réduire la navigation des scènes",
       "ExpandSidebar": "Développer la navigation des scènes",
       "CollapseInspector": "Réduire les détails de la scène",
@@ -73,6 +84,21 @@
   "LABELS": {
     "Story": "Story",
     "Scenes": "Scènes",
+      "ChapterDetails": "Détails du chapitre",
+      "ChapterNodes": "Nœuds du chapitre",
+      "Entry": "Entrée",
+      "Exit": "Sortie",
+      "TargetNode": "Nœud cible",
+      "ExportScope": "Portée de l'exportation",
+      "EntireStoryboard": "Storyboard entier",
+      "CurrentChapter": "Chapitre actuel",
+      "SelectedChapters": "Chapitres sélectionnés",
+      "Chapters": "Chapitres",
+      "ImportTarget": "Cible de l'importation",
+      "ReplaceStoryboard": "Remplacer tout le storyboard",
+      "NewChapter": "Ajouter comme nouveau chapitre",
+      "ExistingChapter": "Ajouter à un chapitre existant",
+      "Chapter": "Chapitre",
       "SceneDetails": "Détails de la scène",
       "ConnectionDetails": "Détails de la relation",
       "Template": "Modèle",
@@ -108,6 +134,8 @@
     },
     "EMPTY": {
       "NoScenes": "Aucune scène pour le moment.",
+      "NoChapters": "Aucun chapitre pour le moment.",
+      "NoChapterNodes": "Aucun nœud d'entrée ou de sortie.",
       "SelectScene": "Sélectionnez une scène à inspecter."
       ,"NoObjects": "Aucun objet n’est encore associé à cette scène."
       ,"NoObjectNote": "Aucune note n’a encore été ajoutée."
@@ -131,6 +159,9 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Tableau de scènes enregistré.",
+      "NoChapterNodeTargets": "Aucune cible compatible n'est disponible.",
+      "LastChapter": "Le dernier chapitre ne peut pas être supprimé.",
+      "ConfirmDeleteChapter": "Supprimer le chapitre \"{name}\" et toutes ses scènes et liaisons ?",
       "SelectConnectionTarget": "Sélectionnez la scène cible de cette relation.",
       "Copied": "Scène copiée."
       ,"ActorUuidRequired": "Les objets Actor nécessitent un UUID Foundry."

@@ -34,6 +34,17 @@
     },
     "ACTIONS": {
       "NewScene": "Nieuwe scène",
+      "NewChapter": "Nieuw hoofdstuk",
+      "ChapterDetails": "Hoofdstukdetails",
+      "NewEntryNode": "Nieuw ingangsknooppunt",
+      "NewExitNode": "Nieuw uitgangsknooppunt",
+      "DeleteChapter": "Hoofdstuk verwijderen",
+      "RenameNode": "Knooppunt hernoemen",
+      "DeleteNode": "Knooppunt verwijderen",
+      "LinkNode": "Knooppunt koppelen",
+      "DeleteChapterConnection": "Hoofdstukverbinding verwijderen",
+      "ExportScope": "Exportbereik",
+      "ImportTarget": "Importdoel",
       "CollapseSidebar": "Scènenavigatie inklappen",
       "ExpandSidebar": "Scènenavigatie uitklappen",
       "CollapseInspector": "Scènedetails inklappen",
@@ -73,6 +84,21 @@
   "LABELS": {
     "Story": "Story",
     "Scenes": "Scènes",
+      "ChapterDetails": "Hoofdstukdetails",
+      "ChapterNodes": "Hoofdstukknooppunten",
+      "Entry": "Ingang",
+      "Exit": "Uitgang",
+      "TargetNode": "Doelknooppunt",
+      "ExportScope": "Exportbereik",
+      "EntireStoryboard": "Volledig storyboard",
+      "CurrentChapter": "Huidig hoofdstuk",
+      "SelectedChapters": "Geselecteerde hoofdstukken",
+      "Chapters": "Hoofdstukken",
+      "ImportTarget": "Importdoel",
+      "ReplaceStoryboard": "Volledig storyboard vervangen",
+      "NewChapter": "Als nieuw hoofdstuk toevoegen",
+      "ExistingChapter": "Aan bestaand hoofdstuk toevoegen",
+      "Chapter": "Hoofdstuk",
       "SceneDetails": "Scènedetails",
       "ConnectionDetails": "Verbindingsdetails",
       "Template": "Sjabloon",
@@ -108,6 +134,8 @@
     },
     "EMPTY": {
       "NoScenes": "Nog geen scènes.",
+      "NoChapters": "Nog geen hoofdstukken.",
+      "NoChapterNodes": "Nog geen ingangs- of uitgangsknooppunten.",
       "SelectScene": "Selecteer een scène om deze te bekijken."
       ,"NoObjects": "Aan deze scène zijn nog geen objecten toegewezen."
       ,"NoObjectNote": "Er is nog geen notitie toegevoegd."
@@ -131,6 +159,9 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Scènebord opgeslagen.",
+      "NoChapterNodeTargets": "Geen compatibele doelknooppunten beschikbaar.",
+      "LastChapter": "Het laatste hoofdstuk kan niet worden verwijderd.",
+      "ConfirmDeleteChapter": "Hoofdstuk \"{name}\" en alle scènes en verbindingen daarin verwijderen?",
       "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
       "Copied": "Scène gekopieerd."
       ,"ActorUuidRequired": "Actor-objecten vereisen een Foundry-UUID."

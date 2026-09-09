@@ -34,6 +34,17 @@
     },
     "ACTIONS": {
       "NewScene": "Nueva escena",
+      "NewChapter": "Nuevo capítulo",
+      "ChapterDetails": "Detalles del capítulo",
+      "NewEntryNode": "Nuevo nodo de entrada",
+      "NewExitNode": "Nuevo nodo de salida",
+      "DeleteChapter": "Eliminar capítulo",
+      "RenameNode": "Renombrar nodo",
+      "DeleteNode": "Eliminar nodo",
+      "LinkNode": "Vincular nodo",
+      "DeleteChapterConnection": "Eliminar conexión de capítulo",
+      "ExportScope": "Ámbito de exportación",
+      "ImportTarget": "Destino de importación",
       "CollapseSidebar": "Contraer navegación de escenas",
       "ExpandSidebar": "Expandir navegación de escenas",
       "CollapseInspector": "Contraer detalles de escena",
@@ -73,6 +84,21 @@
   "LABELS": {
     "Story": "Story",
     "Scenes": "Escenas",
+      "ChapterDetails": "Detalles del capítulo",
+      "ChapterNodes": "Nodos del capítulo",
+      "Entry": "Entrada",
+      "Exit": "Salida",
+      "TargetNode": "Nodo destino",
+      "ExportScope": "Ámbito de exportación",
+      "EntireStoryboard": "Storyboard completo",
+      "CurrentChapter": "Capítulo actual",
+      "SelectedChapters": "Capítulos seleccionados",
+      "Chapters": "Capítulos",
+      "ImportTarget": "Destino de importación",
+      "ReplaceStoryboard": "Reemplazar storyboard completo",
+      "NewChapter": "Añadir como capítulo nuevo",
+      "ExistingChapter": "Añadir a un capítulo existente",
+      "Chapter": "Capítulo",
       "SceneDetails": "Detalles de la escena",
       "ConnectionDetails": "Detalles de la conexión",
       "Template": "Plantilla",
@@ -108,6 +134,8 @@
     },
     "EMPTY": {
       "NoScenes": "Aún no hay escenas.",
+      "NoChapters": "Aún no hay capítulos.",
+      "NoChapterNodes": "Aún no hay nodos de entrada o salida.",
       "SelectScene": "Selecciona una escena para inspeccionarla."
       ,"NoObjects": "Todavía no hay objetos asignados a esta escena."
       ,"NoObjectNote": "Todavía no se ha añadido ninguna nota."
@@ -131,6 +159,9 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Tablero de escenas guardado.",
+      "NoChapterNodeTargets": "No hay destinos de nodo compatibles.",
+      "LastChapter": "No se puede eliminar el último capítulo.",
+      "ConfirmDeleteChapter": "¿Eliminar el capítulo \"{name}\" y todas sus escenas y conexiones?",
       "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
       "Copied": "Escena copiada."
       ,"ActorUuidRequired": "Los objetos Actor requieren un UUID de Foundry."

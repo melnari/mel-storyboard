@@ -34,6 +34,17 @@
     },
     "ACTIONS": {
       "NewScene": "Neue Szene",
+      "NewChapter": "Neues Kapitel",
+      "ChapterDetails": "Kapiteldetails",
+      "NewEntryNode": "Neuen Einsprung erstellen",
+      "NewExitNode": "Neuen Absprung erstellen",
+      "DeleteChapter": "Kapitel löschen",
+      "RenameNode": "Knoten umbenennen",
+      "DeleteNode": "Knoten löschen",
+      "LinkNode": "Knoten verknüpfen",
+      "DeleteChapterConnection": "Kapitelverbindung löschen",
+      "ExportScope": "Exportumfang",
+      "ImportTarget": "Importziel",
       "CollapseSidebar": "Szenennavigation einklappen",
       "ExpandSidebar": "Szenennavigation ausklappen",
       "CollapseInspector": "Szenendetails einklappen",
@@ -73,6 +84,21 @@
   "LABELS": {
     "Story": "Story",
     "Scenes": "Szenen",
+      "ChapterDetails": "Kapiteldetails",
+      "ChapterNodes": "Kapitelknoten",
+      "Entry": "Einsprung",
+      "Exit": "Absprung",
+      "TargetNode": "Zielknoten",
+      "ExportScope": "Exportumfang",
+      "EntireStoryboard": "Gesamtes Storyboard",
+      "CurrentChapter": "Aktuelles Kapitel",
+      "SelectedChapters": "Ausgewählte Kapitel",
+      "Chapters": "Kapitel",
+      "ImportTarget": "Importziel",
+      "ReplaceStoryboard": "Gesamtes Storyboard ersetzen",
+      "NewChapter": "Als neues Kapitel hinzufügen",
+      "ExistingChapter": "Zu bestehendem Kapitel hinzufügen",
+      "Chapter": "Kapitel",
       "SceneDetails": "Szenendetails",
       "ConnectionDetails": "Verbindungsdetails",
       "Template": "Vorlage",
@@ -108,6 +134,8 @@
     },
     "EMPTY": {
       "NoScenes": "Noch keine Szenen.",
+      "NoChapters": "Noch keine Kapitel.",
+      "NoChapterNodes": "Noch keine Ein- oder Absprungknoten.",
       "SelectScene": "Szene zur Anzeige auswählen."
       ,"NoObjects": "Der Szene sind noch keine Objekte zugeordnet."
       ,"NoObjectNote": "Es wurde noch keine Notiz hinzugefügt."
@@ -131,6 +159,9 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Szenenboard gespeichert.",
+      "NoChapterNodeTargets": "Keine passenden Zielknoten verfügbar.",
+      "LastChapter": "Das letzte Kapitel kann nicht gelöscht werden.",
+      "ConfirmDeleteChapter": "Kapitel \"{name}\" mit allen enthaltenen Szenen und Verbindungen löschen?",
       "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.",
       "Copied": "Szene kopiert."
       ,"ActorUuidRequired": "Für Actor-Objekte ist eine Foundry-UUID erforderlich."

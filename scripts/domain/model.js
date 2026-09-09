@@ -1,4 +1,4 @@
-import { CONNECTION_DISPLAY_TYPES, ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
+import { CHAPTER_NODE_TYPES, CONNECTION_DISPLAY_TYPES, ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
 import { nextDisplayId, uuid } from "./ids.js";
 
 export function clone(value) {
@@ -33,24 +33,48 @@ export function createDefaultTemplate() {
 
 export function createSceneBoard() {
   const now = timestamp();
-  return {
+  const board = {
     schemaVersion: STORE_SCHEMA_VERSION,
     id: uuid(),
     createdAt: now,
     updatedAt: now,
     templates: [createDefaultTemplate()],
+    chapters: [],
     scenes: [],
     elements: [],
     connections: [],
+    chapterConnections: [],
     objects: []
   };
+  createChapter(board, { title: "Chapter 1" });
+  return board;
 }
 
-export function createScene(board, { title = "New scene", description = "" } = {}) {
+export function createChapter(board, { title = "New chapter", description = "", status = STATUS.OFFEN } = {}) {
   const now = timestamp();
+  const chapter = {
+    id: uuid(),
+    displayId: nextDisplayId(board.chapters ?? [], "C"),
+    title: title.trim() || "New chapter",
+    description,
+    status,
+    nodes: [],
+    createdAt: now,
+    updatedAt: now
+  };
+  board.chapters ??= [];
+  board.chapters.push(chapter);
+  board.updatedAt = now;
+  return chapter;
+}
+
+export function createScene(board, { title = "New scene", description = "", chapterId = null } = {}) {
+  const now = timestamp();
+  const chapter = board.chapters?.find(candidate => candidate.id === chapterId) ?? board.chapters?.[0] ?? createChapter(board, { title: "Chapter 1" });
   const scene = {
     id: uuid(),
     displayId: nextDisplayId(board.scenes, "S"),
+    chapterId: chapter.id,
     parentId: null,
     title: title.trim() || "New scene",
     description,
@@ -240,15 +264,139 @@ export function normalizeConnectionType(connectionType) {
 }
 
 export function createConnection(board, sourceElementId, targetElementId, connectionType = "unilateral", label = "") {
-  if (!board.elements.some(element => element.id === sourceElementId)) throw new Error("The source scene does not exist.");
-  if (!board.elements.some(element => element.id === targetElementId)) throw new Error("The target scene does not exist.");
+  const sourceElement = board.elements.find(element => element.id === sourceElementId);
+  const targetElement = board.elements.find(element => element.id === targetElementId);
+  if (!sourceElement) throw new Error("The source scene does not exist.");
+  if (!targetElement) throw new Error("The target scene does not exist.");
   if (sourceElementId === targetElementId) throw new Error("A scene cannot connect to itself.");
+  const sourceScene = board.scenes.find(scene => scene.id === sourceElement.sceneId);
+  const targetScene = board.scenes.find(scene => scene.id === targetElement.sceneId);
+  if (sourceScene?.chapterId !== targetScene?.chapterId) throw new Error("Scene connections must stay within one chapter.");
   if (board.connections.some(connection => connection.sourceElementId === sourceElementId && connection.targetElementId === targetElementId)) throw new Error("This scene connection already exists.");
   const now = timestamp();
   const connection = { id: uuid(), sourceElementId, targetElementId, connectionType: normalizeConnectionType(connectionType), label: String(label ?? "").trim(), description: "", objectAssignments: [], visualConfig: {}, createdAt: now, updatedAt: now };
   board.connections.push(connection);
   board.updatedAt = now;
   return connection;
+}
+
+export function createChapterNode(board, chapterId, { nodeType = "ENTRY", title = "" } = {}) {
+  if (!CHAPTER_NODE_TYPES.includes(nodeType)) throw new Error(`Unsupported chapter node type: ${nodeType}`);
+  const chapter = board.chapters?.find(candidate => candidate.id === chapterId);
+  if (!chapter) throw new Error("The chapter does not exist.");
+  const now = timestamp();
+  const prefix = nodeType === "ENTRY" ? "IN" : "OUT";
+  const node = {
+    id: uuid(),
+    displayId: nextDisplayId(board.chapters.flatMap(candidate => candidate.nodes ?? []), prefix),
+    nodeType,
+    title: title.trim() || (nodeType === "ENTRY" ? "Entry" : "Exit"),
+    position: { x: nodeType === "ENTRY" ? 80 : 760, y: 80 + (chapter.nodes?.filter(candidate => candidate.nodeType === nodeType).length ?? 0) * 80 },
+    createdAt: now,
+    updatedAt: now
+  };
+  chapter.nodes ??= [];
+  chapter.nodes.push(node);
+  chapter.updatedAt = now;
+  board.updatedAt = now;
+  return node;
+}
+
+export function updateChapterNode(node, { title = null, position = null } = {}) {
+  if (title !== null) node.title = String(title ?? "").trim() || node.title;
+  if (position) node.position = { x: Number(position.x) || 0, y: Number(position.y) || 0 };
+  node.updatedAt = timestamp();
+  return node;
+}
+
+export function removeChapterNode(board, nodeId) {
+  let removed = false;
+  for (const chapter of board.chapters ?? []) {
+    const before = chapter.nodes?.length ?? 0;
+    chapter.nodes = (chapter.nodes ?? []).filter(node => node.id !== nodeId);
+    if (chapter.nodes.length !== before) {
+      chapter.updatedAt = timestamp();
+      removed = true;
+    }
+  }
+  if (!removed) throw new Error("The chapter node does not exist.");
+  board.chapterConnections = (board.chapterConnections ?? []).filter(connection => connection.sourceNodeId !== nodeId && connection.targetNodeId !== nodeId);
+  board.updatedAt = timestamp();
+}
+
+export function createChapterConnection(board, sourceNodeId, targetNodeId, label = "") {
+  const nodes = (board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => ({ ...node, chapterId: chapter.id })));
+  const source = nodes.find(node => node.id === sourceNodeId);
+  const target = nodes.find(node => node.id === targetNodeId);
+  if (!source || !target) throw new Error("The source or target chapter node does not exist.");
+  if (source.nodeType !== "EXIT" || target.nodeType !== "ENTRY") throw new Error("Chapter connections must link an exit node to an entry node.");
+  if (source.chapterId === target.chapterId) throw new Error("Chapter connections must link different chapters.");
+  board.chapterConnections ??= [];
+  if (board.chapterConnections.some(connection => connection.sourceNodeId === sourceNodeId && connection.targetNodeId === targetNodeId)) throw new Error("This chapter connection already exists.");
+  const now = timestamp();
+  const connection = { id: uuid(), sourceNodeId, targetNodeId, label: String(label ?? "").trim(), description: "", createdAt: now, updatedAt: now };
+  board.chapterConnections.push(connection);
+  board.updatedAt = now;
+  return connection;
+}
+
+export function removeChapterConnection(board, connectionId) {
+  const before = (board.chapterConnections ?? []).length;
+  board.chapterConnections = (board.chapterConnections ?? []).filter(connection => connection.id !== connectionId);
+  if (board.chapterConnections.length === before) throw new Error("The chapter connection does not exist.");
+  board.updatedAt = timestamp();
+}
+
+export function moveSceneToChapter(board, sceneId, targetChapterId, targetIndex = null) {
+  const scene = board.scenes.find(candidate => candidate.id === sceneId);
+  const targetChapter = board.chapters?.find(candidate => candidate.id === targetChapterId);
+  if (!scene || !targetChapter) throw new Error("The scene or target chapter does not exist.");
+  scene.chapterId = targetChapter.id;
+  scene.updatedAt = timestamp();
+  const targetSceneIds = new Set(board.scenes.filter(candidate => candidate.chapterId === targetChapter.id && candidate.id !== scene.id).map(candidate => candidate.id));
+  const orderedScenes = board.scenes.filter(candidate => targetSceneIds.has(candidate.id));
+  const index = targetIndex === null ? orderedScenes.length : Math.max(0, Math.min(Number(targetIndex), orderedScenes.length));
+  orderedScenes.splice(index, 0, scene);
+  let targetOffset = 0;
+  board.scenes = board.scenes.map(candidate => {
+    if (candidate.id === scene.id || targetSceneIds.has(candidate.id)) return orderedScenes[targetOffset++];
+    return candidate;
+  });
+  board.updatedAt = timestamp();
+  return scene;
+}
+
+export function reorderScenes(board, chapterId, orderedSceneIds) {
+  const sceneMap = new Map(board.scenes.map(scene => [scene.id, scene]));
+  const chapterScenes = board.scenes.filter(scene => scene.chapterId === chapterId);
+  const ordered = orderedSceneIds.map(id => sceneMap.get(id)).filter(scene => scene?.chapterId === chapterId);
+  const remaining = chapterScenes.filter(scene => !ordered.includes(scene));
+  const next = [...ordered, ...remaining];
+  let offset = 0;
+  board.scenes = board.scenes.map(scene => scene.chapterId === chapterId ? next[offset++] : scene);
+  board.updatedAt = timestamp();
+}
+
+export function reorderChapters(board, orderedChapterIds) {
+  const chapterMap = new Map((board.chapters ?? []).map(chapter => [chapter.id, chapter]));
+  const ordered = orderedChapterIds.map(id => chapterMap.get(id)).filter(Boolean);
+  const remaining = (board.chapters ?? []).filter(chapter => !ordered.includes(chapter));
+  board.chapters = [...ordered, ...remaining];
+  board.updatedAt = timestamp();
+}
+
+export function removeChapter(board, chapterId) {
+  const chapter = board.chapters?.find(candidate => candidate.id === chapterId);
+  if (!chapter) throw new Error("The chapter does not exist.");
+  const sceneIds = new Set(board.scenes.filter(scene => scene.chapterId === chapterId).map(scene => scene.id));
+  const elementIds = new Set(board.elements.filter(element => sceneIds.has(element.sceneId)).map(element => element.id));
+  board.connections = board.connections.filter(connection => !elementIds.has(connection.sourceElementId) && !elementIds.has(connection.targetElementId));
+  board.elements = board.elements.filter(element => !elementIds.has(element.id));
+  board.scenes = board.scenes.filter(scene => !sceneIds.has(scene.id));
+  board.chapters = board.chapters.filter(candidate => candidate.id !== chapterId);
+  const nodeIds = new Set(chapter.nodes?.map(node => node.id) ?? []);
+  board.chapterConnections = (board.chapterConnections ?? []).filter(connection => !nodeIds.has(connection.sourceNodeId) && !nodeIds.has(connection.targetNodeId));
+  board.updatedAt = timestamp();
 }
 
 export function updateConnection(connection, { label = null, connectionType = null, description = null } = {}) {

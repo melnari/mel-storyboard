@@ -6,7 +6,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 `0.0.7`
 
-The current release focuses on the Scene board. Story, Storyline, project, map, and separate template-management features are not part of the active user interface.
+The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
 
 ## Requirements
 
@@ -29,9 +29,13 @@ The application is a Foundry-native window and cannot be detached into a separat
 
 The interface consists of three areas:
 
-- A collapsible navigation tree on the left. The root is named `Story`; Scenes are shown below it with their display ID and title.
-- A central canvas with a grid and Scene Cards.
-- A collapsible inspector on the right for Scene Details or Connection Details.
+- A collapsible navigation tree on the left. The root is named `Story`; Chapters contain their Scenes with display IDs and titles.
+- A central canvas with a grid and the Scene Cards of the selected Chapter.
+- A collapsible inspector on the right for Chapter Details, Scene Details, or Connection Details.
+
+Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. Chapters can be reordered by dragging them in the tree. Scenes can be reordered within a Chapter or dragged between Chapters. Right-clicking the Story root creates a Chapter. Right-clicking a Chapter opens Chapter Details, creates Entry or Exit nodes, or deletes the Chapter after confirmation. Deleting a Chapter removes its Scenes, Scene Cards, Scene Connections, and Chapter-node links.
+
+Each Chapter can contain multiple editable Entry and Exit nodes. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter.
 
 Scene Cards display the title, description, display ID, and status. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
 
@@ -107,7 +111,9 @@ The `Import/Export` menu provides:
 - PNG export;
 - PDF export.
 
-JSON preserves the editable board data, including Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Connection Types, labels, descriptions, and linked Objects.
+Before exporting, choose the entire Storyboard, the current Chapter, or selected Chapters. During import, choose whether to replace the entire Storyboard, add the imported content as new Chapters, or add the first imported Chapter to an existing Chapter. Older JSON boards without Chapters are migrated automatically into `Chapter 1`.
+
+JSON preserves the editable board data, including Chapters, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
 
 SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, Connection labels, arrows, bilateral Connections, and dotted deactivated Connections.
 

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
+import { assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, moveSceneToChapter, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { SceneBoardStore } from "../scripts/domain/scene-board-store.js";
@@ -10,11 +10,37 @@ import { validateSceneBoard } from "../scripts/domain/validation.js";
 
 test("new scene boards contain only scene-oriented records", () => {
   const board = createSceneBoard();
+  assert.equal(board.chapters.length, 1);
+  assert.equal(board.chapters[0].title, "Chapter 1");
   assert.equal(board.scenes.length, 0);
   assert.equal(board.elements.length, 0);
   assert.equal(board.connections.length, 0);
   assert.equal(board.templates.length, 1);
   assert.equal("projects" in board, false);
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("chapters contain scenes and restrict scene connections to one chapter", () => {
+  const board = createSceneBoard();
+  const secondChapter = createChapter(board, { title: "Chapter 2" });
+  const firstScene = createScene(board, { title: "First", chapterId: board.chapters[0].id });
+  const secondScene = createScene(board, { title: "Second", chapterId: secondChapter.id });
+  const firstElement = createSceneElement(board, { sceneId: firstScene.id });
+  const secondElement = createSceneElement(board, { sceneId: secondScene.id });
+  assert.throws(() => createConnection(board, firstElement.id, secondElement.id), /chapter/);
+  moveSceneToChapter(board, secondScene.id, board.chapters[0].id);
+  assert.doesNotThrow(() => createConnection(board, firstElement.id, secondElement.id));
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("chapter entry and exit nodes can link different chapters", () => {
+  const board = createSceneBoard();
+  const secondChapter = createChapter(board, { title: "Chapter 2" });
+  const exit = createChapterNode(board, board.chapters[0].id, { nodeType: "EXIT", title: "Leave" });
+  const entry = createChapterNode(board, secondChapter.id, { nodeType: "ENTRY", title: "Arrive" });
+  const connection = createChapterConnection(board, exit.id, entry.id, "Next chapter");
+  assert.equal(connection.label, "Next chapter");
+  assert.equal(board.chapterConnections.length, 1);
   assert.equal(validateSceneBoard(board).valid, true);
 });
 

@@ -1,16 +1,16 @@
 import { MODULE_ID, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
-import { clone, createDefaultTemplate, createSceneBoard, normalizeConnectionType } from "./model.js";
+import { clone, createChapter, createDefaultTemplate, createSceneBoard, normalizeConnectionType } from "./model.js";
 import { validateSceneBoard } from "./validation.js";
 
-function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
+export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
   if (!stored || typeof stored !== "object") return createSceneBoard();
   let board = clone(stored);
   if (board.schemaVersion === 2 && Array.isArray(board.scenes) && Array.isArray(board.elements)) {
-    const statusMap = { OPEN: "OFFEN", ACTIVE: "AKTIV", SUCCESS: "ERFOLG", PARTIAL_SUCCESS: "TEILERFOLG", FAILURE: "FEHLSCHLAG", SKIPPED: "UEBERSPRUNGEN" };
+    const statusMap = { OPEN: "OFFEN", WAITING: "WAITING", ACTIVE: "AKTIV", SUCCESS: "ERFOLG", PARTIAL_SUCCESS: "TEILERFOLG", FAILURE: "FEHLSCHLAG", SKIPPED: "UEBERSPRUNGEN" };
     board.scenes = board.scenes.map(scene => ({ ...scene, status: statusMap[scene.status] ?? scene.status, parentId: scene.parentId ?? null }));
     board.schemaVersion = 3;
   }
-  if (board.schemaVersion !== 3 && board.schemaVersion !== STORE_SCHEMA_VERSION) {
+  if (![3, 4, STORE_SCHEMA_VERSION].includes(board.schemaVersion)) {
     if (resetInvalid) return createSceneBoard();
     throw new Error(`Unsupported scene board schema version: ${board.schemaVersion ?? "missing"}`);
   }
@@ -23,6 +23,24 @@ function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
     targetType: template.targetType ?? "SCENE",
     version: template.version ?? 1,
     fields: template.fields ?? []
+  }));
+  board.chapters = Array.isArray(board.chapters) ? board.chapters : [];
+  if (!board.chapters.length) {
+    const migrationChapter = createChapter({ chapters: [], updatedAt: board.updatedAt }, { title: "Chapter 1" });
+    board.chapters = [migrationChapter];
+  }
+  board.chapters = board.chapters.map(chapter => ({
+    ...chapter,
+    displayId: chapter.displayId ?? "C-001",
+    title: chapter.title ?? "Chapter",
+    description: chapter.description ?? "",
+    status: chapter.status ?? "OFFEN",
+    nodes: Array.isArray(chapter.nodes) ? chapter.nodes.map(node => ({
+      ...node,
+      nodeType: node.nodeType === "EXIT" ? "EXIT" : "ENTRY",
+      title: node.title ?? (node.nodeType === "EXIT" ? "Exit" : "Entry"),
+      position: { x: Number(node.position?.x) || 0, y: Number(node.position?.y) || 0 }
+    })) : []
   }));
   board.objects = Array.isArray(board.objects) ? board.objects : [];
   board.elements = (board.elements ?? []).map(element => ({
@@ -41,6 +59,7 @@ function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
     const template = board.templates.find(candidate => candidate.id === scene.templateId) ?? board.templates.find(candidate => candidate.active) ?? board.templates[0];
     return {
       ...scene,
+      chapterId: board.chapters.some(chapter => chapter.id === scene.chapterId) ? scene.chapterId : board.chapters[0].id,
       parentId: scene.parentId ?? null,
       notes: scene.notes ?? "",
       templateId: scene.templateId ?? template?.id ?? null,
@@ -55,6 +74,14 @@ function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
     connectionType: normalizeConnectionType(connection.connectionType),
     description: connection.description ?? "",
     objectAssignments: Array.isArray(connection.objectAssignments) ? connection.objectAssignments : []
+  }));
+  const sceneChapterByElementId = new Map(board.elements.map(element => [element.id, board.scenes.find(scene => scene.id === element.sceneId)?.chapterId]));
+  board.connections = board.connections.filter(connection => sceneChapterByElementId.get(connection.sourceElementId) === sceneChapterByElementId.get(connection.targetElementId));
+  const nodeIds = new Set(board.chapters.flatMap(chapter => chapter.nodes.map(node => node.id)));
+  board.chapterConnections = (Array.isArray(board.chapterConnections) ? board.chapterConnections : []).filter(connection => nodeIds.has(connection.sourceNodeId) && nodeIds.has(connection.targetNodeId)).map(connection => ({
+    ...connection,
+    label: connection.label ?? "",
+    description: connection.description ?? ""
   }));
   board.schemaVersion = STORE_SCHEMA_VERSION;
   return board;

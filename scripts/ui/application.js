@@ -1,8 +1,10 @@
 import { MODULE_ID, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
-import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, normalizeConnectionType, pasteSceneElements, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, updateConnection, updateObjectAssignment } from "../domain/model.js";
-import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson } from "../domain/export.js";
+import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, reorderScenes, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
+import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
+import { normalizeSceneBoard } from "../domain/scene-board-store.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
+import { uuid } from "../domain/ids.js";
 import { SCENE_ELEMENT_MIN_WIDTH, normalizeSceneElementSize, sceneElementPresentation } from "../domain/scene-card.js";
 import { ObjectDetailsApplication } from "./object-details.js";
 import { SceneDetailsApplication } from "./scene-details.js";
@@ -75,27 +77,20 @@ const OBJECT_ICONS = Object.freeze({
   PLAYLIST: "fa-music"
 });
 
-function buildSceneTree(scenes) {
-  const childrenByParent = new Map();
-  for (const scene of scenes) {
-    const parentId = scene.parentId ?? null;
-    const children = childrenByParent.get(parentId) ?? [];
-    children.push(scene);
-    childrenByParent.set(parentId, children);
-  }
-  const tree = [];
-  const visit = (parentId, depth) => {
-    for (const scene of childrenByParent.get(parentId) ?? []) {
-      const children = childrenByParent.get(scene.id) ?? [];
-      tree.push({ ...scene, treeDepth: depth, treeLevel: depth + 2, hasChildren: children.length > 0, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
-      visit(scene.id, depth + 1);
-    }
-  };
-  visit(null, 0);
-  for (const scene of scenes) {
-    if (!tree.some(item => item.id === scene.id)) tree.push({ ...scene, treeDepth: 0, treeLevel: 2, hasChildren: false, statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`) });
-  }
-  return tree;
+function buildChapterTree(chapters, scenes, activeChapterId, selectedSceneId, statusColorsEnabled = false) {
+  return chapters.map(chapter => ({
+    ...chapter,
+    isActive: chapter.id === activeChapterId,
+    statusLabel: localize(`MEL_STORYBOARD.STATUS.${chapter.status}`),
+    statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[chapter.status] ?? STATUS_COLOR_CLASSES.OFFEN : "",
+    scenes: scenes.filter(scene => scene.chapterId === chapter.id).map(scene => ({
+      ...scene,
+      statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`),
+      statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[scene.status] ?? STATUS_COLOR_CLASSES.OFFEN : "",
+      isSelected: scene.id === selectedSceneId,
+      treeLevel: 3
+    }))
+  }));
 }
 
 export class StoryboardApplication extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -126,6 +121,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.suppressCanvasClick = false;
     this.clipboard = null;
     this.zoom = 1;
+    this.activeChapterId = this.board.chapters?.[0]?.id ?? null;
+    this.expandedChapterIds = new Set(this.activeChapterId ? [this.activeChapterId] : []);
     this.connectionSourceId = null;
     this.selectedConnectionId = null;
     this.connectionDescriptionEditor = null;
@@ -134,6 +131,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.sceneDescriptionEditor = null;
     this.sceneDescriptionEditorShell = null;
     this.sceneDescriptionEditorGeneration = 0;
+    this.chapterDescriptionEditor = null;
+    this.chapterDescriptionEditorShell = null;
+    this.chapterDescriptionEditorGeneration = 0;
     this.contextMenuElement = null;
     this.contextMenuHost = null;
     this.contextMenuHandler = null;
@@ -146,6 +146,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async _prepareContext() {
     const statusColorsEnabled = Boolean(game.settings.get(MODULE_ID, STATUS_COLOR_SETTING));
     this.statusColorsEnabled = statusColorsEnabled;
+    if (!this.board.chapters?.some(chapter => chapter.id === this.activeChapterId)) this.activeChapterId = this.board.chapters?.[0]?.id ?? null;
+    const activeChapter = this.board.chapters?.find(chapter => chapter.id === this.activeChapterId) ?? null;
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const objects = await Promise.all((this.board.objects ?? []).map(async object => {
       let image = object.visualConfig?.image ?? "";
@@ -170,7 +172,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       };
     }));
     const objectsById = new Map(objects.map(object => [object.id, object]));
-    const elements = this.board.elements.map(element => {
+    const visibleSceneIds = new Set(this.board.scenes.filter(scene => scene.chapterId === this.activeChapterId).map(scene => scene.id));
+    const elements = this.board.elements.filter(element => visibleSceneIds.has(element.sceneId)).map(element => {
       const scene = scenesById.get(element.sceneId);
       const playerCharacters = (scene?.objectAssignments ?? [])
         .map(assignment => objectsById.get(assignment.objectId))
@@ -201,7 +204,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       };
     });
     const byId = new Map(elements.map(element => [element.id, element]));
-    const connections = this.board.connections.map(connection => {
+    const connections = this.board.connections.filter(connection => {
+      const source = this.board.elements.find(element => element.id === connection.sourceElementId);
+      const target = this.board.elements.find(element => element.id === connection.targetElementId);
+      return source && target && visibleSceneIds.has(source.sceneId) && visibleSceneIds.has(target.sceneId);
+    }).map(connection => {
       const sourceElement = byId.get(connection.sourceElementId);
       const targetElement = byId.get(connection.targetElementId);
       const connectionType = normalizeConnectionType(connection.connectionType);
@@ -222,7 +229,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         hasLabel: Boolean(connection.label?.trim())
       };
     });
-    const selectedElement = this.board.elements.find(element => this.selectedElementIds.includes(element.id));
+    const selectedElement = elements.find(element => this.selectedElementIds.includes(element.id));
     const selectedSceneRecord = scenesById.get(selectedElement?.sceneId);
     const selectedObjects = (selectedSceneRecord?.objectAssignments ?? []).map(assignment => {
       const object = objectsById.get(assignment.objectId);
@@ -263,13 +270,42 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         assignmentNotesPreview: assignment.notes ? foundry.applications.ux.TextEditor.previewHTML(assignment.notes, 140) : ""
       } : null;
     }).filter(Boolean);
-    const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: selectedScene?.status === value }));
-    const sceneTree = buildSceneTree(this.board.scenes);
+    const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: (selectedScene?.status ?? activeChapter?.status) === value }));
+    const selectedSceneId = selectedSceneRecord?.id ?? null;
+    const sceneTree = buildChapterTree(this.board.chapters ?? [], this.board.scenes, this.activeChapterId, selectedSceneId, statusColorsEnabled).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id) }));
+    const selectedChapter = activeChapter ? {
+      ...activeChapter,
+      statusLabel: localize(`MEL_STORYBOARD.STATUS.${activeChapter.status}`),
+      statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[activeChapter.status] ?? STATUS_COLOR_CLASSES.OFFEN : ""
+    } : null;
+    const chapterNodes = (activeChapter?.nodes ?? []).map(node => ({ ...node, isEntry: node.nodeType === "ENTRY", isExit: node.nodeType === "EXIT" }));
     const maxX = Math.max(1200, ...elements.map(element => element.position.x + element.size.width + 80));
     const maxY = Math.max(800, ...elements.map(element => element.position.y + element.size.height + 80));
+    const chapterNodeById = new Map((this.board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => [node.id, { ...node, chapterId: chapter.id }])));
+    const chapterConnectionVisuals = (this.board.chapterConnections ?? []).flatMap(connection => {
+      const source = chapterNodeById.get(connection.sourceNodeId);
+      const target = chapterNodeById.get(connection.targetNodeId);
+      if (!source || !target) return [];
+      if (source.chapterId === this.activeChapterId) {
+        const x1 = source.position.x + 18;
+        const y1 = source.position.y;
+        const x2 = maxX - 30;
+        return [{ ...connection, x1, y1, x2, y2: y1, arrowPoints: `${x2},${y1} ${x2 - 12},${y1 - 6} ${x2 - 12},${y1 + 6}`, labelX: (x1 + x2) / 2, labelY: y1 - 8 }];
+      }
+      if (target.chapterId === this.activeChapterId) {
+        const x1 = 30;
+        const y1 = target.position.y;
+        const x2 = target.position.x - 18;
+        return [{ ...connection, x1, y1, x2, y2: y1, arrowPoints: `${x2},${y1} ${x2 - 12},${y1 - 6} ${x2 - 12},${y1 + 6}`, labelX: (x1 + x2) / 2, labelY: y1 - 8 }];
+      }
+      return [];
+    });
     return {
       board: { ...this.board, elements, connections, objects },
       sceneTree,
+      activeChapter: selectedChapter,
+      chapterNodes,
+      chapterConnectionVisuals,
       selectedElement,
       selectedScene,
       selectedConnection,
@@ -278,7 +314,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       sidebarCollapsed: this.sidebarCollapsed,
       inspectorCollapsed: this.inspectorCollapsed,
       canConnect: this.selectedElementIds.length === 2,
-      hasScenes: this.board.scenes.length > 0,
+      hasScenes: this.board.scenes.some(scene => scene.chapterId === this.activeChapterId),
+      hasChapters: Boolean(this.board.chapters?.length),
       objects,
       selectedObjects,
       statuses,
@@ -298,7 +335,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         exportSvg: localize("MEL_STORYBOARD.ACTIONS.ExportSvg"),
         exportPng: localize("MEL_STORYBOARD.ACTIONS.ExportPng"),
         exportPdf: localize("MEL_STORYBOARD.ACTIONS.ExportPdf"),
+        newChapter: localize("MEL_STORYBOARD.ACTIONS.NewChapter"),
         newScene: localize("MEL_STORYBOARD.ACTIONS.NewScene"),
+        chapterDetails: localize("MEL_STORYBOARD.LABELS.ChapterDetails"),
+        chapterEntry: localize("MEL_STORYBOARD.ACTIONS.NewEntryNode"),
+        chapterExit: localize("MEL_STORYBOARD.ACTIONS.NewExitNode"),
+        deleteChapter: localize("MEL_STORYBOARD.ACTIONS.DeleteChapter"),
+        renameNode: localize("MEL_STORYBOARD.ACTIONS.RenameNode"),
+        deleteNode: localize("MEL_STORYBOARD.ACTIONS.DeleteNode"),
+        linkNode: localize("MEL_STORYBOARD.ACTIONS.LinkNode"),
         collapseSidebar: localize("MEL_STORYBOARD.ACTIONS.CollapseSidebar"),
         expandSidebar: localize("MEL_STORYBOARD.ACTIONS.ExpandSidebar"),
         collapseInspector: localize("MEL_STORYBOARD.ACTIONS.CollapseInspector"),
@@ -339,7 +384,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async _onRender(context, options) {
     this.#destroyConnectionDescriptionEditor();
     this.#destroySceneDescriptionEditor();
+    this.#destroyChapterDescriptionEditor();
     await super._onRender(context, options);
+    const windowTitle = context.activeChapter ? `${localize("MEL_STORYBOARD.UI.Title")} – ${context.activeChapter.displayId}: ${context.activeChapter.title}` : localize("MEL_STORYBOARD.UI.Title");
+    this.element.querySelector(".window-title")?.replaceChildren(document.createTextNode(windowTitle));
     this.#closeContextMenu();
     if (this.contextMenuHost !== this.element) {
       this.contextMenuHost?.removeEventListener("contextmenu", this.contextMenuHandler, true);
@@ -354,6 +402,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
     this.element.querySelectorAll("[data-action]").forEach(element => element.addEventListener("click", event => this.#handleAction(event)));
     this.#bindFoundryLinks(this.element);
+    this.#bindChapterTreeDragDrop();
     this.element.querySelectorAll("[data-scene-element]").forEach(element => {
       element.addEventListener("pointerdown", event => this.#startDrag(event));
       element.addEventListener("pointerdown", event => {
@@ -414,11 +463,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
     this.#applyZoom();
     this.element.querySelectorAll("[data-scene-field]").forEach(field => field.addEventListener("change", event => this.#updateSceneField(event)));
+    this.element.querySelectorAll("[data-chapter-field]").forEach(field => field.addEventListener("change", event => this.#updateChapterField(event)));
     this.element.querySelector("[data-json-import]")?.addEventListener("change", event => this.#importFile(event));
     if (context.selectedConnection) {
       await this.#activateConnectionDescriptionEditor(context.selectedConnection.description ?? "");
     } else if (context.selectedScene) {
       await this.#activateSceneDescriptionEditor(context.selectedScene.description ?? "");
+    } else if (context.activeChapter) {
+      await this.#activateChapterDescriptionEditor(context.activeChapter.description ?? "");
     }
   }
 
@@ -429,6 +481,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#finishConnectionDrag();
     this.#destroyConnectionDescriptionEditor();
     this.#destroySceneDescriptionEditor();
+    this.#destroyChapterDescriptionEditor();
     return super._onClose(options);
   }
 
@@ -448,6 +501,72 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     root.querySelectorAll("[data-storyboard-foundry-link]").forEach(link => {
       link.addEventListener("click", event => this.#openFoundryDocument(event));
     });
+  }
+
+  #bindChapterTreeDragDrop() {
+    this.element.querySelectorAll("[data-chapter-id][draggable='true']").forEach(item => {
+      item.addEventListener("dragstart", event => {
+        event.stopPropagation();
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("application/x-mel-storyboard-tree", JSON.stringify({
+          type: item.dataset.sceneId ? "scene" : "chapter",
+          id: item.dataset.sceneId ?? item.dataset.chapterId,
+          chapterId: item.dataset.chapterId
+        }));
+        item.classList.add("is-dragging");
+      });
+      item.addEventListener("dragend", () => item.classList.remove("is-dragging", "is-drop-target"));
+      item.addEventListener("dragover", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        item.classList.add("is-drop-target");
+      });
+      item.addEventListener("dragleave", () => item.classList.remove("is-drop-target"));
+      item.addEventListener("drop", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        item.classList.remove("is-drop-target");
+        await this.#handleChapterTreeDrop(event, item);
+      });
+    });
+  }
+
+  async #handleChapterTreeDrop(event, target) {
+    const raw = event.dataTransfer?.getData("application/x-mel-storyboard-tree");
+    if (!raw) return;
+    let payload;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (payload.type === "chapter" && target.dataset.chapterId && !target.dataset.sceneId) {
+      if (payload.id === target.dataset.chapterId) return;
+      this.history.capture(this.board);
+      const ids = this.board.chapters.map(chapter => chapter.id);
+      const sourceIndex = ids.indexOf(payload.id);
+      const targetIndex = ids.indexOf(target.dataset.chapterId);
+      if (sourceIndex < 0 || targetIndex < 0) return;
+      ids.splice(sourceIndex, 1);
+      ids.splice(targetIndex, 0, payload.id);
+      reorderChapters(this.board, ids);
+    } else if (payload.type === "scene" && target.dataset.sceneId) {
+      const targetScene = this.board.scenes.find(scene => scene.id === target.dataset.sceneId);
+      if (!targetScene || payload.id === targetScene.id) return;
+      this.history.capture(this.board);
+      const targetScenes = this.board.scenes.filter(scene => scene.chapterId === targetScene.chapterId && scene.id !== payload.id).map(scene => scene.id);
+      const sourceIndex = targetScenes.indexOf(payload.id);
+      if (sourceIndex >= 0) targetScenes.splice(sourceIndex, 1);
+      targetScenes.splice(Math.max(0, targetScenes.indexOf(targetScene.id)), 0, payload.id);
+      moveSceneToChapter(this.board, payload.id, targetScene.chapterId, targetScenes.indexOf(payload.id));
+      const chapterSceneIds = this.board.scenes.filter(scene => scene.chapterId === targetScene.chapterId).map(scene => scene.id);
+      reorderScenes(this.board, targetScene.chapterId, [...targetScenes, ...chapterSceneIds.filter(id => !targetScenes.includes(id))]);
+    } else if (payload.type === "scene" && target.dataset.chapterId) {
+      const targetChapter = this.board.chapters.find(chapter => chapter.id === target.dataset.chapterId);
+      if (!targetChapter) return;
+      this.history.capture(this.board);
+      moveSceneToChapter(this.board, payload.id, targetChapter.id);
+      this.activeChapterId = targetChapter.id;
+      this.expandedChapterIds.add(targetChapter.id);
+    } else return;
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
   }
 
   async #openFoundryDocument(event) {
@@ -474,6 +593,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #selectElement(elementId, additive = false) {
+    const element = this.board.elements.find(candidate => candidate.id === elementId);
+    const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
+    if (scene?.chapterId) {
+      this.activeChapterId = scene.chapterId;
+      this.expandedChapterIds.add(scene.chapterId);
+    }
     this.inspectorCollapsed = false;
     this.selectedConnectionId = null;
     this.selectedElementIds = additive
@@ -571,6 +696,46 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.sceneDescriptionEditor = editor;
   }
 
+  async #activateChapterDescriptionEditor(description) {
+    const editorHost = this.element.querySelector("[data-chapter-description-editor]");
+    if (!editorHost) return;
+    const generation = ++this.chapterDescriptionEditorGeneration;
+    const editorShell = document.createElement("div");
+    editorShell.className = "editor prosemirror mel-storyboard-chapter-description-editor-shell";
+    const editorTarget = document.createElement("div");
+    editorTarget.className = "editor-content";
+    editorShell.append(editorTarget);
+    editorHost.replaceChildren(editorShell);
+    this.chapterDescriptionEditorShell = editorShell;
+    let editor;
+    try {
+      const { defaultSchema, plugins } = foundry.prosemirror;
+      editor = await foundry.applications.ux.ProseMirrorEditor.create(editorTarget, description, {
+        uuid: `MelStoryboard.ChapterDetails.${foundry.utils.randomID()}`,
+        plugins: {
+          menu: plugins.ProseMirrorMenu.build(defaultSchema, {
+            destroyOnSave: false,
+            onSave: () => this.#saveChapterDetails()
+          }),
+          keyMaps: plugins.ProseMirrorKeyMaps.build(defaultSchema, {
+            onSave: () => this.#saveChapterDetails()
+          })
+        },
+        props: { editable: () => true }
+      });
+    } catch (error) {
+      console.error("[mel-storyboard] Could not create chapter description editor", error);
+      this.#destroyChapterDescriptionEditor();
+      ui.notifications.error(localize("MEL_STORYBOARD.ERRORS.NoteEditor"));
+      return;
+    }
+    if (generation !== this.chapterDescriptionEditorGeneration || !editorShell.isConnected || !this.activeChapterId) {
+      editor.destroy();
+      return;
+    }
+    this.chapterDescriptionEditor = editor;
+  }
+
   #destroyConnectionDescriptionEditor() {
     this.connectionDescriptionEditorGeneration += 1;
     this.connectionDescriptionEditor?.destroy();
@@ -587,6 +752,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.sceneDescriptionEditorShell = null;
   }
 
+  #destroyChapterDescriptionEditor() {
+    this.chapterDescriptionEditorGeneration += 1;
+    this.chapterDescriptionEditor?.destroy();
+    this.chapterDescriptionEditor = null;
+    this.chapterDescriptionEditorShell?.remove();
+    this.chapterDescriptionEditorShell = null;
+  }
+
   #getConnectionDescriptionValue() {
     const document = this.connectionDescriptionEditor?.view?.state?.doc;
     if (!document) return this.board.connections.find(connection => connection.id === this.selectedConnectionId)?.description ?? "";
@@ -596,6 +769,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #getSceneDescriptionValue() {
     const document = this.sceneDescriptionEditor?.view?.state?.doc;
     if (!document) return this.#selectedScene()?.description ?? "";
+    return foundry.prosemirror.dom.serializeString(document.content);
+  }
+
+  #getChapterDescriptionValue() {
+    const document = this.chapterDescriptionEditor?.view?.state?.doc;
+    if (!document) return this.board.chapters.find(chapter => chapter.id === this.activeChapterId)?.description ?? "";
     return foundry.prosemirror.dom.serializeString(document.content);
   }
 
@@ -627,6 +806,22 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
+  async #saveChapterDetails() {
+    const chapter = this.board.chapters.find(candidate => candidate.id === this.activeChapterId);
+    if (!chapter) return;
+    const title = this.element.querySelector("[data-chapter-field='title']")?.value ?? chapter.title;
+    const status = this.element.querySelector("[data-chapter-field='status']")?.value ?? chapter.status;
+    this.history.capture(this.board);
+    chapter.title = title.trim() || chapter.title;
+    chapter.status = status;
+    chapter.description = this.#getChapterDescriptionValue();
+    chapter.updatedAt = new Date().toISOString();
+    this.board = await this.store.save(this.board);
+    this.#destroyChapterDescriptionEditor();
+    ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.Saved"));
+    await this.render({ force: true });
+  }
+
   #selectedScene() {
     const element = this.board.elements.find(candidate => candidate.id === this.selectedElementIds[0]);
     return this.board.scenes.find(scene => scene.id === element?.sceneId) ?? null;
@@ -641,14 +836,22 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const path = event.composedPath?.() ?? [];
     const findTarget = selector => path.find(candidate => candidate instanceof Element && candidate.matches(selector)) ?? target?.closest(selector);
     const connectionTarget = findTarget("[data-connection-id]");
+    const chapterConnectionTarget = findTarget("[data-chapter-connection-id]");
     const sceneTarget = findTarget("[data-scene-element]");
+    const chapterNodeTarget = findTarget("[data-chapter-node]");
+    const chapterTarget = findTarget("[data-chapter-id]");
+    const storyTarget = findTarget("[data-story-root]");
     const canvasTarget = findTarget("[data-storyboard-canvas]");
-    if (!connectionTarget && !sceneTarget && !canvasTarget) return;
+    if (!connectionTarget && !chapterConnectionTarget && !sceneTarget && !chapterNodeTarget && !chapterTarget && !storyTarget && !canvasTarget) return;
     event.preventDefault();
     event.stopPropagation();
     this.#openContextMenu(event, {
       connectionId: connectionTarget?.dataset.connectionId ?? null,
-      elementId: sceneTarget?.dataset.elementId ?? null
+      chapterConnectionId: chapterConnectionTarget?.dataset.chapterConnectionId ?? null,
+      elementId: sceneTarget?.dataset.elementId ?? null,
+      chapterId: chapterTarget?.dataset.chapterId ?? null,
+      nodeId: chapterNodeTarget?.dataset.nodeId ?? null,
+      isStoryRoot: Boolean(storyTarget)
     });
   }
 
@@ -815,20 +1018,36 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     svg.style.height = `${height}px`;
   }
 
-  #openContextMenu(event, { connectionId = null, elementId = null } = {}) {
+  #openContextMenu(event, { connectionId = null, chapterConnectionId = null, elementId = null, chapterId = null, nodeId = null, isStoryRoot = false } = {}) {
     this.#closeContextMenu();
     const sceneMenu = Boolean(elementId);
     const connectionMenu = Boolean(connectionId);
+    const chapterConnectionMenu = Boolean(chapterConnectionId);
+    const chapterMenu = Boolean(chapterId);
+    const nodeMenu = Boolean(nodeId);
     const menu = document.createElement("menu");
     menu.className = "mel-storyboard-context-menu";
     menu.setAttribute("role", "menu");
     const entries = connectionMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteConnection"), icon: "×", action: () => this.#deleteConnection(connectionId) }
+    ] : chapterConnectionMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteChapterConnection"), icon: "×", action: () => this.#deleteChapterConnection(chapterConnectionId) }
+    ] : nodeMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.RenameNode"), icon: "✎", action: () => this.#renameChapterNode(nodeId) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.LinkNode"), icon: "→", action: () => this.#linkChapterNode(nodeId) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteNode"), icon: "×", action: () => this.#deleteChapterNode(nodeId) }
+    ] : chapterMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.ChapterDetails"), icon: "ⓘ", action: () => this.#selectChapter(chapterId) },
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewEntryNode"), icon: "○", action: () => this.#createChapterNode(chapterId, "ENTRY") },
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewExitNode"), icon: "○", action: () => this.#createChapterNode(chapterId, "EXIT") },
+      { label: localize("MEL_STORYBOARD.ACTIONS.DeleteChapter"), icon: "×", action: () => this.#deleteChapter(chapterId) }
+    ] : isStoryRoot ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewChapter"), icon: "+", action: () => this.#createChapter() }
     ] : sceneMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "×", action: async () => { this.selectedElementIds = [elementId]; await this.#deleteSelected(); } }
     ] : [
-      { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "+", action: () => this.#createScene(event) }
+      { label: localize("MEL_STORYBOARD.ACTIONS.NewChapter"), icon: "+", action: () => this.#createChapter() }
     ];
     for (const entry of entries) {
       const item = document.createElement("button");
@@ -871,6 +1090,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
+  async #deleteChapterConnection(connectionId) {
+    this.history.capture(this.board);
+    removeChapterConnection(this.board, connectionId);
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
   #closeContextMenu() {
     this.contextMenuElement?.remove();
     if (this.contextMenuOutsideHandler) document.removeEventListener("pointerdown", this.contextMenuOutsideHandler, true);
@@ -887,7 +1113,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }, 0) + 1;
     const title = `Scene ${nextNumber}`;
     this.history.capture(this.board);
-    const scene = createScene(this.board, { title });
+    const scene = createScene(this.board, { title, chapterId: this.activeChapterId });
     const element = createSceneElement(this.board, { sceneId: scene.id, title: scene.title });
     const svg = this.element.querySelector("[data-storyboard-canvas]");
     if (event && svg) {
@@ -897,6 +1123,120 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.board = await this.store.save(this.board);
     this.selectedElementIds = [element.id];
     this.inspectorCollapsed = false;
+    await this.render({ force: true });
+  }
+
+  #selectChapter(chapterId) {
+    if (!this.board.chapters.some(chapter => chapter.id === chapterId)) return;
+    this.activeChapterId = chapterId;
+    this.expandedChapterIds.add(chapterId);
+    this.selectedElementIds = [];
+    this.selectedConnectionId = null;
+    this.connectionSourceId = null;
+    this.inspectorCollapsed = false;
+    this.render({ force: true });
+  }
+
+  #toggleChapter(chapterId) {
+    if (this.expandedChapterIds.has(chapterId)) this.expandedChapterIds.delete(chapterId);
+    else this.expandedChapterIds.add(chapterId);
+    this.render({ force: true });
+  }
+
+  async #createChapter() {
+    const nextNumber = this.board.chapters.reduce((highest, chapter) => {
+      const match = /^Chapter\s+(\d+)$/i.exec(chapter.title?.trim() ?? "");
+      return Math.max(highest, match ? Number(match[1]) : 0);
+    }, 0) + 1;
+    this.history.capture(this.board);
+    const chapter = createChapter(this.board, { title: `Chapter ${nextNumber}` });
+    this.activeChapterId = chapter.id;
+    this.expandedChapterIds.add(chapter.id);
+    this.selectedElementIds = [];
+    this.selectedConnectionId = null;
+    this.inspectorCollapsed = false;
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #createChapterNode(chapterId, nodeType) {
+    this.history.capture(this.board);
+    createChapterNode(this.board, chapterId, { nodeType });
+    this.activeChapterId = chapterId;
+    this.selectedElementIds = [];
+    this.selectedConnectionId = null;
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #renameChapterNode(nodeId) {
+    const node = this.board.chapters.flatMap(chapter => chapter.nodes ?? []).find(candidate => candidate.id === nodeId);
+    if (!node) return;
+    await Dialog.prompt({
+      title: localize("MEL_STORYBOARD.ACTIONS.RenameNode"),
+      content: `<form><div class="form-group"><label>${localize("MEL_STORYBOARD.LABELS.Title")}</label><input type="text" name="title" value="${String(node.title).replace(/"/g, "&quot;")}" autofocus></div></form>`,
+      callback: async html => {
+        const title = html.find("[name='title']").val();
+        this.history.capture(this.board);
+        updateChapterNode(node, { title });
+        this.board = await this.store.save(this.board);
+        await this.render({ force: true });
+      },
+      rejectClose: false
+    });
+  }
+
+  async #deleteChapterNode(nodeId) {
+    this.history.capture(this.board);
+    removeChapterNode(this.board, nodeId);
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #linkChapterNode(nodeId) {
+    const source = this.board.chapters.flatMap(chapter => (chapter.nodes ?? []).map(node => ({ ...node, chapterId: chapter.id }))).find(node => node.id === nodeId);
+    if (!source) return;
+    const targetType = source.nodeType === "EXIT" ? "ENTRY" : "EXIT";
+    const targets = this.board.chapters.flatMap(chapter => (chapter.nodes ?? []).map(node => ({ ...node, chapterId: chapter.id }))).filter(node => node.nodeType === targetType && node.chapterId !== source.chapterId);
+    if (!targets.length) {
+      ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.NoChapterNodeTargets"));
+      return;
+    }
+    const options = targets.map(target => `<option value="${target.id}">${target.displayId}: ${target.title} (${this.board.chapters.find(chapter => chapter.id === target.chapterId)?.title ?? ""})</option>`).join("");
+    await Dialog.prompt({
+      title: localize("MEL_STORYBOARD.ACTIONS.LinkNode"),
+      content: `<form><div class="form-group"><label>${localize("MEL_STORYBOARD.LABELS.TargetNode")}</label><select name="targetNode">${options}</select></div></form>`,
+      callback: async html => {
+        const targetId = html.find("[name='targetNode']").val();
+        this.history.capture(this.board);
+        if (source.nodeType === "EXIT") createChapterConnection(this.board, source.id, targetId);
+        else createChapterConnection(this.board, targetId, source.id);
+        this.board = await this.store.save(this.board);
+        await this.render({ force: true });
+      },
+      rejectClose: false
+    });
+  }
+
+  async #deleteChapter(chapterId) {
+    if (this.board.chapters.length <= 1) {
+      ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.LastChapter"));
+      return;
+    }
+    const chapter = this.board.chapters.find(candidate => candidate.id === chapterId);
+    if (!chapter) return;
+    const confirmed = await Dialog.confirm({
+      title: localize("MEL_STORYBOARD.ACTIONS.DeleteChapter"),
+      content: `<p>${localize("MEL_STORYBOARD.NOTIFICATIONS.ConfirmDeleteChapter").replace("{name}", chapter.title)}</p>`
+    });
+    if (!confirmed) return;
+    this.history.capture(this.board);
+    removeChapter(this.board, chapterId);
+    this.activeChapterId = this.board.chapters[0]?.id ?? null;
+    this.expandedChapterIds.add(this.activeChapterId);
+    this.selectedElementIds = [];
+    this.selectedConnectionId = null;
+    this.board = await this.store.save(this.board);
     await this.render({ force: true });
   }
 
@@ -1155,6 +1495,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     try {
       if (action === "add-scene") {
         await this.#createScene();
+      } else if (action === "add-chapter") {
+        await this.#createChapter();
       } else if (action === "toggle-sidebar") {
         this.sidebarCollapsed = !this.sidebarCollapsed;
       } else if (action === "toggle-inspector") {
@@ -1202,16 +1544,30 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       } else if (action === "import-json") this.element.querySelector("[data-json-import]")?.click();
       else if (action === "select-scene") {
         const element = this.board.elements.find(candidate => candidate.sceneId === event.currentTarget.dataset.sceneId);
+        const scene = this.board.scenes.find(candidate => candidate.id === event.currentTarget.dataset.sceneId);
+        if (scene?.chapterId) {
+          this.activeChapterId = scene.chapterId;
+          this.expandedChapterIds.add(scene.chapterId);
+        }
         this.selectedElementIds = element ? [element.id] : [];
         this.selectedConnectionId = null;
         this.inspectorCollapsed = false;
+      } else if (action === "select-chapter") {
+        this.#selectChapter(event.currentTarget.dataset.chapterId);
+        return;
+      } else if (action === "toggle-chapter") {
+        this.#toggleChapter(event.currentTarget.dataset.chapterId);
+        return;
       } else if (action === "save-scene") {
         await this.#saveSceneDetails();
         return;
-      } else if (action === "export-json") downloadSceneBoardJson(this.board);
-      else if (action === "export-svg") downloadSceneBoardSvg(this.board, this.#exportLabels());
-      else if (action === "export-png") await downloadSceneBoardPng(this.board, this.#exportLabels());
-      else if (action === "export-pdf") printSceneBoardAsPdf(this.board, this.#exportLabels());
+      } else if (action === "save-chapter") {
+        await this.#saveChapterDetails();
+        return;
+      } else if (action === "export-json") await this.#exportBoard("json");
+      else if (action === "export-svg") await this.#exportBoard("svg");
+      else if (action === "export-png") await this.#exportBoard("png");
+      else if (action === "export-pdf") await this.#exportBoard("pdf");
       await this.render({ force: true });
     } catch (error) { notifyError(error); }
   }
@@ -1229,17 +1585,157 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
+  async #updateChapterField(event) {
+    const chapter = this.board.chapters.find(candidate => candidate.id === this.activeChapterId);
+    if (!chapter) return;
+    this.history.capture(this.board);
+    if (this.chapterDescriptionEditor) chapter.description = this.#getChapterDescriptionValue();
+    if (event.currentTarget.dataset.chapterField === "title") chapter.title = event.currentTarget.value.trim() || chapter.title;
+    else chapter[event.currentTarget.dataset.chapterField] = event.currentTarget.value;
+    chapter.updatedAt = new Date().toISOString();
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #exportBoard(format) {
+    const chapters = this.board.chapters ?? [];
+    const options = chapters.map(chapter => `<option value="${chapter.id}" ${chapter.id === this.activeChapterId ? "selected" : ""}>${chapter.displayId}: ${chapter.title}</option>`).join("");
+    await Dialog.prompt({
+      title: localize("MEL_STORYBOARD.ACTIONS.ExportScope"),
+      content: `<form><div class="form-group"><label>${localize("MEL_STORYBOARD.LABELS.ExportScope")}</label><select name="scope"><option value="all">${localize("MEL_STORYBOARD.LABELS.EntireStoryboard")}</option><option value="current">${localize("MEL_STORYBOARD.LABELS.CurrentChapter")}</option><option value="selected">${localize("MEL_STORYBOARD.LABELS.SelectedChapters")}</option></select></div><div class="form-group"><label>${localize("MEL_STORYBOARD.LABELS.Chapters")}</label><select name="chapters" multiple size="${Math.min(6, Math.max(2, chapters.length))}">${options}</select></div></form>`,
+      callback: async html => {
+        const scope = html.find("[name='scope']").val();
+        const selected = Array.from(html.find("[name='chapters'] option:selected")).map(option => option.value);
+        const chapterIds = scope === "all" ? null : scope === "current" ? [this.activeChapterId] : selected;
+        const board = scopeSceneBoard(this.board, chapterIds);
+        const labels = this.#exportLabels();
+        if (format === "json") downloadSceneBoardJson(board);
+        else if (format === "svg") downloadSceneBoardSvg(board, labels);
+        else if (format === "png") await downloadSceneBoardPng(board, labels);
+        else if (format === "pdf") printSceneBoardAsPdf(board, labels);
+      },
+      rejectClose: false
+    });
+  }
+
   async #importFile(event) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
     try {
-      this.board = await this.store.import(sceneBoardFromJson(await file.text()));
-      this.selectedElementIds = [];
-      this.selectedConnectionId = null;
-      this.connectionSourceId = null;
-      await this.render({ force: true });
+      const imported = normalizeSceneBoard(sceneBoardFromJson(await file.text()), { resetInvalid: false });
+      const options = this.board.chapters.map(chapter => `<option value="${chapter.id}">${chapter.displayId}: ${chapter.title}</option>`).join("");
+      await Dialog.prompt({
+        title: localize("MEL_STORYBOARD.ACTIONS.ImportTarget"),
+        content: `<form><div class="form-group"><label>${localize("MEL_STORYBOARD.LABELS.ImportTarget")}</label><select name="target"><option value="replace">${localize("MEL_STORYBOARD.LABELS.ReplaceStoryboard")}</option><option value="new">${localize("MEL_STORYBOARD.LABELS.NewChapter")}</option><option value="existing">${localize("MEL_STORYBOARD.LABELS.ExistingChapter")}</option></select></div><div class="form-group"><label>${localize("MEL_STORYBOARD.LABELS.Chapter")}</label><select name="chapter">${options}</select></div></form>`,
+        callback: async html => {
+          const target = html.find("[name='target']").val();
+          const chapterId = html.find("[name='chapter']").val();
+          this.history.capture(this.board);
+          if (target === "replace") this.board = await this.store.import(imported);
+          else if (target === "new") this.#mergeImportedChapters(imported);
+          else this.#mergeImportedChapterInto(imported, chapterId);
+          this.selectedElementIds = [];
+          this.selectedConnectionId = null;
+          this.connectionSourceId = null;
+          this.activeChapterId = target === "replace" ? this.board.chapters[0]?.id : (target === "existing" ? chapterId : this.board.chapters.at(-1)?.id);
+          this.board = await this.store.save(this.board);
+          await this.render({ force: true });
+        },
+        rejectClose: false
+      });
     } catch (error) { notifyError(error); }
     finally { event.currentTarget.value = ""; }
+  }
+
+  #mergeImportedChapters(imported) {
+    const chapterMap = new Map();
+    const sceneMap = new Map();
+    const elementMap = new Map();
+    const nodeMap = new Map();
+    const objectMap = new Map();
+    const templateMap = new Map();
+    const importedObjects = (imported.objects ?? []).map(source => {
+      const copied = { ...clone(source), id: uuid() };
+      objectMap.set(source.id, copied.id);
+      return copied;
+    });
+    const importedTemplates = (imported.templates ?? []).map(source => {
+      const copied = { ...clone(source), id: uuid(), sourceTemplateId: source.sourceTemplateId ? uuid() : null };
+      templateMap.set(source.id, copied.id);
+      return copied;
+    });
+    const chapters = (imported.chapters ?? []).map(source => {
+      const chapter = clone(source);
+      chapter.id = uuid();
+      chapter.displayId = `C-${String(this.board.chapters.length + chapterMap.size + 1).padStart(3, "0")}`;
+      chapterMap.set(source.id, chapter.id);
+      chapter.nodes = (source.nodes ?? []).map(node => {
+        const copied = { ...clone(node), id: uuid() };
+        nodeMap.set(node.id, copied.id);
+        return copied;
+      });
+      return chapter;
+    });
+    const scenes = (imported.scenes ?? []).map(source => {
+      const scene = { ...clone(source), id: uuid(), displayId: `S-${String(this.board.scenes.length + sceneMap.size + 1).padStart(3, "0")}`, chapterId: chapterMap.get(source.chapterId), templateId: templateMap.get(source.templateId) ?? source.templateId };
+      scene.objectAssignments = (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId }));
+      sceneMap.set(source.id, scene.id);
+      return scene;
+    });
+    const elements = (imported.elements ?? []).map(source => {
+      const element = { ...clone(source), id: uuid(), sceneId: sceneMap.get(source.sceneId) };
+      elementMap.set(source.id, element.id);
+      return element;
+    });
+    const connections = (imported.connections ?? []).map(source => ({ ...clone(source), id: uuid(), sourceElementId: elementMap.get(source.sourceElementId), targetElementId: elementMap.get(source.targetElementId), objectAssignments: (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId })) })).filter(connection => connection.sourceElementId && connection.targetElementId);
+    this.board.objects.push(...importedObjects);
+    this.board.templates.push(...importedTemplates);
+    const chapterConnections = (imported.chapterConnections ?? []).map(source => ({ ...clone(source), id: uuid(), sourceNodeId: nodeMap.get(source.sourceNodeId), targetNodeId: nodeMap.get(source.targetNodeId) })).filter(connection => connection.sourceNodeId && connection.targetNodeId);
+    this.board.chapters.push(...chapters);
+    this.board.scenes.push(...scenes);
+    this.board.elements.push(...elements);
+    this.board.connections.push(...connections);
+    this.board.chapterConnections.push(...chapterConnections);
+  }
+
+  #mergeImportedChapterInto(imported, targetChapterId) {
+    const sourceChapter = imported.chapters?.[0];
+    const targetChapter = this.board.chapters.find(chapter => chapter.id === targetChapterId);
+    if (!sourceChapter || !targetChapter) throw new Error("The import target chapter does not exist.");
+    const sceneMap = new Map();
+    const nodeMap = new Map();
+    const objectMap = new Map();
+    const templateMap = new Map();
+    for (const source of imported.objects ?? []) {
+      const copied = { ...clone(source), id: uuid() };
+      objectMap.set(source.id, copied.id);
+      this.board.objects.push(copied);
+    }
+    for (const source of imported.templates ?? []) {
+      const copied = { ...clone(source), id: uuid(), sourceTemplateId: source.sourceTemplateId ? uuid() : null };
+      templateMap.set(source.id, copied.id);
+      this.board.templates.push(copied);
+    }
+    for (const node of sourceChapter.nodes ?? []) {
+      const copied = { ...clone(node), id: uuid() };
+      nodeMap.set(node.id, copied.id);
+      targetChapter.nodes.push(copied);
+    }
+    const scenes = (imported.scenes ?? []).filter(scene => scene.chapterId === sourceChapter.id).map(source => {
+      const copied = { ...clone(source), id: uuid(), displayId: `S-${String(this.board.scenes.length + sceneMap.size + 1).padStart(3, "0")}`, chapterId: targetChapter.id, templateId: templateMap.get(source.templateId) ?? source.templateId };
+      copied.objectAssignments = (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId }));
+      sceneMap.set(source.id, copied.id);
+      return copied;
+    });
+    const elementMap = new Map();
+    const elements = (imported.elements ?? []).filter(element => sceneMap.has(element.sceneId)).map(source => {
+      const copied = { ...clone(source), id: uuid(), sceneId: sceneMap.get(source.sceneId) };
+      elementMap.set(source.id, copied.id);
+      return copied;
+    });
+    this.board.scenes.push(...scenes);
+    this.board.elements.push(...elements);
+    this.board.connections.push(...(imported.connections ?? []).filter(connection => elementMap.has(connection.sourceElementId) && elementMap.has(connection.targetElementId)).map(source => ({ ...clone(source), id: uuid(), sourceElementId: elementMap.get(source.sourceElementId), targetElementId: elementMap.get(source.targetElementId), objectAssignments: (source.objectAssignments ?? []).map(assignment => ({ ...clone(assignment), objectId: objectMap.get(assignment.objectId) ?? assignment.objectId })) })));
   }
 
   #startDrag(event) {

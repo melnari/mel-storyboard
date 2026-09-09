@@ -1,6 +1,6 @@
 <section class="mel-storyboard-workspace">
   <header class="mel-storyboard-toolbar">
-    <h1>{{labels.title}}</h1>
+    <h1>{{labels.title}}{{#if activeChapter}} <span class="mel-storyboard-toolbar-chapter">– {{activeChapter.displayId}}: {{activeChapter.title}}</span>{{/if}}</h1>
     <div class="mel-storyboard-actions">
       <button type="button" class="icon-button" data-action="zoom-out" title="{{labels.zoomOut}}" aria-label="{{labels.zoomOut}}"><i class="fas fa-minus"></i></button>
       <button type="button" class="icon-button" data-action="zoom-in" title="{{labels.zoomIn}}" aria-label="{{labels.zoomIn}}"><i class="fas fa-plus"></i></button>
@@ -21,25 +21,33 @@
   <input type="file" data-json-import accept="application/json,.json" hidden />
 
   <div class="mel-storyboard-layout">
-    <aside class="mel-storyboard-sidebar {{#if sidebarCollapsed}}is-collapsed{{/if}}" aria-label="{{labels.scenes}}">
+    <aside class="mel-storyboard-sidebar {{#if sidebarCollapsed}}is-collapsed{{/if}}" aria-label="{{labels.story}}">
       <div class="mel-storyboard-sidebar-heading">
-        <span class="mel-storyboard-tree-root"><i class="fas fa-folder-open" aria-hidden="true"></i> {{labels.story}}</span>
-        <button type="button" class="icon-button" data-action="add-scene" title="{{labels.newScene}}" aria-label="{{labels.newScene}}"><i class="fas fa-plus"></i></button>
+        <span class="mel-storyboard-tree-root" data-story-root><i class="fas fa-book-open" aria-hidden="true"></i> {{labels.story}}</span>
+        <button type="button" class="icon-button" data-action="add-chapter" title="{{labels.newChapter}}" aria-label="{{labels.newChapter}}"><i class="fas fa-plus"></i></button>
         <button type="button" class="icon-button" data-action="toggle-sidebar" title="{{#if sidebarCollapsed}}{{labels.expandSidebar}}{{else}}{{labels.collapseSidebar}}{{/if}}" aria-label="{{#if sidebarCollapsed}}{{labels.expandSidebar}}{{else}}{{labels.collapseSidebar}}{{/if}}"><i class="fas {{#if sidebarCollapsed}}fa-chevron-right{{else}}fa-chevron-left{{/if}}" aria-hidden="true"></i></button>
       </div>
-      <ul class="mel-storyboard-scene-tree" role="tree" aria-label="{{labels.story}}">
-        {{#if hasScenes}}
+      <ul class="mel-storyboard-scene-tree mel-storyboard-chapter-tree" role="tree" aria-label="{{labels.story}}">
+        {{#if hasChapters}}
           {{#each sceneTree}}
-            <li role="treeitem" aria-level="{{treeLevel}}" class="mel-storyboard-tree-item" style="--tree-depth: {{treeDepth}}">
-              <button type="button" data-action="select-scene" data-scene-id="{{id}}" class="mel-storyboard-tree-node">
-                <span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas {{#if hasChildren}}fa-chevron-down{{else}}fa-circle{{/if}}"></i></span>
-                <span class="mel-storyboard-tree-id">{{displayId}}</span>
-                <span class="mel-storyboard-tree-title">{{title}}</span>
-              </button>
+            <li role="treeitem" aria-level="2" draggable="true" data-chapter-id="{{id}}" class="mel-storyboard-tree-item mel-storyboard-chapter-tree-item {{#if isActive}}is-active{{/if}}">
+              <div class="mel-storyboard-tree-node mel-storyboard-chapter-node">
+                <button type="button" class="icon-button mel-storyboard-tree-toggle" data-action="toggle-chapter" data-chapter-id="{{id}}" title="{{title}}" aria-label="{{title}}"><i class="fas {{#if isExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i></button>
+                <button type="button" data-action="select-chapter" data-chapter-id="{{id}}" class="mel-storyboard-tree-label status-{{statusColorClass}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-folder{{#if isExpanded}}-open{{/if}}"></i></span><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></button>
+              </div>
+              {{#if isExpanded}}
+                <ul role="group" class="mel-storyboard-tree-children">
+                  {{#each scenes}}
+                    <li role="treeitem" aria-level="3" draggable="true" data-scene-id="{{id}}" data-chapter-id="{{chapterId}}" class="mel-storyboard-tree-item {{#if isSelected}}is-active{{/if}}">
+                      <button type="button" data-action="select-scene" data-scene-id="{{id}}" class="mel-storyboard-tree-node status-{{statusColorClass}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-circle"></i></span><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></button>
+                    </li>
+                  {{/each}}
+                </ul>
+              {{/if}}
             </li>
           {{/each}}
         {{else}}
-          <li class="mel-storyboard-empty">{{labels.noScenes}}</li>
+          <li class="mel-storyboard-empty">{{labels.noChapters}}</li>
         {{/if}}
       </ul>
     </aside>
@@ -58,6 +66,17 @@
             <polygon class="mel-storyboard-connection-arrow {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{arrowPoints}}" />
             {{#if isBilateral}}<polygon class="mel-storyboard-connection-arrow mel-storyboard-connection-arrow-reverse {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{reverseArrowPoints}}" />{{/if}}
             {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
+          {{/each}}
+          {{#each chapterConnectionVisuals}}
+            <line class="mel-storyboard-chapter-connection" data-chapter-connection-id="{{id}}" x1="{{x1}}" y1="{{y1}}" x2="{{x2}}" y2="{{y2}}" />
+            <polygon class="mel-storyboard-chapter-connection-arrow" data-chapter-connection-id="{{id}}" points="{{arrowPoints}}" />
+            {{#if label}}<text class="mel-storyboard-chapter-connection-label" data-chapter-connection-id="{{id}}" x="{{labelX}}" y="{{labelY}}">{{label}}</text>{{/if}}
+          {{/each}}
+          {{#each chapterNodes}}
+            <g class="mel-storyboard-chapter-node-canvas {{#if isEntry}}is-entry{{else}}is-exit{{/if}}" data-chapter-node data-node-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
+              <circle class="mel-storyboard-chapter-node-circle" r="18" />
+              <text class="mel-storyboard-chapter-node-title" y="34" text-anchor="middle">{{title}}</text>
+            </g>
           {{/each}}
           {{#each board.elements}}
             <g class="mel-storyboard-element {{#if statusColorClass}}status-{{statusColorClass}}{{/if}} {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
@@ -190,6 +209,38 @@
             <span><strong>{{selectedScene.incomingCount}}</strong> {{labels.incoming}}</span>
             <span><strong>{{selectedScene.outgoingCount}}</strong> {{labels.outgoing}}</span>
           </div>
+        </section>
+      {{else if activeChapter}}
+        <header class="mel-storyboard-inspector-header">
+          <div>
+            <p class="mel-storyboard-display-id">{{activeChapter.displayId}}</p>
+            <h2>{{labels.chapterDetails}}</h2>
+          </div>
+          <span class="mel-storyboard-status-badge status-{{activeChapter.statusColorClass}}">{{activeChapter.statusLabel}}</span>
+          <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
+        </header>
+        <section class="mel-storyboard-inspector-section">
+          <label for="mel-storyboard-chapter-title">{{labels.titleField}}</label>
+          <input id="mel-storyboard-chapter-title" type="text" value="{{activeChapter.title}}" data-chapter-field="title" />
+          <label for="mel-storyboard-chapter-status">{{labels.status}}</label>
+          <select id="mel-storyboard-chapter-status" data-chapter-field="status">
+            {{#each statuses}}
+              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+            {{/each}}
+          </select>
+          <label for="mel-storyboard-chapter-description">{{labels.description}}</label>
+          <div id="mel-storyboard-chapter-description" class="mel-storyboard-chapter-description-editor" data-chapter-description-editor></div>
+          <button type="button" data-action="save-chapter"><i class="fas fa-save" aria-hidden="true"></i> {{labels.save}}</button>
+        </section>
+        <section class="mel-storyboard-inspector-section mel-storyboard-chapter-node-list">
+          <h3>{{labels.chapterNodes}}</h3>
+          {{#if chapterNodes.length}}
+            {{#each chapterNodes}}
+              <div class="mel-storyboard-chapter-node-row" data-node-id="{{id}}"><span class="mel-storyboard-tree-id">{{displayId}}</span><span>{{title}}</span><small>{{#if isEntry}}{{@root.labels.entry}}{{else}}{{@root.labels.exit}}{{/if}}</small></div>
+            {{/each}}
+          {{else}}
+            <p class="mel-storyboard-empty">{{labels.noChapterNodes}}</p>
+          {{/if}}
         </section>
       {{else}}
         <header class="mel-storyboard-inspector-header mel-storyboard-inspector-empty-header">

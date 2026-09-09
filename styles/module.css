@@ -369,6 +369,136 @@
   font-size: .7rem;
 }
 
+.mel-storyboard-chapter-tree-item {
+  padding-left: 0;
+}
+
+.mel-storyboard-chapter-tree-item.is-active > .mel-storyboard-tree-node {
+  background: rgba(246, 196, 83, .1);
+}
+
+.mel-storyboard-chapter-node {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  padding: 0;
+}
+
+.mel-storyboard-tree-toggle {
+  flex: 0 0 1.5rem;
+  min-width: 1.5rem !important;
+  min-height: 1.7rem !important;
+  padding: 0;
+}
+
+.mel-storyboard-tree-label {
+  display: grid;
+  grid-template-columns: 1rem 3.2rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  flex: 1;
+  min-width: 0;
+  column-gap: .3rem;
+  padding: .35rem .4rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.mel-storyboard-tree-label:hover,
+.mel-storyboard-tree-label:focus {
+  border: 0;
+  background: rgba(246, 196, 83, .12);
+  box-shadow: none;
+}
+
+.mel-storyboard-tree-label.status-waiting,
+.mel-storyboard-tree-node.status-waiting { color: #20252d; background: #e2e5ea; }
+.mel-storyboard-tree-label.status-active,
+.mel-storyboard-tree-node.status-active { color: #1e3044; background: #cfe1f4; }
+.mel-storyboard-tree-label.status-success,
+.mel-storyboard-tree-node.status-success { color: #1e3a25; background: #d2ead6; }
+.mel-storyboard-tree-label.status-partial-success,
+.mel-storyboard-tree-node.status-partial-success { color: #4a2d14; background: #f6dfbd; }
+.mel-storyboard-tree-label.status-failure,
+.mel-storyboard-tree-node.status-failure { color: #4a2023; background: #f3cccc; }
+.mel-storyboard-tree-label.status-skipped,
+.mel-storyboard-tree-node.status-skipped { color: #352342; background: #e2d3f0; }
+
+.mel-storyboard-tree-children {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  list-style: none;
+}
+
+.mel-storyboard-toolbar-chapter {
+  color: #aeb8c5;
+  font-size: .7em;
+  font-weight: 500;
+}
+
+.mel-storyboard-tree-item.is-dragging {
+  opacity: .45;
+}
+
+.mel-storyboard-tree-item.is-drop-target {
+  outline: 1px dashed #f6c453;
+  outline-offset: -2px;
+}
+
+.mel-storyboard-chapter-node-circle {
+  fill: #313846;
+  stroke: #f6c453;
+  stroke-width: 2;
+}
+
+.mel-storyboard-chapter-node-canvas.is-entry .mel-storyboard-chapter-node-circle {
+  stroke: #6ed6a0;
+}
+
+.mel-storyboard-chapter-node-canvas.is-exit .mel-storyboard-chapter-node-circle {
+  stroke: #f6c453;
+}
+
+.mel-storyboard-chapter-node-title {
+  fill: #edf2f7;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.mel-storyboard-chapter-description-editor {
+  min-height: 0;
+}
+
+.mel-storyboard-chapter-description-editor-shell {
+  height: 10rem;
+  min-height: 10rem;
+  --min-height: 10rem;
+  --menu-height: 2rem;
+  --menu-padding: .2rem .45rem;
+  --menu-background: rgba(73, 61, 74, .7);
+}
+
+.mel-storyboard-chapter-description-editor-shell .editor-content {
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
+}
+
+.mel-storyboard-chapter-node-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .45rem;
+  border-radius: 3px;
+  background: rgba(49, 56, 70, .5);
+}
+
+.mel-storyboard-chapter-node-row small {
+  color: #aeb8c5;
+}
+
 .mel-storyboard-inspector-header {
   display: flex;
   align-items: flex-start;
@@ -390,6 +520,13 @@
   font-size: .75rem;
   white-space: nowrap;
 }
+
+.mel-storyboard-status-badge.status-waiting { background: #e2e5ea; border-color: #8a97a6; color: #20252d; }
+.mel-storyboard-status-badge.status-active { background: #cfe1f4; border-color: #7899b8; color: #245f9d; }
+.mel-storyboard-status-badge.status-success { background: #d2ead6; border-color: #82ad8b; color: #2e7d46; }
+.mel-storyboard-status-badge.status-partial-success { background: #f6dfbd; border-color: #c69a62; color: #a46019; }
+.mel-storyboard-status-badge.status-failure { background: #f3cccc; border-color: #c9898e; color: #a33a42; }
+.mel-storyboard-status-badge.status-skipped { background: #e2d3f0; border-color: #aa91bf; color: #7449a2; }
 
 .mel-storyboard-inspector-section {
   display: grid;
@@ -1089,6 +1226,30 @@
   stroke-width: 5px;
   text-anchor: middle;
   cursor: context-menu;
+}
+
+.mel-storyboard-chapter-connection {
+  stroke: #6ed6a0;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  fill: none;
+  pointer-events: all;
+}
+
+.mel-storyboard-chapter-connection-arrow {
+  fill: #6ed6a0;
+  pointer-events: all;
+}
+
+.mel-storyboard-chapter-connection-label {
+  fill: #6ed6a0;
+  font-size: 12px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #111318;
+  stroke-width: 5px;
+  text-anchor: middle;
+  pointer-events: all;
 }
 
 .mel-storyboard-connection-endpoints {
