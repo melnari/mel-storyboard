@@ -33,13 +33,13 @@
             <li role="treeitem" aria-level="2" draggable="true" data-chapter-id="{{id}}" class="mel-storyboard-tree-item mel-storyboard-chapter-tree-item {{#if isActive}}is-active{{/if}}">
               <div class="mel-storyboard-tree-node mel-storyboard-chapter-node">
                 <button type="button" class="icon-button mel-storyboard-tree-toggle" data-action="toggle-chapter" data-chapter-id="{{id}}" title="{{title}}" aria-label="{{title}}"><i class="fas {{#if isExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i></button>
-                <button type="button" data-action="select-chapter" data-chapter-id="{{id}}" class="mel-storyboard-tree-label status-{{statusColorClass}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-folder{{#if isExpanded}}-open{{/if}}"></i></span><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></button>
+                <button type="button" data-action="select-chapter" data-chapter-id="{{id}}" class="mel-storyboard-tree-label"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-folder{{#if isExpanded}}-open{{/if}}"></i></span><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></button>
               </div>
               {{#if isExpanded}}
                 <ul role="group" class="mel-storyboard-tree-children">
                   {{#each scenes}}
                     <li role="treeitem" aria-level="3" draggable="true" data-scene-id="{{id}}" data-chapter-id="{{chapterId}}" class="mel-storyboard-tree-item {{#if isSelected}}is-active{{/if}}">
-                      <button type="button" data-action="select-scene" data-scene-id="{{id}}" class="mel-storyboard-tree-node status-{{statusColorClass}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-circle"></i></span><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></button>
+                      <button type="button" data-action="select-scene" data-scene-id="{{id}}" class="mel-storyboard-tree-node"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-circle"></i></span><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></button>
                     </li>
                   {{/each}}
                 </ul>

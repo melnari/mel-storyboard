@@ -10,6 +10,39 @@ function estimateTextWidth(text, fontSize = 15) {
   return measureTextWidth(text, fontSize) + SCENE_ELEMENT_HORIZONTAL_PADDING;
 }
 
+const HTML_BLOCK_END_TAG = /<\/(?:address|article|blockquote|dd|div|dl|dt|h[1-6]|li|ol|p|pre|section|table|tr|ul)>/gi;
+const HTML_ENTITY = Object.freeze({
+  amp: "&",
+  apos: "'",
+  gt: ">",
+  lt: "<",
+  nbsp: " ",
+  quot: '"'
+});
+
+function decodeHtmlEntities(text) {
+  return text
+    .replace(/&([a-z]+);/gi, (match, name) => HTML_ENTITY[name.toLowerCase()] ?? match)
+    .replace(/&#(x[\da-f]+|\d+);/gi, (match, value) => {
+      const codePoint = value[0].toLowerCase() === "x" ? Number.parseInt(value.slice(1), 16) : Number.parseInt(value, 10);
+      return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : match;
+    });
+}
+
+/** Convert Foundry rich-text HTML to text suitable for compact scene cards. */
+export function plainTextFromHtml(value) {
+  const source = String(value ?? "");
+  if (!source) return "";
+  return decodeHtmlEntities(source
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(HTML_BLOCK_END_TAG, "\n")
+    .replace(/<[^>]*>/g, ""))
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function wrapText(text, maxCharacters) {
   const paragraphs = String(text ?? "").split(/\r?\n/);
   const lines = [];
@@ -48,7 +81,7 @@ function wrapText(text, maxCharacters) {
  */
 export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "", playerCharacterCount = 0 } = {}) {
   const title = String(scene?.title ?? element.title ?? fallbackTitle).replace(/\s+/g, " ").trim();
-  const description = String(scene?.description ?? "").trim();
+  const description = plainTextFromHtml(scene?.description ?? "");
   const displayId = scene?.displayId ?? "";
   const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11) + 16);
   const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 36;

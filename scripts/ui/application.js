@@ -77,16 +77,14 @@ const OBJECT_ICONS = Object.freeze({
   PLAYLIST: "fa-music"
 });
 
-function buildChapterTree(chapters, scenes, activeChapterId, selectedSceneId, statusColorsEnabled = false) {
+function buildChapterTree(chapters, scenes, activeChapterId, selectedSceneId) {
   return chapters.map(chapter => ({
     ...chapter,
     isActive: chapter.id === activeChapterId,
     statusLabel: localize(`MEL_STORYBOARD.STATUS.${chapter.status}`),
-    statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[chapter.status] ?? STATUS_COLOR_CLASSES.OFFEN : "",
     scenes: scenes.filter(scene => scene.chapterId === chapter.id).map(scene => ({
       ...scene,
       statusLabel: localize(`MEL_STORYBOARD.STATUS.${scene.status}`),
-      statusColorClass: statusColorsEnabled ? STATUS_COLOR_CLASSES[scene.status] ?? STATUS_COLOR_CLASSES.OFFEN : "",
       isSelected: scene.id === selectedSceneId,
       treeLevel: 3
     }))
@@ -286,7 +284,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }).filter(Boolean);
     const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: (selectedScene?.status ?? activeChapter?.status) === value }));
     const selectedSceneId = selectedSceneRecord?.id ?? null;
-    const sceneTree = buildChapterTree(this.board.chapters ?? [], this.board.scenes, this.activeChapterId, selectedSceneId, statusColorsEnabled).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id) }));
+    const sceneTree = buildChapterTree(this.board.chapters ?? [], this.board.scenes, this.activeChapterId, selectedSceneId).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id) }));
     const selectedChapter = activeChapter ? {
       ...activeChapter,
       statusLabel: localize(`MEL_STORYBOARD.STATUS.${activeChapter.status}`),

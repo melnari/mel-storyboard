@@ -7,6 +7,7 @@ import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { SceneBoardStore } from "../scripts/domain/scene-board-store.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
+import { plainTextFromHtml, sceneElementPresentation } from "../scripts/domain/scene-card.js";
 
 test("new scene boards contain only scene-oriented records", () => {
   const board = createSceneBoard();
@@ -99,6 +100,13 @@ test("scene status values use the approved domain keys", () => {
   const scene = createScene(board);
   assert.deepEqual(Object.values(STATUS), ["OFFEN", "WAITING", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN"]);
   assert.equal(scene.status, STATUS.OFFEN);
+});
+
+test("scene card descriptions strip rich-text HTML while keeping readable breaks", () => {
+  assert.equal(plainTextFromHtml("<p><strong>First</strong> line</p><p>Second&nbsp;&amp; line<br>continues</p>"), "First line\nSecond & line\ncontinues");
+  const presentation = sceneElementPresentation(createSceneElement(createSceneBoard(), {}), { title: "Scene", description: "<p><em>Readable</em> card text</p>" });
+  assert.deepEqual(presentation.descriptionLines, ["Readable card text"]);
+  assert.equal(presentation.descriptionLines.some(line => /<[^>]+>/.test(line)), false);
 });
 
 test("templates support board copies, versions, previews, and confirmed migrations", () => {
