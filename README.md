@@ -4,7 +4,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 ## Current version
 
-`0.0.7`
+`0.0.8`
 
 The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
 
@@ -33,11 +33,13 @@ The interface consists of three areas:
 - A central canvas with a grid and the Scene Cards of the selected Chapter.
 - A collapsible inspector on the right for Chapter Details, Scene Details, or Connection Details.
 
+The expanded navigation and inspector columns are sized for comfortable editing. Both columns can be collapsed independently. Hover a Chapter or Scene entry for two seconds to display its complete title below the entry; long titles wrap without changing the normal tree layout.
+
 Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. Chapters can be reordered by dragging them in the tree. Scenes can be reordered within a Chapter or dragged between Chapters. Right-clicking the Story root creates a Chapter. Right-clicking a Chapter opens Chapter Details, creates Entry or Exit nodes, or deletes the Chapter after confirmation. Deleting a Chapter removes its Scenes, Scene Cards, Scene Connections, and Chapter-node links.
 
-Each Chapter can contain multiple editable Entry and Exit nodes. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter.
+Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit nodes can be moved on the canvas like Scene Cards. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter, with the additional valid paths Entry → Scene and Scene → Exit.
 
-Scene Cards display the title, description, display ID, and status. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
+Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
 
 The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, and Skipped. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
 
@@ -50,8 +52,10 @@ Player Characters assigned to a Scene are shown as small artwork tokens at the b
 - Edit the title, status, and description in Scene Details and save the changes.
 - Double-click a Scene Card to open its focused Scene Details window with its note field.
 - Right-click a Scene Card to connect or delete it.
+- Right-click an empty canvas area to create a Scene. Right-click a Chapter in the tree to append a new Scene to that Chapter.
 - Duplicate Scenes as independent Scene and Scene Card records.
 - Move Scene Cards by dragging with the left mouse button.
+- Drag a Scene to another Chapter in the navigation tree. Connections that would cross the Chapter boundary are removed automatically and a warning is shown.
 - Click the canvas background to clear the current selection.
 - Pan the canvas by dragging its background with the left mouse button.
 - Zoom with the `+` and `-` toolbar buttons or the mouse wheel.
@@ -63,6 +67,8 @@ Connections can be created in two ways:
 
 1. Choose the connection action from a Scene context menu and select the target Scene.
 2. Press and hold the middle mouse button on a Scene Card, drag to another Scene Card, and release.
+
+The same middle-button drag interaction creates an Entry → Scene or Scene → Exit connection. Invalid endpoint directions and cross-Chapter connections are rejected. Moving a Scene to another Chapter automatically removes affected Connections so the board remains valid.
 
 Click a Connection to open Connection Details in the right inspector. The following fields and actions are available:
 
@@ -111,11 +117,11 @@ The `Import/Export` menu provides:
 - PNG export;
 - PDF export.
 
-Before exporting, choose the entire Storyboard, the current Chapter, or selected Chapters. During import, choose whether to replace the entire Storyboard, add the imported content as new Chapters, or add the first imported Chapter to an existing Chapter. Older JSON boards without Chapters are migrated automatically into `Chapter 1`.
+Before exporting, choose the entire Storyboard, the current Chapter, or selected Chapters. JSON remains one editable board export. For graphic exports containing multiple Chapters, each Chapter is isolated to its own graphic: SVG and PNG create one file per Chapter, while PDF creates one Chapter per page. This prevents Chapter layouts from overlapping when different Chapters use the same canvas coordinates. During import, choose whether to replace the entire Storyboard, add the imported content as new Chapters, or add the first imported Chapter to an existing Chapter. Older JSON boards without Chapters are migrated automatically into `Chapter 1`.
 
 JSON preserves the editable board data, including Chapters, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
 
-SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, Connection labels, arrows, bilateral Connections, and dotted deactivated Connections.
+SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. HTML formatting tags are not included in the Scene Card description text.
 
 Imported boards are validated and normalized. Older Connections without the current Connection fields default to `unilateral`. Unsupported schema versions are rejected with an error instead of replacing the board with empty data.
 

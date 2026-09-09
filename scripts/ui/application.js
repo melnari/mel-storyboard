@@ -1,6 +1,6 @@
 import { MODULE_ID, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
 import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
-import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
+import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, printSceneBoardsAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
@@ -864,8 +864,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     return this.board.scenes.find(scene => scene.id === element?.sceneId) ?? null;
   }
 
-  #exportLabels() {
-    return { title: localize("MEL_STORYBOARD.EXPORT.Scenes"), scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`), statusColors: this.statusColorsEnabled };
+  #exportLabels(title = localize("MEL_STORYBOARD.EXPORT.Scenes")) {
+    return { title, scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`), statusColors: this.statusColorsEnabled };
   }
 
   #onContextMenu(event) {
@@ -1701,11 +1701,32 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         const selected = Array.from(html.find("[name='chapters'] option:selected")).map(option => option.value);
         const chapterIds = scope === "all" ? null : scope === "current" ? [this.activeChapterId] : selected;
         const board = scopeSceneBoard(this.board, chapterIds);
-        const labels = this.#exportLabels();
-        if (format === "json") downloadSceneBoardJson(board);
-        else if (format === "svg") downloadSceneBoardSvg(board, labels);
-        else if (format === "png") await downloadSceneBoardPng(board, labels);
-        else if (format === "pdf") printSceneBoardAsPdf(board, labels);
+        if (format === "json") {
+          downloadSceneBoardJson(board);
+          return;
+        }
+        const chaptersToExport = (this.board.chapters ?? []).filter(chapter => !chapterIds || chapterIds.includes(chapter.id));
+        const chapterExports = chaptersToExport.map(chapter => ({
+          chapter,
+          board: scopeSceneBoard(this.board, [chapter.id]),
+          labels: this.#exportLabels(`${localize("MEL_STORYBOARD.EXPORT.Scenes")} – ${chapter.displayId}: ${chapter.title}`)
+        }));
+        if (chapterExports.length > 1) {
+          if (format === "svg" || format === "png") {
+            for (const entry of chapterExports) {
+              const safeTitle = String(entry.chapter.title ?? "chapter").trim().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase() || "chapter";
+              const filename = `mel-storyboard-${entry.chapter.displayId}-${safeTitle}.${format}`;
+              if (format === "svg") downloadSceneBoardSvg(entry.board, entry.labels, filename);
+              else await downloadSceneBoardPng(entry.board, entry.labels, filename);
+            }
+          } else if (format === "pdf") printSceneBoardsAsPdf(chapterExports);
+          return;
+        }
+        const labels = chapterExports[0]?.labels ?? this.#exportLabels();
+        const exportBoard = chapterExports[0]?.board ?? board;
+        if (format === "svg") downloadSceneBoardSvg(exportBoard, labels);
+        else if (format === "png") await downloadSceneBoardPng(exportBoard, labels);
+        else if (format === "pdf") printSceneBoardAsPdf(exportBoard, labels);
       },
       rejectClose: false
     });

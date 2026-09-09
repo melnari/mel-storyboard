@@ -225,17 +225,17 @@
 
 .mel-storyboard-layout {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  grid-template-columns: 275px minmax(0, 1fr) 325px;
   flex: 1;
   min-height: 0;
 }
 
 .mel-storyboard-workspace:has(.mel-storyboard-sidebar.is-collapsed) .mel-storyboard-layout {
-  grid-template-columns: 2.6rem minmax(0, 1fr) 260px;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 325px;
 }
 
 .mel-storyboard-workspace:has(.mel-storyboard-inspector.is-collapsed) .mel-storyboard-layout {
-  grid-template-columns: 220px minmax(0, 1fr) 2.6rem;
+  grid-template-columns: 275px minmax(0, 1fr) 2.6rem;
 }
 
 .mel-storyboard-workspace:has(.mel-storyboard-sidebar.is-collapsed):has(.mel-storyboard-inspector.is-collapsed) .mel-storyboard-layout {
@@ -324,8 +324,7 @@
 
 .mel-storyboard-tree-node {
   display: grid;
-  grid-template-columns: 1rem 3.2rem minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: 1rem minmax(0, 1fr);
   column-gap: .3rem;
   width: 100%;
   padding: .35rem .4rem;
@@ -351,12 +350,60 @@
   font-size: .65rem;
 }
 
+.mel-storyboard-tree-content {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .1rem;
+}
+
+.mel-storyboard-tree-meta {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  min-width: 0;
+}
+
+.mel-storyboard-tree-hover-title {
+  position: absolute;
+  top: calc(100% + .2rem);
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: block;
+  visibility: hidden;
+  padding: .35rem .5rem;
+  border: 1px solid #59687a;
+  border-radius: 3px;
+  background: #20242c;
+  color: #edf2f7;
+  font-size: .8rem;
+  line-height: 1.2;
+  opacity: 0;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .35);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  transition: opacity .15s ease, visibility 0s linear .15s;
+}
+
+.mel-storyboard-tree-node:hover .mel-storyboard-tree-hover-title,
+.mel-storyboard-tree-node:focus-visible .mel-storyboard-tree-hover-title,
+.mel-storyboard-tree-label:hover .mel-storyboard-tree-hover-title,
+.mel-storyboard-tree-label:focus-visible .mel-storyboard-tree-hover-title {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity .15s ease 2s, visibility 0s linear 2s;
+}
+
 .mel-storyboard-tree-id {
   color: #aeb8c5;
   font-size: .75rem;
 }
 
 .mel-storyboard-tree-title {
+  display: block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -364,7 +411,6 @@
 }
 
 .mel-storyboard-tree-status {
-  grid-column: 3;
   color: #aeb8c5;
   font-size: .7rem;
 }
@@ -393,8 +439,7 @@
 
 .mel-storyboard-tree-label {
   display: grid;
-  grid-template-columns: 1rem 3.2rem minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: 1rem minmax(0, 1fr);
   flex: 1;
   min-width: 0;
   column-gap: .3rem;

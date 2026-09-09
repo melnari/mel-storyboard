@@ -151,11 +151,11 @@ export function downloadSceneBoardJson(board) {
   downloadBlob(sceneBoardToJson(board), "mel-storyboard-scenes.json", "application/json");
 }
 
-export function downloadSceneBoardSvg(board, labels) {
-  downloadBlob(sceneBoardToSvg(board, labels), "mel-storyboard-scenes.svg", "image/svg+xml");
+export function downloadSceneBoardSvg(board, labels, filename = "mel-storyboard-scenes.svg") {
+  downloadBlob(sceneBoardToSvg(board, labels), filename, "image/svg+xml");
 }
 
-export async function downloadSceneBoardPng(board, labels) {
+export async function downloadSceneBoardPng(board, labels, filename = "mel-storyboard-scenes.png") {
   const svg = sceneBoardToSvg(board, labels);
   const blob = new Blob([svg], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
@@ -170,15 +170,23 @@ export async function downloadSceneBoardPng(board, labels) {
   const png = await new Promise((resolve, reject) => {
     canvas.toBlob(result => result ? resolve(result) : reject(new Error("The PNG export could not be created.")), "image/png");
   });
-  downloadBlob(png, "mel-storyboard-scenes.png", "image/png");
+  downloadBlob(png, filename, "image/png");
+}
+
+export function printSceneBoardsAsPdf(entries) {
+  const preview = window.open("", "mel-storyboard-pdf");
+  if (!preview) throw new Error("The browser blocked the print preview window.");
+  const graphics = entries.map(({ board, labels }) => {
+    const svgBlob = new Blob([sceneBoardToSvg(board, labels)], { type: "image/svg+xml" });
+    return { labels, url: URL.createObjectURL(svgBlob) };
+  });
+  const title = entries.length === 1 ? entries[0].labels.title : "Mel-Storyboard";
+  const pages = graphics.map(({ labels, url }) => `<section class="chapter-page"><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes")}" /></section>`).join("");
+  preview.document.write(`<title>${escapeXml(title ?? "Scenes")}</title><style>@page{size:auto;margin:1.2cm}body{font-family:Arial,sans-serif;margin:0}.chapter-page{break-after:page;min-height:95vh;display:flex;flex-direction:column;justify-content:flex-start}.chapter-page:last-child{break-after:auto}h1{font-size:20px;margin:0 0 1rem}img{max-width:100%;max-height:calc(95vh - 3rem);object-fit:contain;object-position:top left}</style>${pages}`);
+  preview.document.close();
+  preview.addEventListener("load", () => preview.print(), { once: true });
 }
 
 export function printSceneBoardAsPdf(board, labels) {
-  const preview = window.open("", "mel-storyboard-pdf");
-  if (!preview) throw new Error("The browser blocked the print preview window.");
-  const svgBlob = new Blob([sceneBoardToSvg(board, labels)], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(svgBlob);
-  preview.document.write(`<title>${escapeXml(labels.title ?? "Scenes")}</title><style>body{font-family:Arial,sans-serif;margin:2rem}img{max-width:100%}</style><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes")}" />`);
-  preview.document.close();
-  preview.addEventListener("load", () => preview.print(), { once: true });
+  printSceneBoardsAsPdf([{ board, labels }]);
 }

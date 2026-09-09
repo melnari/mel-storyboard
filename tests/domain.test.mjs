@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
 import { assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, moveSceneToChapter, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
-import { sceneBoardToJson, sceneBoardToSvg } from "../scripts/domain/export.js";
+import { sceneBoardToJson, sceneBoardToSvg, scopeSceneBoard } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { SceneBoardStore } from "../scripts/domain/scene-board-store.js";
 import { validateSceneBoard } from "../scripts/domain/validation.js";
@@ -331,4 +331,19 @@ test("scene board exports are suitable for file transport", () => {
   const coloredSvg = sceneBoardToSvg(board, { scene: "Scene", status: status => status, statusColors: true });
   assert.match(coloredSvg, /status-open/);
   assert.match(coloredSvg, /#313846/);
+});
+
+test("chapter-scoped graphic exports isolate chapter content", () => {
+  const board = createSceneBoard();
+  const secondChapter = createChapter(board, { title: "Second chapter" });
+  const firstScene = createScene(board, { title: "First chapter scene", chapterId: board.chapters[0].id });
+  const secondScene = createScene(board, { title: "Second chapter scene", chapterId: secondChapter.id });
+  createSceneElement(board, { sceneId: firstScene.id });
+  createSceneElement(board, { sceneId: secondScene.id });
+  const firstChapterSvg = sceneBoardToSvg(scopeSceneBoard(board, [board.chapters[0].id]));
+  const secondChapterSvg = sceneBoardToSvg(scopeSceneBoard(board, [secondChapter.id]));
+  assert.match(firstChapterSvg, /First chapter scene/);
+  assert.doesNotMatch(firstChapterSvg, /Second chapter scene/);
+  assert.match(secondChapterSvg, /Second chapter scene/);
+  assert.doesNotMatch(secondChapterSvg, /First chapter scene/);
 });
