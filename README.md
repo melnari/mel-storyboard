@@ -43,6 +43,8 @@ Scene Cards display the title, description, display ID, and status. Rich-text ma
 
 The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, and Skipped. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
 
+The optional world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details provides a `Type` selector containing Foundry's Map Notes entry icons plus `None` (without `Custom`). The selected icon is shown in the lower-right corner of the Scene Card and is included in SVG, PNG, and PDF exports. Changing the selector updates the Scene Card immediately; selecting `None` or disabling the setting hides the icon, while the selected type remains saved.
+
 Player Characters assigned to a Scene are shown as small artwork tokens at the bottom of the card. Hovering a token shows the Actor name. A Player Character token can be dragged to another Scene Card to move the assignment.
 
 ## Scene actions
@@ -121,7 +123,7 @@ Before exporting, choose the entire Storyboard, the current Chapter, or selected
 
 JSON preserves the editable board data, including Chapters, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
 
-SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. HTML formatting tags are not included in the Scene Card description text.
+SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, optional Scene icons, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. HTML formatting tags are not included in the Scene Card description text.
 
 Imported boards are validated and normalized. Older Connections without the current Connection fields default to `unilateral`. Unsupported schema versions are rejected with an error instead of replacing the board with empty data.
 

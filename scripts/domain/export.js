@@ -20,6 +20,57 @@ function svgTextLines(className, x, y, lines, lineHeight, attributes = {}) {
   return `<text class="${className}" x="${x}" y="${y}"${extraAttributes ? ` ${extraAttributes}` : ""}>${tspans}</text>`;
 }
 
+function sceneIconPath(scene, labels) {
+  if (!labels.showSceneIcons || !scene?.iconType || scene.iconType === "NONE") return "";
+  return labels.sceneIconPaths?.[scene.iconType]
+    ?? globalThis.CONFIG?.JournalEntry?.noteIcons?.[scene.iconType]
+    ?? "";
+}
+
+function absoluteAssetUrl(path) {
+  if (/^(?:data:|blob:|https?:\/\/)/i.test(path)) return path;
+  const base = globalThis.document?.baseURI ?? globalThis.location?.href;
+  return base ? new URL(path, base).href : path;
+}
+
+function assetMimeType(path, response) {
+  const header = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
+  if (header) return header;
+  if (/\.svg(?:$|[?#])/i.test(path)) return "image/svg+xml";
+  if (/\.png(?:$|[?#])/i.test(path)) return "image/png";
+  if (/(?:\.jpe?g)(?:$|[?#])/i.test(path)) return "image/jpeg";
+  if (/\.webp(?:$|[?#])/i.test(path)) return "image/webp";
+  return "application/octet-stream";
+}
+
+function base64FromBytes(bytes) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  return btoa(binary);
+}
+
+async function embedSceneIcons(board, labels = {}) {
+  if (!labels.showSceneIcons) return labels;
+  const sourcePaths = labels.sceneIconPaths ?? globalThis.CONFIG?.JournalEntry?.noteIcons ?? {};
+  const iconTypes = [...new Set((board.scenes ?? []).map(scene => scene.iconType).filter(iconType => iconType && iconType !== "NONE"))];
+  const sceneIconPaths = { ...sourcePaths };
+  await Promise.all(iconTypes.map(async iconType => {
+    const path = sourcePaths[iconType];
+    if (!path || /^data:/i.test(path)) return;
+    try {
+      const response = await fetch(absoluteAssetUrl(path), { credentials: "same-origin" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      sceneIconPaths[iconType] = `data:${assetMimeType(path, response)};base64,${base64FromBytes(bytes)}`;
+    } catch (error) {
+      console.warn(`[mel-storyboard] Could not embed scene icon ${iconType} for export`, error);
+      sceneIconPaths[iconType] = absoluteAssetUrl(path);
+    }
+  }));
+  return { ...labels, sceneIconPaths };
+}
+
 export function sceneBoardToSvg(board, labels = {}) {
   const sceneById = new Map(board.scenes.map(scene => [scene.id, scene]));
   const elements = board.elements.map(element => {
@@ -31,7 +82,8 @@ export function sceneBoardToSvg(board, labels = {}) {
     };
     const presentation = normalizeSceneElementSize(source, scene, {
       fallbackTitle: labels.scene || "Scene",
-      statusLabel: labels.status?.(scene?.status) ?? scene?.status ?? ""
+      statusLabel: labels.status?.(scene?.status) ?? scene?.status ?? "",
+      iconPath: sceneIconPath(scene, labels)
     });
     return {
       ...source,
@@ -74,8 +126,9 @@ export function sceneBoardToSvg(board, labels = {}) {
       : "";
     const displayId = `<text class="element-id" x="${element.displayIdX}" y="${element.titleY}" text-anchor="end">${escapeXml(element.displayId)}</text>`;
     const status = `<rect class="element-status-badge" x="10" y="${element.statusBadgeY}" width="${element.statusBadgeWidth}" height="18" rx="9" /><text class="element-status" x="18" y="${element.statusY}">${escapeXml(element.statusLabel)}</text>`;
+    const icon = element.iconPath ? `<image class="scene-icon" href="${escapeXml(element.iconPath)}" x="${element.iconX}" y="${element.iconY}" width="${element.iconSize}" height="${element.iconSize}" preserveAspectRatio="xMidYMid meet" />` : "";
     const statusClass = element.statusColorClass ? ` status-${element.statusColorClass}` : "";
-    return `<g class="element${statusClass}" transform="translate(${element.position.x},${element.position.y})"><rect class="element-frame" width="${element.size.width}" height="${element.size.height}" rx="8" />${title}${description}${displayId}${status}</g>`;
+    return `<g class="element${statusClass}" transform="translate(${element.position.x},${element.position.y})"><rect class="element-frame" width="${element.size.width}" height="${element.size.height}" rx="8" />${title}${description}${displayId}${status}${icon}</g>`;
   }).join("");
   const chapterNodeMarkup = (board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => {
     const color = node.nodeType === "ENTRY" ? "#6ed6a0" : "#f6c453";
@@ -100,7 +153,7 @@ export function sceneBoardToSvg(board, labels = {}) {
     return `<line class="chapter-connection" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" /><polygon class="chapter-connection-arrow" points="${arrow}" />${label}`;
   }).join("");
   const statusColorStyles = labels.statusColors ? ".element.status-open .element-frame{fill:#313846;stroke:#9aa4b2}.element.status-open text{fill:#f0f3f7}.element.status-open .element-description,.element.status-open .element-id{fill:#d3dae4}.element.status-open .element-status-badge{fill:rgba(246,196,83,.12);stroke:#59687a}.element.status-open .element-status{fill:#f6c453}.element.status-waiting .element-frame{fill:#e2e5ea;stroke:#8a97a6}.element.status-waiting text{fill:#20252d}.element.status-waiting .element-description,.element.status-waiting .element-id{fill:#3f4a57}.element.status-waiting .element-status-badge{fill:rgba(72,84,99,.13);stroke:#6f7d8c}.element.status-waiting .element-status{fill:#485463}.element.status-active .element-frame{fill:#cfe1f4;stroke:#7899b8}.element.status-active text{fill:#1e3044}.element.status-active .element-description,.element.status-active .element-id{fill:#40566c}.element.status-active .element-status-badge{fill:rgba(36,95,157,.13);stroke:#7899b8}.element.status-active .element-status{fill:#245f9d}.element.status-success .element-frame{fill:#d2ead6;stroke:#82ad8b}.element.status-success text{fill:#1e3a25}.element.status-success .element-description,.element.status-success .element-id{fill:#46664d}.element.status-success .element-status-badge{fill:rgba(46,125,70,.13);stroke:#82ad8b}.element.status-success .element-status{fill:#2e7d46}.element.status-partial-success .element-frame{fill:#f6dfbd;stroke:#c69a62}.element.status-partial-success text{fill:#4a2d14}.element.status-partial-success .element-description,.element.status-partial-success .element-id{fill:#705333}.element.status-partial-success .element-status-badge{fill:rgba(164,96,25,.13);stroke:#c69a62}.element.status-partial-success .element-status{fill:#a46019}.element.status-failure .element-frame{fill:#f3cccc;stroke:#c9898e}.element.status-failure text{fill:#4a2023}.element.status-failure .element-description,.element.status-failure .element-id{fill:#71464a}.element.status-failure .element-status-badge{fill:rgba(163,58,66,.13);stroke:#c9898e}.element.status-failure .element-status{fill:#a33a42}.element.status-skipped .element-frame{fill:#e2d3f0;stroke:#aa91bf}.element.status-skipped text{fill:#352342}.element.status-skipped .element-description,.element.status-skipped .element-id{fill:#614c73}.element.status-skipped .element-status-badge{fill:rgba(116,73,162,.13);stroke:#aa91bf}.element.status-skipped .element-status{fill:#7449a2}" : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.connection{stroke:#f6c453;stroke-width:3;fill:none;stroke-linecap:round}.connection-arrow{fill:#f6c453}.connection-label{fill:#f6c453;font-size:12px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:4px;text-anchor:middle}.chapter-connection{stroke:#6ed6a0;stroke-width:2;stroke-dasharray:6 5;fill:none}.chapter-connection-arrow{fill:#6ed6a0}.chapter-connection-label{fill:#6ed6a0;font-size:12px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:4px;text-anchor:middle}.element-frame{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element text{fill:#f0f0f0}.element-title{font-size:15px;font-weight:600}.element-description,.element-id{fill:#d3dae4;font-size:11px}.element-id{font-family:monospace}.element-status-badge{fill:rgba(246,196,83,.12);stroke:#59687a;stroke-width:1}.element-status{fill:#f6c453;font-size:11px;font-weight:600}.chapter-node-title{fill:#edf2f7;font-size:12px}${statusColorStyles}</style>${lines}${chapterConnectionMarkup}${chapterNodeMarkup}${elementMarkup}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.connection{stroke:#f6c453;stroke-width:3;fill:none;stroke-linecap:round}.connection-arrow{fill:#f6c453}.connection-label{fill:#f6c453;font-size:12px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:4px;text-anchor:middle}.chapter-connection{stroke:#6ed6a0;stroke-width:2;stroke-dasharray:6 5;fill:none}.chapter-connection-arrow{fill:#6ed6a0}.chapter-connection-label{fill:#6ed6a0;font-size:12px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:4px;text-anchor:middle}.element-frame{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element text{fill:#f0f0f0}.element-title{font-size:15px;font-weight:600}.element-description,.element-id{fill:#d3dae4;font-size:11px}.element-id{font-family:monospace}.element-status-badge{fill:rgba(246,196,83,.12);stroke:#59687a;stroke-width:1}.element-status{fill:#f6c453;font-size:11px;font-weight:600}.scene-icon{pointer-events:none}.chapter-node-title{fill:#edf2f7;font-size:12px}${statusColorStyles}</style>${lines}${chapterConnectionMarkup}${chapterNodeMarkup}${elementMarkup}</svg>`;
 }
 
 export function sceneBoardToJson(board) {
@@ -151,12 +204,12 @@ export function downloadSceneBoardJson(board) {
   downloadBlob(sceneBoardToJson(board), "mel-storyboard-scenes.json", "application/json");
 }
 
-export function downloadSceneBoardSvg(board, labels, filename = "mel-storyboard-scenes.svg") {
-  downloadBlob(sceneBoardToSvg(board, labels), filename, "image/svg+xml");
+export async function downloadSceneBoardSvg(board, labels, filename = "mel-storyboard-scenes.svg") {
+  downloadBlob(sceneBoardToSvg(board, await embedSceneIcons(board, labels)), filename, "image/svg+xml");
 }
 
 export async function downloadSceneBoardPng(board, labels, filename = "mel-storyboard-scenes.png") {
-  const svg = sceneBoardToSvg(board, labels);
+  const svg = sceneBoardToSvg(board, await embedSceneIcons(board, labels));
   const blob = new Blob([svg], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   const image = new Image();
@@ -173,13 +226,13 @@ export async function downloadSceneBoardPng(board, labels, filename = "mel-story
   downloadBlob(png, filename, "image/png");
 }
 
-export function printSceneBoardsAsPdf(entries) {
+export async function printSceneBoardsAsPdf(entries) {
   const preview = window.open("", "mel-storyboard-pdf");
   if (!preview) throw new Error("The browser blocked the print preview window.");
-  const graphics = entries.map(({ board, labels }) => {
-    const svgBlob = new Blob([sceneBoardToSvg(board, labels)], { type: "image/svg+xml" });
+  const graphics = await Promise.all(entries.map(async ({ board, labels }) => {
+    const svgBlob = new Blob([sceneBoardToSvg(board, await embedSceneIcons(board, labels))], { type: "image/svg+xml" });
     return { labels, url: URL.createObjectURL(svgBlob) };
-  });
+  }));
   const title = entries.length === 1 ? entries[0].labels.title : "Mel-Storyboard";
   const pages = graphics.map(({ labels, url }) => `<section class="chapter-page"><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes")}" /></section>`).join("");
   preview.document.write(`<title>${escapeXml(title ?? "Scenes")}</title><style>@page{size:auto;margin:1.2cm}body{font-family:Arial,sans-serif;margin:0}.chapter-page{break-after:page;min-height:95vh;display:flex;flex-direction:column;justify-content:flex-start}.chapter-page:last-child{break-after:auto}h1{font-size:20px;margin:0 0 1rem}img{max-width:100%;max-height:calc(95vh - 3rem);object-fit:contain;object-position:top left}</style>${pages}`);
@@ -187,6 +240,6 @@ export function printSceneBoardsAsPdf(entries) {
   preview.addEventListener("load", () => preview.print(), { once: true });
 }
 
-export function printSceneBoardAsPdf(board, labels) {
-  printSceneBoardsAsPdf([{ board, labels }]);
+export async function printSceneBoardAsPdf(board, labels) {
+  return printSceneBoardsAsPdf([{ board, labels }]);
 }

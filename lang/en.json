@@ -14,6 +14,10 @@
         "Name": "Use status-based coloring",
         "Hint": "Use pastel background colors on Scene Cards according to their status."
       },
+      "ShowSceneIcons": {
+        "Name": "Show Icons on Scene",
+        "Hint": "Show the selected Foundry Map Notes icon in the lower-right corner of Scene Cards and graphic exports."
+      },
       "ManageTemplates": {
         "Name": "Manage templates",
         "Label": "Open template management",
@@ -118,6 +122,7 @@
       "Copy": "Copy",
       "Title": "Title",
       "Status": "Status",
+      "SceneIconType": "Type",
       "Description": "Description",
       "ConnectionLabel": "Connection Label",
       "ConnectionType": "Connection Type",
@@ -189,6 +194,9 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Scene"
+    },
+    "SCENE_ICON_TYPES": {
+      "None": "None"
     },
     "OBJECT_TYPES": {
       "PLAYER_CHARACTER": "Player character",

@@ -79,7 +79,7 @@ function wrapText(text, maxCharacters) {
  * The same model is used by the live board and SVG-based exports so that
  * PNG and PDF output do not fall back to the old card layout.
  */
-export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "", playerCharacterCount = 0 } = {}) {
+export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "", playerCharacterCount = 0, iconPath = "" } = {}) {
   const title = String(scene?.title ?? element.title ?? fallbackTitle).replace(/\s+/g, " ").trim();
   const description = plainTextFromHtml(scene?.description ?? "");
   const displayId = scene?.displayId ?? "";
@@ -126,6 +126,10 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     statusBadgeWidth,
     playerCharacterTokenSize,
     playerCharacterTokenY: height - playerCharacterTokenSize - 17,
+    iconPath,
+    iconSize: iconPath ? 24 : 0,
+    iconX: iconPath ? width - 42 : 0,
+    iconY: iconPath ? height - 42 : 0,
     resizeHandleX: width - 14,
     resizeHandleY: height - 14
   };

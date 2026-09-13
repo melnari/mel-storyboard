@@ -14,6 +14,10 @@
         "Name": "Utiliser les couleurs selon le statut",
         "Hint": "Utiliser des arrière-plans pastel selon le statut des cartes de scène."
       },
+      "ShowSceneIcons": {
+        "Name": "Afficher les icônes sur les scènes",
+        "Hint": "Affiche l’icône Foundry Map Notes sélectionnée en bas à droite des cartes de scène et des exports graphiques."
+      },
       "ManageTemplates": {
         "Name": "Gérer les modèles",
         "Label": "Ouvrir la gestion des modèles",
@@ -118,6 +122,7 @@
       "Copy": "Copie",
       "Title": "Titre",
       "Status": "Statut",
+      "SceneIconType": "Type",
       "Description": "Description",
       "ConnectionLabel": "Libellé de la relation",
       "ConnectionType": "Type de relation",
@@ -189,6 +194,9 @@
     },
     "ELEMENT_TYPES": {
       "SCENE": "Scène"
+    },
+    "SCENE_ICON_TYPES": {
+      "None": "Aucun"
     },
     "OBJECT_TYPES": {
       "PLAYER_CHARACTER": "Personnage joueur",

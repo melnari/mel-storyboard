@@ -974,6 +974,10 @@
   pointer-events: none;
 }
 
+.mel-storyboard-scene-icon {
+  pointer-events: none;
+}
+
 .mel-storyboard-element-title {
   font-size: 15px;
   font-weight: 600;

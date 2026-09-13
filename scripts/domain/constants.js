@@ -13,6 +13,8 @@ export const STATUS = Object.freeze({
 });
 
 export const STATUS_COLOR_SETTING = "statusColors";
+export const SHOW_SCENE_ICONS_SETTING = "showSceneIcons";
+export const SCENE_ICON_NONE = "NONE";
 
 export const STATUS_COLOR_CLASSES = Object.freeze({
   OFFEN: "open",

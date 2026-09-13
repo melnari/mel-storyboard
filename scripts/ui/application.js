@@ -1,4 +1,4 @@
-import { MODULE_ID, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
+import { MODULE_ID, SCENE_ICON_NONE, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
 import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, printSceneBoardsAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
@@ -144,7 +144,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async _prepareContext() {
     const statusColorsEnabled = Boolean(game.settings.get(MODULE_ID, STATUS_COLOR_SETTING));
+    const showSceneIconsEnabled = Boolean(game.settings.get(MODULE_ID, SHOW_SCENE_ICONS_SETTING));
     this.statusColorsEnabled = statusColorsEnabled;
+    this.showSceneIconsEnabled = showSceneIconsEnabled;
     if (!this.board.chapters?.some(chapter => chapter.id === this.activeChapterId)) this.activeChapterId = this.board.chapters?.[0]?.id ?? null;
     const activeChapter = this.board.chapters?.find(chapter => chapter.id === this.activeChapterId) ?? null;
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
@@ -181,7 +183,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       const presentation = normalizeSceneElementSize(element, scene, {
         fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
         statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
-        playerCharacterCount: playerCharacters.length
+        playerCharacterCount: playerCharacters.length,
+        iconPath: showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : ""
       });
       // Keep legacy elements usable with the new multi-line layout. The
       // normalized dimensions are persisted with the next board save.
@@ -322,6 +325,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       selectedConnection,
       connectionTypeOptions,
       selectedConnectionObjects,
+      sceneIconOptions: this.#sceneIconOptions(selectedSceneRecord?.iconType),
+      showSceneIconsEnabled,
       sidebarCollapsed: this.sidebarCollapsed,
       inspectorCollapsed: this.inspectorCollapsed,
       canConnect: this.selectedElementIds.length === 2,
@@ -382,6 +387,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
           bilateralDeactivated: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL_DEACTIVATED")
         },
         status: localize("MEL_STORYBOARD.LABELS.Status"),
+        sceneIconType: localize("MEL_STORYBOARD.LABELS.SceneIconType"),
         description: localize("MEL_STORYBOARD.LABELS.Description"),
         save: localize("MEL_STORYBOARD.ACTIONS.Save"),
         connections: localize("MEL_STORYBOARD.LABELS.Connections"),
@@ -865,7 +871,27 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #exportLabels(title = localize("MEL_STORYBOARD.EXPORT.Scenes")) {
-    return { title, scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"), status: status => localize(`MEL_STORYBOARD.STATUS.${status}`), statusColors: this.statusColorsEnabled };
+    return {
+      title,
+      scene: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
+      status: status => localize(`MEL_STORYBOARD.STATUS.${status}`),
+      statusColors: this.statusColorsEnabled,
+      showSceneIcons: this.showSceneIconsEnabled,
+      sceneIconPaths: globalThis.CONFIG?.JournalEntry?.noteIcons ?? {}
+    };
+  }
+
+  #sceneIconPath(iconType) {
+    if (!iconType || iconType === SCENE_ICON_NONE) return "";
+    return globalThis.CONFIG?.JournalEntry?.noteIcons?.[iconType] ?? "";
+  }
+
+  #sceneIconOptions(selectedValue = SCENE_ICON_NONE) {
+    const noteIcons = globalThis.CONFIG?.JournalEntry?.noteIcons ?? {};
+    return [
+      { value: SCENE_ICON_NONE, label: localize("MEL_STORYBOARD.SCENE_ICON_TYPES.None"), selected: selectedValue === SCENE_ICON_NONE },
+      ...Object.entries(noteIcons).map(([value]) => ({ value, label: value, selected: value === selectedValue }))
+    ];
   }
 
   #onContextMenu(event) {
@@ -1716,17 +1742,17 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
             for (const entry of chapterExports) {
               const safeTitle = String(entry.chapter.title ?? "chapter").trim().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase() || "chapter";
               const filename = `mel-storyboard-${entry.chapter.displayId}-${safeTitle}.${format}`;
-              if (format === "svg") downloadSceneBoardSvg(entry.board, entry.labels, filename);
+              if (format === "svg") await downloadSceneBoardSvg(entry.board, entry.labels, filename);
               else await downloadSceneBoardPng(entry.board, entry.labels, filename);
             }
-          } else if (format === "pdf") printSceneBoardsAsPdf(chapterExports);
+          } else if (format === "pdf") await printSceneBoardsAsPdf(chapterExports);
           return;
         }
         const labels = chapterExports[0]?.labels ?? this.#exportLabels();
         const exportBoard = chapterExports[0]?.board ?? board;
-        if (format === "svg") downloadSceneBoardSvg(exportBoard, labels);
+        if (format === "svg") await downloadSceneBoardSvg(exportBoard, labels);
         else if (format === "png") await downloadSceneBoardPng(exportBoard, labels);
-        else if (format === "pdf") printSceneBoardAsPdf(exportBoard, labels);
+        else if (format === "pdf") await printSceneBoardAsPdf(exportBoard, labels);
       },
       rejectClose: false
     });
@@ -1983,7 +2009,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const presentation = sceneElementPresentation(element, scene, {
       fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
       statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
-      playerCharacterCount: this.#playerCharacterObjects(scene).length
+      playerCharacterCount: this.#playerCharacterObjects(scene).length,
+      iconPath: this.showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : ""
     });
     for (const className of [...node.classList]) {
       if (className.startsWith("status-")) node.classList.remove(className);
@@ -2006,6 +2033,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       for (const [index, line] of presentation.descriptionLines.entries()) description.append(create("tspan", { x: 14, dy: index ? presentation.descriptionLineHeight : 0 }, line));
       children.push(description);
     }
+    if (presentation.iconPath) children.push(create("image", { class: "mel-storyboard-scene-icon", href: presentation.iconPath, x: presentation.iconX, y: presentation.iconY, width: presentation.iconSize, height: presentation.iconSize, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" }));
     children.push(
       create("text", { class: "mel-storyboard-element-id", x: presentation.displayIdX, y: presentation.titleY, "text-anchor": "end" }, presentation.displayId),
       create("rect", { class: "mel-storyboard-element-status-badge", x: 10, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
