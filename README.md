@@ -4,13 +4,13 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 ## Current version
 
-`0.0.8`
+`0.0.9`
 
 The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
 
 ## Requirements
 
-- Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.360`.
+- Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.367`.
 - A Game Master user for editing the board.
 
 Mel-Storyboard is system-independent. It uses Foundry users, world settings, document permissions, and native Foundry document links. It does not require a separate account, login, server, or external application.
@@ -43,7 +43,9 @@ Scene Cards display the title, description, display ID, and status. Rich-text ma
 
 The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, and Skipped. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
 
-The optional world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details provides a `Type` selector containing Foundry's Map Notes entry icons plus `None` (without `Custom`). The selected icon is shown in the lower-right corner of the Scene Card and is included in SVG, PNG, and PDF exports. Changing the selector updates the Scene Card immediately; selecting `None` or disabling the setting hides the icon, while the selected type remains saved.
+The optional world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details provides a localized `Type` selector containing Foundry's Map Notes entry icons plus `None` (without `Custom`). The selected icon is shown in the lower-right corner of the Scene Card and is included in SVG, PNG, and PDF exports. Changing the selector updates the Scene Card immediately; selecting `None` or disabling the setting hides the icon, while the selected type remains saved. The selector stores the original Foundry icon key, so changing the interface language does not change existing assignments.
+
+When `Use status-based coloring` is also enabled, Scene Icons use a status-specific high-contrast foreground color. Open uses white; Waiting, Active, Success, Partial Success, Failure, and Skipped use dark colors suited to their pastel card backgrounds. In the neutral card color scheme, Scene Icons are always white. Player Character names shown on hover remain white on every status color.
 
 Player Characters assigned to a Scene are shown as small artwork tokens at the bottom of the card. Hovering a token shows the Actor name. A Player Character token can be dragged to another Scene Card to move the assignment.
 
@@ -123,7 +125,7 @@ Before exporting, choose the entire Storyboard, the current Chapter, or selected
 
 JSON preserves the editable board data, including Chapters, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
 
-SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, optional Scene icons, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. HTML formatting tags are not included in the Scene Card description text.
+SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, optional Scene icons, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. Scene icon assets are embedded into graphic exports so the downloaded SVG remains self-contained and the icons are retained when rendering PNG or PDF output. HTML formatting tags are not included in the Scene Card description text.
 
 Imported boards are validated and normalized. Older Connections without the current Connection fields default to `unilateral`. Unsupported schema versions are rejected with an error instead of replacing the board with empty data.
 
