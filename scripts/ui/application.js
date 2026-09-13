@@ -81,6 +81,11 @@ function sceneIconColorClass(statusColorsEnabled, status) {
   return statusColorsEnabled ? `icon-${STATUS_COLOR_CLASSES[status] ?? STATUS_COLOR_CLASSES.OFFEN}` : "icon-default";
 }
 
+const SCENE_ICON_LOCALIZATION_KEYS = Object.freeze({
+  "Hanging Sign": "HangingSign",
+  "Oak Tree": "OakTree"
+});
+
 function buildChapterTree(chapters, scenes, activeChapterId, selectedSceneId) {
   return chapters.map(chapter => ({
     ...chapter,
@@ -895,7 +900,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const noteIcons = globalThis.CONFIG?.JournalEntry?.noteIcons ?? {};
     return [
       { value: SCENE_ICON_NONE, label: localize("MEL_STORYBOARD.SCENE_ICON_TYPES.None"), selected: selectedValue === SCENE_ICON_NONE },
-      ...Object.entries(noteIcons).map(([value]) => ({ value, label: value, selected: value === selectedValue }))
+      ...Object.entries(noteIcons).map(([value]) => ({
+        value,
+        label: (() => {
+          const key = `MEL_STORYBOARD.SCENE_ICON_TYPES.${SCENE_ICON_LOCALIZATION_KEYS[value] ?? value}`;
+          const translated = localize(key);
+          return translated === key ? value : translated;
+        })(),
+        selected: value === selectedValue
+      }))
     ];
   }
 
