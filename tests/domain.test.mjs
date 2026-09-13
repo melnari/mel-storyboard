@@ -115,6 +115,7 @@ test("scene card icons are optional and use the lower-right presentation slot", 
   const element = createSceneElement(board, { sceneId: scene.id });
   const presentation = sceneElementPresentation(element, scene, { iconPath: "icons/svg/book.svg" });
   assert.equal(presentation.iconPath, "icons/svg/book.svg");
+  assert.equal(presentation.iconColorClass, "icon-default");
   assert.equal(presentation.iconSize, 24);
   assert.equal(presentation.iconX, presentation.size.width - 42);
   assert.equal(presentation.iconY, presentation.size.height - 42);
@@ -352,9 +353,13 @@ test("graphic exports include selected scene icons only when enabled", () => {
   createSceneElement(board, { sceneId: scene.id });
   const withoutIcons = sceneBoardToSvg(board, { scene: "Scene", status: status => status, showSceneIcons: false, sceneIconPaths: { Book: "icons/svg/book.svg" } });
   const withIcons = sceneBoardToSvg(board, { scene: "Scene", status: status => status, showSceneIcons: true, sceneIconPaths: { Book: "icons/svg/book.svg" } });
-  assert.doesNotMatch(withoutIcons, /class="scene-icon"/);
-  assert.match(withIcons, /class="scene-icon"/);
+  assert.doesNotMatch(withoutIcons, /class="scene-icon[^"]*"/);
+  assert.match(withIcons, /class="scene-icon[^"]*"/);
+  assert.match(withIcons, /scene-icon icon-default/);
   assert.match(withIcons, /icons\/svg\/book\.svg/);
+  scene.status = STATUS.ERFOLG;
+  const coloredWithIcons = sceneBoardToSvg(board, { scene: "Scene", status: status => status, statusColors: true, showSceneIcons: true, sceneIconPaths: { Book: "icons/svg/book.svg" } });
+  assert.match(coloredWithIcons, /scene-icon icon-success/);
 });
 
 test("chapter-scoped graphic exports isolate chapter content", () => {

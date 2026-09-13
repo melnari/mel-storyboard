@@ -92,7 +92,7 @@
               <text class="mel-storyboard-element-id" x="{{displayIdX}}" y="{{titleY}}" text-anchor="end">{{displayId}}</text>
               <rect class="mel-storyboard-element-status-badge" x="10" y="{{statusBadgeY}}" width="{{statusBadgeWidth}}" height="18" rx="9" />
               <text class="mel-storyboard-element-status" x="18" y="{{statusY}}">{{statusLabel}}</text>
-              {{#if iconPath}}<image class="mel-storyboard-scene-icon" href="{{iconPath}}" x="{{iconX}}" y="{{iconY}}" width="{{iconSize}}" height="{{iconSize}}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" />{{/if}}
+              {{#if iconPath}}<image class="mel-storyboard-scene-icon {{iconColorClass}}" href="{{iconPath}}" x="{{iconX}}" y="{{iconY}}" width="{{iconSize}}" height="{{iconSize}}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" />{{/if}}
               <rect class="mel-storyboard-element-resize-handle" data-scene-resize data-element-id="{{id}}" x="{{resizeHandleX}}" y="{{resizeHandleY}}" width="10" height="10" rx="2" aria-label="Resize scene" />
               {{#each playerCharacterTokens}}
                 <g class="mel-storyboard-player-token" data-player-character-token data-object-id="{{objectId}}" data-scene-element-id="{{../id}}" transform="translate({{tokenX}} {{tokenY}})" tabindex="0" role="button" aria-label="{{title}}">

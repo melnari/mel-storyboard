@@ -978,6 +978,48 @@
   pointer-events: none;
 }
 
+/* Scene icon foreground palette. The filters first normalize the source
+   artwork and then tint it to a readable color for the selected card fill. */
+.mel-storyboard-scene-icon.icon-default,
+.scene-icon.icon-default {
+  filter: brightness(0) invert(1);
+}
+
+.mel-storyboard-scene-icon.icon-open,
+.scene-icon.icon-open {
+  filter: brightness(0) invert(1);
+}
+
+.mel-storyboard-scene-icon.icon-waiting,
+.scene-icon.icon-waiting {
+  filter: brightness(0) saturate(100%) invert(31%) sepia(10%) saturate(819%) hue-rotate(174deg) brightness(92%) contrast(88%);
+}
+
+.mel-storyboard-scene-icon.icon-active,
+.scene-icon.icon-active {
+  filter: brightness(0) saturate(100%) invert(15%) sepia(14%) saturate(1324%) hue-rotate(173deg) brightness(92%) contrast(93%);
+}
+
+.mel-storyboard-scene-icon.icon-success,
+.scene-icon.icon-success {
+  filter: brightness(0) saturate(100%) invert(39%) sepia(17%) saturate(1014%) hue-rotate(86deg) brightness(90%) contrast(89%);
+}
+
+.mel-storyboard-scene-icon.icon-partial-success,
+.scene-icon.icon-partial-success {
+  filter: brightness(0) saturate(100%) invert(17%) sepia(22%) saturate(1133%) hue-rotate(349deg) brightness(95%) contrast(91%);
+}
+
+.mel-storyboard-scene-icon.icon-failure,
+.scene-icon.icon-failure {
+  filter: brightness(0) saturate(100%) invert(15%) sepia(23%) saturate(1046%) hue-rotate(313deg) brightness(89%) contrast(92%);
+}
+
+.mel-storyboard-scene-icon.icon-skipped,
+.scene-icon.icon-skipped {
+  filter: brightness(0) saturate(100%) invert(15%) sepia(21%) saturate(1280%) hue-rotate(252deg) brightness(88%) contrast(94%);
+}
+
 .mel-storyboard-element-title {
   font-size: 15px;
   font-weight: 600;

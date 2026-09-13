@@ -77,6 +77,10 @@ const OBJECT_ICONS = Object.freeze({
   PLAYLIST: "fa-music"
 });
 
+function sceneIconColorClass(statusColorsEnabled, status) {
+  return statusColorsEnabled ? `icon-${STATUS_COLOR_CLASSES[status] ?? STATUS_COLOR_CLASSES.OFFEN}` : "icon-default";
+}
+
 function buildChapterTree(chapters, scenes, activeChapterId, selectedSceneId) {
   return chapters.map(chapter => ({
     ...chapter,
@@ -184,7 +188,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
         statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
         playerCharacterCount: playerCharacters.length,
-        iconPath: showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : ""
+        iconPath: showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : "",
+        iconColorClass: sceneIconColorClass(statusColorsEnabled, scene?.status)
       });
       // Keep legacy elements usable with the new multi-line layout. The
       // normalized dimensions are persisted with the next board save.
@@ -2010,7 +2015,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       fallbackTitle: localize("MEL_STORYBOARD.ELEMENT_TYPES.SCENE"),
       statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
       playerCharacterCount: this.#playerCharacterObjects(scene).length,
-      iconPath: this.showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : ""
+      iconPath: this.showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : "",
+      iconColorClass: sceneIconColorClass(this.statusColorsEnabled, scene?.status)
     });
     for (const className of [...node.classList]) {
       if (className.startsWith("status-")) node.classList.remove(className);
@@ -2033,7 +2039,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       for (const [index, line] of presentation.descriptionLines.entries()) description.append(create("tspan", { x: 14, dy: index ? presentation.descriptionLineHeight : 0 }, line));
       children.push(description);
     }
-    if (presentation.iconPath) children.push(create("image", { class: "mel-storyboard-scene-icon", href: presentation.iconPath, x: presentation.iconX, y: presentation.iconY, width: presentation.iconSize, height: presentation.iconSize, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" }));
+    if (presentation.iconPath) children.push(create("image", { class: `mel-storyboard-scene-icon ${presentation.iconColorClass}`, href: presentation.iconPath, x: presentation.iconX, y: presentation.iconY, width: presentation.iconSize, height: presentation.iconSize, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" }));
     children.push(
       create("text", { class: "mel-storyboard-element-id", x: presentation.displayIdX, y: presentation.titleY, "text-anchor": "end" }, presentation.displayId),
       create("rect", { class: "mel-storyboard-element-status-badge", x: 10, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
