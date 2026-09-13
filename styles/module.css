@@ -1224,6 +1224,12 @@
   fill: #7449a2 !important;
 }
 
+/* Status rules target every text element inside a colored card. Keep the
+ * temporary Player Character name overlay white for reliable contrast. */
+.mel-storyboard-element[class*="status-"] .mel-storyboard-player-token-label {
+  fill: #ffffff !important;
+}
+
 .mel-storyboard-element.is-selected .mel-storyboard-element-frame {
   stroke: #f6c453 !important;
   stroke-width: 3 !important;
