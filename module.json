@@ -9,15 +9,15 @@
   },
   "authors": [
     {
-      "name": "melnari",
-      "url": "https://github.com/melnari/mel-storyboard"
+      "name": "Melnari",
+      "email": "info@email.de",
+      "url": "https://github.com/melnari/mel-storyboard",
+      "discord": "lairis"
     }
   ],
   "url": "https://github.com/melnari/mel-storyboard",
   "manifest": "https://raw.githubusercontent.com/melnari/mel-storyboard/main/module.json",
-  "readme": "https://github.com/melnari/mel-storyboard/blob/main/README.md",
-  "license": "LICENSE",
-  "bugs": "https://github.com/melnari/mel-storyboard/issues",
+  "download": "https://github.com/melnari/mel-storyboard/releases/download/v0.0.9/mel-storyboard.zip",
   "esmodules": [
     "scripts/main.js"
   ],
