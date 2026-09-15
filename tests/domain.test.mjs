@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
-import { assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, moveSceneToChapter, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
+import { archiveChapter, assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, moveSceneToChapter, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, restoreChapter, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg, scopeSceneBoard } from "../scripts/domain/export.js";
 import { connectionGeometry } from "../scripts/domain/geometry.js";
 import { SceneBoardStore } from "../scripts/domain/scene-board-store.js";
@@ -31,6 +31,29 @@ test("chapters contain scenes and restrict scene connections to one chapter", ()
   assert.throws(() => createConnection(board, firstElement.id, secondElement.id), /chapter/);
   moveSceneToChapter(board, secondScene.id, board.chapters[0].id);
   assert.doesNotThrow(() => createConnection(board, firstElement.id, secondElement.id));
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
+test("chapters can be archived and restored without losing their contents", () => {
+  const board = createSceneBoard();
+  const archivedChapter = board.chapters[0];
+  const scene = createScene(board, { title: "Archived scene", chapterId: archivedChapter.id });
+  createSceneElement(board, { sceneId: scene.id });
+  const activeChapter = createChapter(board, { title: "Chapter 2" });
+
+  archiveChapter(board, archivedChapter.id);
+  assert.equal(archivedChapter.archived, true);
+  assert.equal(board.chapters.at(-1).id, archivedChapter.id);
+  assert.equal(scene.chapterId, archivedChapter.id);
+
+  restoreChapter(board, archivedChapter.id);
+  assert.equal(archivedChapter.archived, false);
+  assert.equal(board.chapters[0].id, activeChapter.id);
+  assert.equal(board.chapters.at(-1).id, archivedChapter.id);
+
+  archiveChapter(board, archivedChapter.id);
+  archiveChapter(board, activeChapter.id);
+  assert.equal(board.chapters.every(chapter => chapter.archived), true);
   assert.equal(validateSceneBoard(board).valid, true);
 });
 

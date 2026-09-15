@@ -35,6 +35,7 @@ export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
     title: chapter.title ?? "Chapter",
     description: chapter.description ?? "",
     status: chapter.status ?? "OFFEN",
+    archived: Boolean(chapter.archived),
     nodes: Array.isArray(chapter.nodes) ? chapter.nodes.map(node => ({
       ...node,
       nodeType: node.nodeType === "EXIT" ? "EXIT" : "ENTRY",

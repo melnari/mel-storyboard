@@ -42,6 +42,8 @@
       "ChapterDetails": "Kapiteldetails",
       "NewEntryNode": "Neuen Einsprung erstellen",
       "NewExitNode": "Neuen Absprung erstellen",
+      "ArchiveChapter": "Kapitel archivieren",
+      "RestoreChapter": "Wiederherstellen",
       "DeleteChapter": "Kapitel löschen",
       "RenameNode": "Knoten umbenennen",
       "DeleteNode": "Knoten löschen",
@@ -87,6 +89,7 @@
     },
   "LABELS": {
     "Story": "Story",
+    "Archive": "Archiv",
     "Scenes": "Szenen",
       "ChapterDetails": "Kapiteldetails",
       "ChapterNodes": "Kapitelknoten",

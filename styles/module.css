@@ -457,6 +457,23 @@
   box-shadow: none;
 }
 
+.mel-storyboard-archive-root .mel-storyboard-tree-label {
+  grid-template-columns: 1rem minmax(0, 1fr) auto;
+  color: #59687a;
+}
+
+.mel-storyboard-archive-root.is-expanded .mel-storyboard-tree-label {
+  color: #f0f3f7;
+}
+
+.mel-storyboard-archive-root.is-empty .mel-storyboard-tree-label {
+  opacity: .7;
+}
+
+.mel-storyboard-archive-root.is-expanded > .mel-storyboard-tree-label {
+  background: rgba(246, 196, 83, .08);
+}
+
 .mel-storyboard-tree-label.status-waiting,
 .mel-storyboard-tree-node.status-waiting { color: #20252d; background: #e2e5ea; }
 .mel-storyboard-tree-label.status-active,

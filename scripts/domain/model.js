@@ -58,13 +58,37 @@ export function createChapter(board, { title = "New chapter", description = "", 
     title: title.trim() || "New chapter",
     description,
     status,
+    archived: false,
     nodes: [],
     createdAt: now,
     updatedAt: now
   };
   board.chapters ??= [];
-  board.chapters.push(chapter);
+  const firstArchivedIndex = board.chapters.findIndex(candidate => candidate.archived);
+  if (firstArchivedIndex < 0) board.chapters.push(chapter);
+  else board.chapters.splice(firstArchivedIndex, 0, chapter);
   board.updatedAt = now;
+  return chapter;
+}
+
+export function archiveChapter(board, chapterId) {
+  const index = (board.chapters ?? []).findIndex(chapter => chapter.id === chapterId);
+  if (index < 0) return null;
+  const [chapter] = board.chapters.splice(index, 1);
+  chapter.archived = true;
+  board.chapters.push(chapter);
+  board.updatedAt = timestamp();
+  return chapter;
+}
+
+export function restoreChapter(board, chapterId) {
+  const index = (board.chapters ?? []).findIndex(chapter => chapter.id === chapterId);
+  if (index < 0) return null;
+  const [chapter] = board.chapters.splice(index, 1);
+  chapter.archived = false;
+  const firstArchivedIndex = board.chapters.findIndex(candidate => candidate.archived);
+  board.chapters.splice(firstArchivedIndex < 0 ? board.chapters.length : firstArchivedIndex, 0, chapter);
+  board.updatedAt = timestamp();
   return chapter;
 }
 

@@ -29,13 +29,13 @@ The application is a Foundry-native window and cannot be detached into a separat
 
 The interface consists of three areas:
 
-- A collapsible navigation tree on the left. The root is named `Story`; Chapters contain their Scenes with display IDs and titles.
+- A collapsible navigation tree on the left. The active root is named `Story`; Chapters contain their Scenes with display IDs and titles. A second root named `Archive` contains archived Chapters only, with their Scenes nested below them.
 - A central canvas with a grid and the Scene Cards of the selected Chapter.
 - A collapsible inspector on the right for Chapter Details, Scene Details, or Connection Details.
 
 The expanded navigation and inspector columns are sized for comfortable editing. Both columns can be collapsed independently. Hover a Chapter or Scene entry for two seconds to display its complete title below the entry; long titles wrap without changing the normal tree layout.
 
-Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. Chapters can be reordered by dragging them in the tree. Scenes can be reordered within a Chapter or dragged between Chapters. Right-clicking the Story root creates a Chapter. Right-clicking a Chapter opens Chapter Details, creates Entry or Exit nodes, or deletes the Chapter after confirmation. Deleting a Chapter removes its Scenes, Scene Cards, Scene Connections, and Chapter-node links.
+Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. Active Chapters can be reordered by dragging them in the Story tree. Scenes can be reordered within a Chapter or dragged between active Chapters. Right-clicking the Story root creates a Chapter. Right-clicking an active Chapter opens Chapter Details, creates Entry or Exit nodes, archives the Chapter, or deletes the Chapter after confirmation. Archiving moves the complete Chapter, including its Scenes, Scene Cards, Scene Connections, Entry/Exit nodes, and Chapter-node links, to the end of the Archive. Right-clicking an archived Chapter offers Restore; restoring moves it to the end of the Story hierarchy. All Chapters may be archived. Deleting a Chapter removes its Scenes, Scene Cards, Scene Connections, and Chapter-node links.
 
 Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit nodes can be moved on the canvas like Scene Cards. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter, with the additional valid paths Entry → Scene and Scene → Exit.
 
@@ -124,7 +124,7 @@ The `Import/Export` menu provides:
 
 Before exporting, choose the entire Storyboard, the current Chapter, or selected Chapters. JSON remains one editable board export. For graphic exports containing multiple Chapters, each Chapter is isolated to its own graphic: SVG and PNG create one file per Chapter, while PDF creates one Chapter per page. This prevents Chapter layouts from overlapping when different Chapters use the same canvas coordinates. During import, choose whether to replace the entire Storyboard, add the imported content as new Chapters, or add the first imported Chapter to an existing Chapter. Older JSON boards without Chapters are migrated automatically into `Chapter 1`.
 
-JSON preserves the editable board data, including Chapters, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
+JSON preserves the editable board data, including Chapter order and archived state, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
 
 SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, optional Scene icons, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. Scene icon assets are embedded into graphic exports so the downloaded SVG remains self-contained and the icons are retained when rendering PNG or PDF output. HTML formatting tags are not included in the Scene Card description text.
 

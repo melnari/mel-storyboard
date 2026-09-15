@@ -49,6 +49,32 @@
         {{else}}
           <li class="mel-storyboard-empty">{{labels.noChapters}}</li>
         {{/if}}
+        <li role="treeitem" aria-level="1" data-archive-root class="mel-storyboard-tree-item mel-storyboard-archive-root {{#if archiveExpanded}}is-expanded{{/if}} {{#unless hasArchivedChapters}}is-empty{{/unless}}">
+          <button type="button" data-action="toggle-archive" class="mel-storyboard-tree-label" aria-expanded="{{archiveExpanded}}" aria-label="{{labels.archive}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-box-archive"></i></span><span class="mel-storyboard-tree-content"><span class="mel-storyboard-tree-title">{{labels.archive}}</span></span><i class="fas mel-storyboard-archive-chevron {{#if archiveExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
+          {{#if archiveExpanded}}
+            {{#if hasArchivedChapters}}
+              <ul role="group" class="mel-storyboard-tree-children">
+                {{#each archiveTree}}
+                  <li role="treeitem" aria-level="2" data-chapter-id="{{id}}" data-archived="true" class="mel-storyboard-tree-item mel-storyboard-chapter-tree-item is-archived {{#if isActive}}is-active{{/if}}">
+                    <div class="mel-storyboard-tree-node mel-storyboard-chapter-node">
+                      <button type="button" class="icon-button mel-storyboard-tree-toggle" data-action="toggle-chapter" data-chapter-id="{{id}}" title="{{title}}" aria-label="{{title}}"><i class="fas {{#if isExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i></button>
+                      <button type="button" data-action="select-chapter" data-chapter-id="{{id}}" data-archived="true" class="mel-storyboard-tree-label" aria-label="{{title}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-folder{{#if isExpanded}}-open{{/if}}"></i></span><span class="mel-storyboard-tree-content"><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-meta"><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></span><span class="mel-storyboard-tree-hover-title" role="tooltip">{{title}}</span></span></button>
+                    </div>
+                    {{#if isExpanded}}
+                      <ul role="group" class="mel-storyboard-tree-children">
+                        {{#each scenes}}
+                          <li role="treeitem" aria-level="3" data-scene-id="{{id}}" data-chapter-id="{{chapterId}}" data-archived="true" class="mel-storyboard-tree-item {{#if isSelected}}is-active{{/if}}">
+                            <button type="button" data-action="select-scene" data-scene-id="{{id}}" data-archived="true" class="mel-storyboard-tree-node" aria-label="{{title}}"><span class="mel-storyboard-tree-branch" aria-hidden="true"><i class="fas fa-circle"></i></span><span class="mel-storyboard-tree-content"><span class="mel-storyboard-tree-title">{{title}}</span><span class="mel-storyboard-tree-meta"><span class="mel-storyboard-tree-id">{{displayId}}</span><span class="mel-storyboard-tree-status">{{statusLabel}}</span></span><span class="mel-storyboard-tree-hover-title" role="tooltip">{{title}}</span></span></button>
+                          </li>
+                        {{/each}}
+                      </ul>
+                    {{/if}}
+                  </li>
+                {{/each}}
+              </ul>
+            {{/if}}
+          {{/if}}
+        </li>
       </ul>
     </aside>
 

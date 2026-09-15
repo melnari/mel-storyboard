@@ -42,6 +42,8 @@
       "ChapterDetails": "Hoofdstukdetails",
       "NewEntryNode": "Nieuw ingangsknooppunt",
       "NewExitNode": "Nieuw uitgangsknooppunt",
+      "ArchiveChapter": "Hoofdstuk archiveren",
+      "RestoreChapter": "Hoofdstuk herstellen",
       "DeleteChapter": "Hoofdstuk verwijderen",
       "RenameNode": "Knooppunt hernoemen",
       "DeleteNode": "Knooppunt verwijderen",
@@ -87,6 +89,7 @@
     },
   "LABELS": {
     "Story": "Story",
+    "Archive": "Archief",
     "Scenes": "Scènes",
       "ChapterDetails": "Hoofdstukdetails",
       "ChapterNodes": "Hoofdstukknooppunten",

@@ -42,6 +42,8 @@
       "ChapterDetails": "Chapter details",
       "NewEntryNode": "New entry node",
       "NewExitNode": "New exit node",
+      "ArchiveChapter": "Archive chapter",
+      "RestoreChapter": "Restore chapter",
       "DeleteChapter": "Delete chapter",
       "RenameNode": "Rename node",
       "DeleteNode": "Delete node",
@@ -87,6 +89,7 @@
     },
   "LABELS": {
     "Story": "Story",
+    "Archive": "Archive",
     "Scenes": "Scenes",
       "ChapterDetails": "Chapter Details",
       "ChapterNodes": "Chapter nodes",

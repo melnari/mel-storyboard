@@ -1,5 +1,5 @@
 import { MODULE_ID, SCENE_ICON_NONE, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
-import { assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
+import { archiveChapter, assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, restoreChapter, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, printSceneBoardsAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
 import { connectionGeometry } from "../domain/geometry.js";
@@ -127,8 +127,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.suppressCanvasClick = false;
     this.clipboard = null;
     this.zoom = 1;
-    this.activeChapterId = this.board.chapters?.[0]?.id ?? null;
+    this.activeChapterId = this.board.chapters?.find(chapter => !chapter.archived)?.id ?? null;
     this.expandedChapterIds = new Set(this.activeChapterId ? [this.activeChapterId] : []);
+    this.archiveExpanded = false;
     this.connectionSourceId = null;
     this.connectionSourceType = null;
     this.selectedConnectionId = null;
@@ -155,7 +156,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const showSceneIconsEnabled = Boolean(game.settings.get(MODULE_ID, SHOW_SCENE_ICONS_SETTING));
     this.statusColorsEnabled = statusColorsEnabled;
     this.showSceneIconsEnabled = showSceneIconsEnabled;
-    if (!this.board.chapters?.some(chapter => chapter.id === this.activeChapterId)) this.activeChapterId = this.board.chapters?.[0]?.id ?? null;
+    if (!this.board.chapters?.some(chapter => chapter.id === this.activeChapterId)) this.activeChapterId = this.board.chapters?.find(chapter => !chapter.archived)?.id ?? null;
     const activeChapter = this.board.chapters?.find(chapter => chapter.id === this.activeChapterId) ?? null;
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
     const objects = await Promise.all((this.board.objects ?? []).map(async object => {
@@ -296,7 +297,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }).filter(Boolean);
     const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: (selectedScene?.status ?? activeChapter?.status) === value }));
     const selectedSceneId = selectedSceneRecord?.id ?? null;
-    const sceneTree = buildChapterTree(this.board.chapters ?? [], this.board.scenes, this.activeChapterId, selectedSceneId).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id) }));
+    const sceneTree = buildChapterTree((this.board.chapters ?? []).filter(chapter => !chapter.archived), this.board.scenes, this.activeChapterId, selectedSceneId).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id) }));
+    const archiveTree = buildChapterTree((this.board.chapters ?? []).filter(chapter => chapter.archived), this.board.scenes, this.activeChapterId, selectedSceneId).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id), isArchived: true }));
     const selectedChapter = activeChapter ? {
       ...activeChapter,
       statusLabel: localize(`MEL_STORYBOARD.STATUS.${activeChapter.status}`),
@@ -326,6 +328,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     return {
       board: { ...this.board, elements, connections, objects },
       sceneTree,
+      archiveTree,
+      archiveExpanded: this.archiveExpanded,
       activeChapter: selectedChapter,
       chapterNodes,
       chapterConnectionVisuals,
@@ -340,7 +344,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       inspectorCollapsed: this.inspectorCollapsed,
       canConnect: this.selectedElementIds.length === 2,
       hasScenes: this.board.scenes.some(scene => scene.chapterId === this.activeChapterId),
-      hasChapters: Boolean(this.board.chapters?.length),
+      hasChapters: this.board.chapters?.some(chapter => !chapter.archived) ?? false,
+      hasArchivedChapters: this.board.chapters?.some(chapter => chapter.archived) ?? false,
       objects,
       selectedObjects,
       statuses,
@@ -374,6 +379,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         collapseInspector: localize("MEL_STORYBOARD.ACTIONS.CollapseInspector"),
         expandInspector: localize("MEL_STORYBOARD.ACTIONS.ExpandInspector"),
         story: localize("MEL_STORYBOARD.LABELS.Story"),
+        archive: localize("MEL_STORYBOARD.LABELS.Archive"),
         scenes: localize("MEL_STORYBOARD.LABELS.Scenes"),
         noScenes: localize("MEL_STORYBOARD.EMPTY.NoScenes"),
         sceneCanvas: localize("MEL_STORYBOARD.ACCESSIBILITY.SceneCanvas"),
@@ -579,7 +585,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (payload.type === "chapter" && target.dataset.chapterId && !target.dataset.sceneId) {
       if (payload.id === target.dataset.chapterId) return;
       this.history.capture(this.board);
-      const ids = this.board.chapters.map(chapter => chapter.id);
+      const ids = this.board.chapters.filter(chapter => !chapter.archived).map(chapter => chapter.id);
       const sourceIndex = ids.indexOf(payload.id);
       const targetIndex = ids.indexOf(target.dataset.chapterId);
       if (sourceIndex < 0 || targetIndex < 0) return;
@@ -915,8 +921,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const sceneTarget = findTarget("[data-scene-element]");
     const chapterNodeTarget = findTarget("[data-chapter-node]");
     const chapterTarget = findTarget("[data-chapter-id]");
+    const archiveRootTarget = findTarget("[data-archive-root]");
     const storyTarget = findTarget("[data-story-root]");
     const canvasTarget = findTarget("[data-storyboard-canvas]");
+    if (archiveRootTarget && !chapterTarget && !sceneTarget && !chapterNodeTarget && !connectionTarget && !chapterConnectionTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.#closeContextMenu();
+      return;
+    }
     if (!connectionTarget && !chapterConnectionTarget && !sceneTarget && !chapterNodeTarget && !chapterTarget && !storyTarget && !canvasTarget) return;
     event.preventDefault();
     event.stopPropagation();
@@ -926,7 +939,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       elementId: sceneTarget?.dataset.elementId ?? null,
       chapterId: chapterTarget?.dataset.chapterId ?? null,
       nodeId: chapterNodeTarget?.dataset.nodeId ?? null,
-      isStoryRoot: Boolean(storyTarget)
+      isStoryRoot: Boolean(storyTarget),
+      isArchived: Boolean(this.board.chapters.find(chapter => chapter.id === chapterTarget?.dataset.chapterId)?.archived)
     });
   }
 
@@ -1103,7 +1117,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     svg.style.height = `${height}px`;
   }
 
-  #openContextMenu(event, { connectionId = null, chapterConnectionId = null, elementId = null, chapterId = null, nodeId = null, isStoryRoot = false } = {}) {
+  #openContextMenu(event, { connectionId = null, chapterConnectionId = null, elementId = null, chapterId = null, nodeId = null, isStoryRoot = false, isArchived = false } = {}) {
     this.#closeContextMenu();
     const sceneMenu = Boolean(elementId);
     const connectionMenu = Boolean(connectionId);
@@ -1121,13 +1135,16 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       { label: localize("MEL_STORYBOARD.ACTIONS.RenameNode"), icon: "✎", action: () => this.#renameChapterNode(nodeId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.LinkNode"), icon: "→", action: () => this.#linkChapterNode(nodeId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteNode"), icon: "×", action: () => this.#deleteChapterNode(nodeId) }
-    ] : chapterMenu ? [
+    ] : chapterMenu ? (isArchived ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.RestoreChapter"), icon: "↶", action: () => this.#restoreArchivedChapter(chapterId) }
+    ] : [
       { label: localize("MEL_STORYBOARD.ACTIONS.ChapterDetails"), icon: "ⓘ", action: () => this.#selectChapter(chapterId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.NewScene"), icon: "+", action: async () => { this.activeChapterId = chapterId; await this.#createScene(); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.NewEntryNode"), icon: "○", action: () => this.#createChapterNode(chapterId, "ENTRY") },
       { label: localize("MEL_STORYBOARD.ACTIONS.NewExitNode"), icon: "○", action: () => this.#createChapterNode(chapterId, "EXIT") },
+      { label: localize("MEL_STORYBOARD.ACTIONS.ArchiveChapter"), icon: "▣", action: () => this.#archiveChapter(chapterId) },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteChapter"), icon: "×", action: () => this.#deleteChapter(chapterId) }
-    ] : isStoryRoot ? [
+    ]) : isStoryRoot ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.NewChapter"), icon: "+", action: () => this.#createChapter() }
     ] : sceneMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; this.connectionSourceType = "SCENE"; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
@@ -1183,6 +1200,40 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     await this.render({ force: true });
   }
 
+  async #archiveChapter(chapterId) {
+    const chapter = this.board.chapters.find(candidate => candidate.id === chapterId);
+    if (!chapter || chapter.archived) return;
+    this.history.capture(this.board);
+    archiveChapter(this.board, chapterId);
+    if (this.activeChapterId === chapterId) {
+      this.activeChapterId = this.board.chapters.find(candidate => !candidate.archived)?.id ?? null;
+      this.selectedElementIds = [];
+      this.selectedConnectionId = null;
+      this.connectionSourceId = null;
+      this.connectionSourceType = null;
+    }
+    this.archiveExpanded = true;
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
+  async #restoreArchivedChapter(chapterId) {
+    const chapter = this.board.chapters.find(candidate => candidate.id === chapterId);
+    if (!chapter?.archived) return;
+    this.history.capture(this.board);
+    restoreChapter(this.board, chapterId);
+    this.activeChapterId = chapterId;
+    this.expandedChapterIds.add(chapterId);
+    this.archiveExpanded = false;
+    this.selectedElementIds = [];
+    this.selectedConnectionId = null;
+    this.connectionSourceId = null;
+    this.connectionSourceType = null;
+    this.inspectorCollapsed = false;
+    this.board = await this.store.save(this.board);
+    await this.render({ force: true });
+  }
+
   #closeContextMenu() {
     this.contextMenuElement?.remove();
     if (this.contextMenuOutsideHandler) document.removeEventListener("pointerdown", this.contextMenuOutsideHandler, true);
@@ -1193,6 +1244,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #createScene(event = null) {
+    const activeChapter = this.board.chapters.find(chapter => chapter.id === this.activeChapterId);
+    if (!activeChapter || activeChapter.archived) return;
     const nextNumber = this.board.scenes.reduce((highest, scene) => {
       const match = /^Scene\s+(\d+)$/i.exec(scene.title?.trim() ?? "");
       return Math.max(highest, match ? Number(match[1]) : 0);
@@ -1213,8 +1266,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #selectChapter(chapterId) {
-    if (!this.board.chapters.some(chapter => chapter.id === chapterId)) return;
+    const chapter = this.board.chapters.find(candidate => candidate.id === chapterId);
+    if (!chapter) return;
     this.activeChapterId = chapterId;
+    if (chapter.archived) this.archiveExpanded = true;
     this.expandedChapterIds.add(chapterId);
     this.selectedElementIds = [];
     this.selectedConnectionId = null;
@@ -1604,6 +1659,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         await this.#createChapter();
       } else if (action === "toggle-sidebar") {
         this.sidebarCollapsed = !this.sidebarCollapsed;
+      } else if (action === "toggle-archive") {
+        this.archiveExpanded = !this.archiveExpanded;
       } else if (action === "toggle-inspector") {
         this.inspectorCollapsed = !this.inspectorCollapsed;
       } else if (action === "zoom-out") {
@@ -1759,15 +1816,20 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         callback: async html => {
           const target = html.find("[name='target']").val();
           const chapterId = html.find("[name='chapter']").val();
+          let importedChapterSelectionId = null;
           this.history.capture(this.board);
           if (target === "replace") this.board = await this.store.import(imported);
-          else if (target === "new") this.#mergeImportedChapters(imported);
+          else if (target === "new") importedChapterSelectionId = this.#mergeImportedChapters(imported);
           else this.#mergeImportedChapterInto(imported, chapterId);
           this.selectedElementIds = [];
           this.selectedConnectionId = null;
           this.connectionSourceId = null;
           this.connectionSourceType = null;
-          this.activeChapterId = target === "replace" ? this.board.chapters[0]?.id : (target === "existing" ? chapterId : this.board.chapters.at(-1)?.id);
+          this.activeChapterId = target === "replace"
+              ? this.board.chapters.find(chapter => !chapter.archived)?.id ?? this.board.chapters[0]?.id ?? null
+            : target === "existing"
+              ? chapterId
+              : importedChapterSelectionId ?? this.board.chapters.filter(chapter => !chapter.archived).at(-1)?.id ?? this.board.chapters.at(-1)?.id ?? null;
           this.board = await this.store.save(this.board);
           await this.render({ force: true });
         },
@@ -1827,11 +1889,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.board.objects.push(...importedObjects);
     this.board.templates.push(...importedTemplates);
     const chapterConnections = (imported.chapterConnections ?? []).map(source => ({ ...clone(source), id: uuid(), sourceNodeId: nodeMap.get(source.sourceNodeId), targetNodeId: nodeMap.get(source.targetNodeId) })).filter(connection => connection.sourceNodeId && connection.targetNodeId);
-    this.board.chapters.push(...chapters);
+    const importedActiveChapters = chapters.filter(chapter => !chapter.archived);
+    const importedArchivedChapters = chapters.filter(chapter => chapter.archived);
+    const firstArchivedIndex = this.board.chapters.findIndex(chapter => chapter.archived);
+    this.board.chapters.splice(firstArchivedIndex < 0 ? this.board.chapters.length : firstArchivedIndex, 0, ...importedActiveChapters, ...importedArchivedChapters);
     this.board.scenes.push(...scenes);
     this.board.elements.push(...elements);
     this.board.connections.push(...connections);
     this.board.chapterConnections.push(...chapterConnections);
+    return importedActiveChapters.at(-1)?.id ?? importedArchivedChapters.at(-1)?.id ?? null;
   }
 
   #mergeImportedChapterInto(imported, targetChapterId) {
