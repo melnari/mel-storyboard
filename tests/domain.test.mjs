@@ -178,6 +178,19 @@ test("scene objects use typed records and Foundry UUID references", () => {
   assert.equal(validateSceneBoard(board).valid, true);
 });
 
+test("playlist tracks are valid linked object records", () => {
+  const board = createSceneBoard();
+  const track = createBoardObject(board, {
+    objectType: "PLAYLIST_SOUND",
+    title: "Intro music",
+    foundryUuid: "Playlist.playlist1.PlaylistSound.track1",
+    foundryDocumentType: "PlaylistSound"
+  });
+  assert.equal(track.objectType, "PLAYLIST_SOUND");
+  assert.equal(track.foundryDocumentType, "PlaylistSound");
+  assert.equal(validateSceneBoard(board).valid, true);
+});
+
 test("player character assignments can be moved between scenes", () => {
   const board = createSceneBoard();
   const source = createScene(board, { title: "Source" });

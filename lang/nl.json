@@ -240,7 +240,8 @@
       "FOUNDRY_SCENE": "Foundry-scène",
       "ROLLABLE_TABLE": "Worptabel",
       "MACRO": "Macro",
-      "PLAYLIST": "Afspeellijst"
+      "PLAYLIST": "Afspeellijst",
+      "PLAYLIST_SOUND": "Track uit afspeellijst"
     },
     "CONNECTION_TYPES": {
       "UNILATERAL": "unilateraal",

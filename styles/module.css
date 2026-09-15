@@ -121,6 +121,11 @@
   outline: none;
 }
 
+.mel-storyboard-foundry-track-focus {
+  outline: 2px solid var(--color-border-highlight, #f6c453);
+  outline-offset: 2px;
+}
+
 .mel-storyboard-template-management {
   display: flex;
   flex-direction: column;

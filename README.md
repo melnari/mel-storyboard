@@ -4,7 +4,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 ## Current version
 
-`0.1.0`
+`0.1.1`
 
 The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
 
@@ -12,6 +12,7 @@ The current release organizes the Scene board into Chapters. Storyline and separ
 
 - Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.367`.
 - A Game Master user for editing the board.
+- No additional runtime modules or external services are required.
 
 Mel-Storyboard is system-independent. It uses Foundry users, world settings, document permissions, and native Foundry document links. It does not require a separate account, login, server, or external application.
 
@@ -106,9 +107,10 @@ Foundry documents can be dragged onto a Scene Card or Connection. The module sup
 - Scenes;
 - Rollable Tables;
 - Macros;
-- Playlists.
+- Playlists;
+- individual Playlist tracks (`PlaylistSound`).
 
-Assigned Objects show their title, artwork or icon, type, and optional note. The title links back to the corresponding Foundry document. Foundry Scenes are opened with their native `View` behavior for the GM.
+Assigned Objects show their title, artwork or icon, type, and optional note. The title links back to the corresponding Foundry document. Foundry Scenes are opened with their native `View` behavior for the GM. Individual Playlist tracks retain their embedded `PlaylistSound` UUID and open the native Foundry Playlist sidebar with the parent Playlist expanded and the linked track brought into view; the separate track configuration is not opened.
 
 Object Details provide the document type, title, UUID, Foundry document type, and a Foundry-compatible Rich Text note editor. Notes are stored on the assignment, so a note can be maintained independently for each Scene or Connection assignment.
 
@@ -134,6 +136,13 @@ Imported boards are validated and normalized. Older Connections without the curr
 
 The board is stored in a Foundry world setting. Editing is restricted to the GM. Foundry document access remains subject to Foundry's own permissions and document availability.
 
+The module adds two world settings under `Mel-Storyboard`:
+
+- `Use status-based coloring`, disabled by default;
+- `Show Icons on Scene`, disabled by default.
+
+Both settings are GM-restricted. Disabling either setting hides its visual effect while retaining the saved Scene data.
+
 ## Languages
 
 The module uses English (`en`) as its default and fallback language and includes:
@@ -144,6 +153,22 @@ The module uses English (`en`) as its default and fallback language and includes
 - Dutch (`nl`).
 
 User-authored Scene, Connection, and Object content is not automatically translated.
+
+## Limitations and troubleshooting
+
+- Scene-to-Scene Connections are limited to a single Chapter. Moving a Scene between Chapters removes affected cross-Chapter Connections and displays a warning.
+- Chapter links are separate from Scene Connections and use Exit-to-Entry routing between different Chapters.
+- Graphic exports are generated per Chapter when more than one Chapter is selected, so identical Scene Card coordinates cannot cause overlap between Chapters.
+- Foundry document links require the referenced document to remain available to the current user. A deleted or inaccessible document cannot be opened from the board.
+- Individual Playlist tracks open in the native Playlist sidebar. The track configuration sheet is intentionally not opened.
+
+If the module does not appear after an update, reload the world after confirming that `Mel-Storyboard` is enabled in Module Management. For functional problems, reproduce the issue as a GM and report it with the Foundry version, module version, browser console error, and a minimal description at the [GitHub issue tracker](https://github.com/melnari/mel-storyboard/issues).
+
+## Support and asset credits
+
+For questions, bug reports, and feature requests, use the [GitHub repository](https://github.com/melnari/mel-storyboard) or its [issue tracker](https://github.com/melnari/mel-storyboard/issues).
+
+The module does not bundle third-party artwork or audio assets. Scene and Object artwork is read from the user's Foundry documents and remains subject to the permissions and licenses of those documents. The module source is distributed under the Apache License 2.0.
 
 ## Installation
 

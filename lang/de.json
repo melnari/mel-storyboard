@@ -240,7 +240,8 @@
       "FOUNDRY_SCENE": "Foundry-Szene",
       "ROLLABLE_TABLE": "Würfeltabelle",
       "MACRO": "Makro",
-      "PLAYLIST": "Wiedergabeliste"
+      "PLAYLIST": "Wiedergabeliste",
+      "PLAYLIST_SOUND": "Playlist-Track"
     },
     "CONNECTION_TYPES": {
       "UNILATERAL": "unilateral",

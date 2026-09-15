@@ -73,7 +73,8 @@ const OBJECT_ICONS = Object.freeze({
   EVENT: "fa-calendar-day",
   ROLLABLE_TABLE: "fa-dice-d20",
   MACRO: "fa-scroll",
-  PLAYLIST: "fa-music"
+  PLAYLIST: "fa-music",
+  PLAYLIST_SOUND: "fa-music"
 });
 
 function sceneIconColorClass(statusColorsEnabled, status) {
@@ -635,6 +636,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       await document.view();
       return;
     }
+    if (document.documentName === "PlaylistSound") {
+      await this.#openPlaylistSoundInSidebar(document);
+      return;
+    }
     const sheet = document.sheet;
     if (sheet?.render) {
       await sheet.render({ force: true });
@@ -642,6 +647,37 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       return;
     }
     ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
+  }
+
+  async #openPlaylistSoundInSidebar(sound) {
+    const playlist = sound.parent;
+    const playlistDirectory = ui.playlists ?? ui.sidebar?.tabs?.playlists;
+    if (!playlist || !playlistDirectory) {
+      ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
+      return;
+    }
+
+    try {
+      // Foundry v14 keeps expanded playlist IDs on the native directory. Add
+      // the parent before rendering so the embedded sound is present in the
+      // resulting directory tree instead of opening PlaylistSoundConfig.
+      playlistDirectory._expanded ??= new Set();
+      playlistDirectory._expanded.add(playlist.id);
+      playlistDirectory.activate?.();
+      await playlistDirectory.render({ force: true });
+
+      const escape = globalThis.CSS?.escape ?? (value => String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&"));
+      const playlistElement = playlistDirectory.element?.querySelector(`[data-entry-id="${escape(playlist.id)}"]`);
+      const soundElement = playlistElement?.querySelector(`[data-sound-id="${escape(sound.id)}"]`)
+        ?? playlistDirectory.element?.querySelector(`[data-sound-id="${escape(sound.id)}"]`);
+      if (!soundElement) return;
+      soundElement.scrollIntoView({ block: "nearest", inline: "nearest" });
+      soundElement.classList.add("mel-storyboard-foundry-track-focus");
+      window.setTimeout(() => soundElement.classList.remove("mel-storyboard-foundry-track-focus"), 1800);
+    } catch (error) {
+      console.error(`[${MODULE_ID}] Could not open Playlist track in the native Playlist sidebar`, error);
+      ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
+    }
   }
 
   #selectElement(elementId, additive = false) {
@@ -1606,7 +1642,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!raw) return;
     let data;
     try { data = JSON.parse(raw); } catch { return; }
-    const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene", "RollTable", "Macro", "Playlist"]);
+    const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene", "RollTable", "Macro", "Playlist", "PlaylistSound"]);
     if (!data?.uuid) return;
     const target = event.target instanceof Element ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
     const element = this.board.elements.find(candidate => candidate.id === target?.dataset.elementId);
@@ -1622,7 +1658,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       : foundryType === "Item" ? "ITEM" : foundryType === "Scene" ? "FOUNDRY_SCENE" : "JOURNAL";
     const extendedObjectType = foundryType === "RollTable"
       ? "ROLLABLE_TABLE"
-      : foundryType === "Macro" ? "MACRO" : foundryType === "Playlist" ? "PLAYLIST" : objectType;
+      : foundryType === "Macro" ? "MACRO" : foundryType === "Playlist" ? "PLAYLIST" : foundryType === "PlaylistSound" ? "PLAYLIST_SOUND" : objectType;
     this.history.capture(this.board);
     const existing = this.board.objects.find(object => object.foundryUuid === data.uuid);
     const object = existing ?? createBoardObject(this.board, {

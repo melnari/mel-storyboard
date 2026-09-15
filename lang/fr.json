@@ -240,7 +240,8 @@
       "FOUNDRY_SCENE": "Scène Foundry",
       "ROLLABLE_TABLE": "Table aléatoire",
       "MACRO": "Macro",
-      "PLAYLIST": "Playlist"
+      "PLAYLIST": "Playlist",
+      "PLAYLIST_SOUND": "Piste de playlist"
     },
     "CONNECTION_TYPES": {
       "UNILATERAL": "unilatérale",
