@@ -4,7 +4,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 ## Current version
 
-`0.0.9`
+`0.1.0`
 
 The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
 
@@ -41,6 +41,8 @@ Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit 
 
 Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
 
+Scene Cards do not open a separate detail window on double-click. Select a Scene Card to use the right-side Scene Details inspector for editing.
+
 The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, and Skipped. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
 
 The optional world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details provides a localized `Type` selector containing Foundry's Map Notes entry icons plus `None` (without `Custom`). The selected icon is shown in the lower-right corner of the Scene Card and is included in SVG, PNG, and PDF exports. Changing the selector updates the Scene Card immediately; selecting `None` or disabling the setting hides the icon, while the selected type remains saved. The selector stores the original Foundry icon key, so changing the interface language does not change existing assignments.
@@ -54,7 +56,6 @@ Player Characters assigned to a Scene are shown as small artwork tokens at the b
 - Create a Scene from the left navigation or the canvas context menu. New Scenes receive sequential names such as `Scene 1`, `Scene 2`, and so on.
 - Select a Scene to open its Scene Details in the right inspector.
 - Edit the title, status, and description in Scene Details and save the changes.
-- Scene Cards are edited through the Scene Details inspector after selecting them.
 - Right-click a Scene Card to connect or delete it.
 - Right-click an empty canvas area to create a Scene. Right-click a Chapter in the tree to append a new Scene to that Chapter.
 - Duplicate Scenes as independent Scene and Scene Card records.
