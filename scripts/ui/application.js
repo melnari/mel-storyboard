@@ -7,7 +7,6 @@ import { HistoryStack } from "../domain/history.js";
 import { uuid } from "../domain/ids.js";
 import { SCENE_ELEMENT_MIN_WIDTH, normalizeSceneElementSize, sceneElementPresentation } from "../domain/scene-card.js";
 import { ObjectDetailsApplication } from "./object-details.js";
-import { SceneDetailsApplication } from "./scene-details.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -442,11 +441,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
           return;
         }
         this.#selectElement(element.dataset.elementId, event.ctrlKey || event.metaKey);
-      });
-      element.addEventListener("dblclick", async event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!this.connectionSourceId) await this.#showSceneDetails(element.dataset.elementId);
       });
     });
     this.element.querySelectorAll("[data-chapter-node]").forEach(node => {
@@ -1485,29 +1479,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #editConnectionObjectNote(assignmentId) {
     await this.#showConnectionObjectDetails(assignmentId, { focusNotes: true });
-  }
-
-  async #showSceneDetails(elementId) {
-    const element = this.board.elements.find(candidate => candidate.id === elementId);
-    const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
-    if (!scene) return;
-    const details = new SceneDetailsApplication({
-      scene: {
-        title: scene.title
-      },
-      assignmentNotes: scene.notes ?? "",
-      onSave: async notes => {
-        this.history.capture(this.board);
-        scene.notes = notes;
-        scene.updatedAt = new Date().toISOString();
-        this.board = await this.store.save(this.board);
-        await this.render({ force: true });
-      }
-    });
-    await details.render({ force: true });
-    details.bringToFront();
-    await new Promise(resolve => globalThis.requestAnimationFrame?.(resolve) ?? resolve());
-    details.bringToFront();
   }
 
   #startPlayerCharacterDrag(event) {

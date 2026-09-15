@@ -54,7 +54,7 @@ Player Characters assigned to a Scene are shown as small artwork tokens at the b
 - Create a Scene from the left navigation or the canvas context menu. New Scenes receive sequential names such as `Scene 1`, `Scene 2`, and so on.
 - Select a Scene to open its Scene Details in the right inspector.
 - Edit the title, status, and description in Scene Details and save the changes.
-- Double-click a Scene Card to open its focused Scene Details window with its note field.
+- Scene Cards are edited through the Scene Details inspector after selecting them.
 - Right-click a Scene Card to connect or delete it.
 - Right-click an empty canvas area to create a Scene. Right-click a Chapter in the tree to append a new Scene to that Chapter.
 - Duplicate Scenes as independent Scene and Scene Card records.
