@@ -4,9 +4,9 @@
 
 Mel-Storyboard ist ein natives Foundry-VTT-Add-on-Modul für Game Master. Es stellt eine interaktive Szenenübersicht bereit, in der Szenen in Kapiteln angeordnet, beschrieben und über gerichtete oder bilaterale Verbindungen verknüpft werden können.
 
-Diese Dokumentation beschreibt den Stand `v0.1.1` und den für das Projekt festgelegten Zielstand:
+Diese Dokumentation beschreibt den Stand `v0.2.0` und den für das Projekt festgelegten Zielstand:
 
-- Foundry Virtual Tabletop 14.x, gegen `14.367` verifiziert;
+- Foundry Virtual Tabletop 14.x, gegen `14.368` verifiziert;
 - Foundry-nativ, ohne separate Anmeldung oder externen Dienst;
 - GM-zentrierte Bearbeitung innerhalb einer World;
 - JavaScript/ES-Module für den Runtime-Code;

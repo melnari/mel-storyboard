@@ -4,13 +4,13 @@ Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who pl
 
 ## Current version
 
-`0.1.1`
+`0.2.0`
 
 The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
 
 ## Requirements
 
-- Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.367`.
+- Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.368`.
 - A Game Master user for editing the board.
 - No additional runtime modules or external services are required.
 
