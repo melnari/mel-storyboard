@@ -1348,6 +1348,14 @@
   cursor: context-menu;
 }
 
+.mel-storyboard-connection.is-status-used {
+  stroke: #4f9d69;
+}
+
+.mel-storyboard-connection.is-status-repeated-used {
+  stroke: #176b3a;
+}
+
 .mel-storyboard-connection.is-deactivated {
   stroke-dasharray: 2 7;
 }
@@ -1361,6 +1369,14 @@
   fill: #9aa4b2;
   pointer-events: all;
   cursor: context-menu;
+}
+
+.mel-storyboard-connection-arrow.is-status-used {
+  fill: #4f9d69;
+}
+
+.mel-storyboard-connection-arrow.is-status-repeated-used {
+  fill: #176b3a;
 }
 
 .mel-storyboard-connection-arrow.is-selected {
@@ -1378,6 +1394,14 @@
   stroke-width: 5px;
   text-anchor: middle;
   cursor: context-menu;
+}
+
+.mel-storyboard-connection-label.is-status-used {
+  fill: #4f9d69;
+}
+
+.mel-storyboard-connection-label.is-status-repeated-used {
+  fill: #176b3a;
 }
 
 .mel-storyboard-chapter-connection {

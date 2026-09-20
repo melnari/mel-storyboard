@@ -40,11 +40,11 @@ Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. A
 
 Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit nodes can be moved on the canvas like Scene Cards. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter, with the additional valid paths Entry → Scene and Scene → Exit.
 
-Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
+Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. The preview uses the full inner card width and is limited to ten rendered lines; longer text ends with `...` on the tenth line. The full description remains available in Scene Details. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
 
 Scene Cards do not open a separate detail window on double-click. Select a Scene Card to use the right-side Scene Details inspector for editing.
 
-The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, and Skipped. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
+The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, Skipped, Completed, and Unfinished. Completed uses the Waiting color and Unfinished uses the Skipped color. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
 
 The optional world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details provides a localized `Type` selector containing Foundry's Map Notes entry icons plus `None` (without `Custom`). The selected icon is shown in the lower-right corner of the Scene Card and is included in SVG, PNG, and PDF exports. Changing the selector updates the Scene Card immediately; selecting `None` or disabling the setting hides the icon, while the selected type remains saved. The selector stores the original Foundry icon key, so changing the interface language does not change existing assignments.
 
@@ -80,6 +80,7 @@ Click a Connection to open Connection Details in the right inspector. The follow
 
 - Connection Label;
 - Connection Type;
+- Connection Status (`not used`, `used`, or `repeatedly used`);
 - Rich Text Description using Foundry's editor;
 - Save button;
 - independent Object assignments through Drag & Drop.
@@ -91,7 +92,7 @@ The available Connection Types are:
 - `bilateral` — symmetrical arrows in both directions;
 - `bilateral deactivated` — symmetrical dotted connection with arrows in both directions.
 
-Scene statuses are `Open`, `Waiting`, `Active`, `Success`, `Partial Success`, `Failure`, and `Skipped`.
+Scene statuses are `Open`, `Waiting`, `Active`, `Success`, `Partial Success`, `Failure`, `Skipped`, `Completed`, and `Unfinished`. A right-click on a Player Character token removes that assignment from the current Scene while leaving the shared Foundry Object available elsewhere.
 
 The Connection Details Object list supports the same Details, Note, and Delete actions as Scene Objects. Connection Objects are assigned directly to the Connection and do not need to be assigned to either Scene.
 
@@ -126,7 +127,7 @@ The `Import/Export` menu provides:
 
 Before exporting, choose the entire Storyboard, the current Chapter, or selected Chapters. JSON remains one editable board export. For graphic exports containing multiple Chapters, each Chapter is isolated to its own graphic: SVG and PNG create one file per Chapter, while PDF creates one Chapter per page. This prevents Chapter layouts from overlapping when different Chapters use the same canvas coordinates. During import, choose whether to replace the entire Storyboard, add the imported content as new Chapters, or add the first imported Chapter to an existing Chapter. Older JSON boards without Chapters are migrated automatically into `Chapter 1`.
 
-JSON preserves the editable board data, including Chapter order and archived state, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, labels, descriptions, and linked Objects.
+JSON preserves the editable board data, including Chapter order and archived state, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, Connection Status, labels, descriptions, and linked Objects.
 
 SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, optional Scene icons, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. Scene icon assets are embedded into graphic exports so the downloaded SVG remains self-contained and the icons are retained when rendering PNG or PDF output. HTML formatting tags are not included in the Scene Card description text.
 
@@ -196,6 +197,8 @@ npm run check
 ```
 
 The checks cover domain behavior, import/export data handling, Connection geometry, JavaScript syntax, manifest paths, JSON files, and localization keys.
+
+For the architecture, data model, Foundry interfaces, event flows, maintenance guidance, and manual test matrix, see the [technical documentation](TECHNICAL_DOCUMENTATION.md).
 
 ## License
 

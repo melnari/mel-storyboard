@@ -76,6 +76,7 @@
       "ObjectNote": "Note",
       "EditPage": "Modifier la page",
       "DeleteObject": "Supprimer",
+      "RemovePlayerCharacter": "Retirer le personnage joueur",
       "Connect": "Relier",
       "Undo": "Annuler",
       "Redo": "Rétablir",
@@ -129,6 +130,7 @@
       "Description": "Description",
       "ConnectionLabel": "Libellé de la relation",
       "ConnectionType": "Type de relation",
+      "ConnectionStatus": "Statut de la relation",
       "ConnectionDescription": "Description",
       "SearchScenes": "Rechercher des scènes",
       "Connections": "Relations",
@@ -249,6 +251,11 @@
       "BILATERAL": "bilatérale",
       "BILATERAL_DEACTIVATED": "bilatérale désactivée"
     },
+    "CONNECTION_STATUS": {
+      "NOT_USED": "non utilisée",
+      "USED": "utilisée",
+      "REPEATED_USED": "utilisée à plusieurs reprises"
+    },
     "STATUS": {
       "OFFEN": "Ouvert",
       "WAITING": "En attente",
@@ -256,7 +263,9 @@
       "ERFOLG": "Réussite",
       "TEILERFOLG": "Réussite partielle",
       "FEHLSCHLAG": "Échec",
-      "UEBERSPRUNGEN": "Ignoré"
+      "UEBERSPRUNGEN": "Ignoré",
+      "ABGESCHLOSSEN": "Terminée",
+      "UNERLEDIGT": "Non terminée"
     }
   }
 }

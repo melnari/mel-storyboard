@@ -9,7 +9,9 @@ export const STATUS = Object.freeze({
   ERFOLG: "ERFOLG",
   TEILERFOLG: "TEILERFOLG",
   FEHLSCHLAG: "FEHLSCHLAG",
-  UEBERSPRUNGEN: "UEBERSPRUNGEN"
+  UEBERSPRUNGEN: "UEBERSPRUNGEN",
+  ABGESCHLOSSEN: "ABGESCHLOSSEN",
+  UNERLEDIGT: "UNERLEDIGT"
 });
 
 export const STATUS_COLOR_SETTING = "statusColors";
@@ -23,7 +25,9 @@ export const STATUS_COLOR_CLASSES = Object.freeze({
   ERFOLG: "success",
   TEILERFOLG: "partial-success",
   FEHLSCHLAG: "failure",
-  UEBERSPRUNGEN: "skipped"
+  UEBERSPRUNGEN: "skipped",
+  ABGESCHLOSSEN: "waiting",
+  UNERLEDIGT: "skipped"
 });
 
 export const ELEMENT_TYPES = Object.freeze(["SCENE"]);
@@ -41,3 +45,17 @@ export const CONNECTION_TYPES = Object.freeze([
 export const CONNECTION_DISPLAY_TYPES = Object.freeze([
   "unilateral", "unilateral deactivated", "bilateral", "bilateral deactivated"
 ]);
+
+export const CONNECTION_STATUS = Object.freeze({
+  NOT_USED: "not-used",
+  USED: "used",
+  REPEATED_USED: "repeated-used"
+});
+
+export const CONNECTION_STATUS_VALUES = Object.freeze(Object.values(CONNECTION_STATUS));
+
+export const CONNECTION_STATUS_CLASSES = Object.freeze({
+  [CONNECTION_STATUS.NOT_USED]: "not-used",
+  [CONNECTION_STATUS.USED]: "used",
+  [CONNECTION_STATUS.REPEATED_USED]: "repeated-used"
+});

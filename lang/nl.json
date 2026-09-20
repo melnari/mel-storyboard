@@ -76,6 +76,7 @@
       "ObjectNote": "Notitie",
       "EditPage": "Pagina bewerken",
       "DeleteObject": "Verwijderen",
+      "RemovePlayerCharacter": "Spelerpersonage verwijderen",
       "Connect": "Verbinden",
       "Undo": "Ongedaan maken",
       "Redo": "Opnieuw",
@@ -129,6 +130,7 @@
       "Description": "Beschrijving",
       "ConnectionLabel": "Verbindingslabel",
       "ConnectionType": "Verbindingstype",
+      "ConnectionStatus": "Verbindingsstatus",
       "ConnectionDescription": "Beschrijving",
       "SearchScenes": "Scènes zoeken",
       "Connections": "Verbindingen",
@@ -249,6 +251,11 @@
       "BILATERAL": "bilateraal",
       "BILATERAL_DEACTIVATED": "bilateraal gedeactiveerd"
     },
+    "CONNECTION_STATUS": {
+      "NOT_USED": "niet gebruikt",
+      "USED": "gebruikt",
+      "REPEATED_USED": "herhaald gebruikt"
+    },
     "STATUS": {
       "OFFEN": "Open",
       "WAITING": "Wachten",
@@ -256,7 +263,9 @@
       "ERFOLG": "Succes",
       "TEILERFOLG": "Gedeeltelijk succes",
       "FEHLSCHLAG": "Mislukking",
-      "UEBERSPRUNGEN": "Overgeslagen"
+      "UEBERSPRUNGEN": "Overgeslagen",
+      "ABGESCHLOSSEN": "Voltooid",
+      "UNERLEDIGT": "Niet voltooid"
     }
   }
 }

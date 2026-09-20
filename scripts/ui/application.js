@@ -1,5 +1,5 @@
-import { MODULE_ID, SCENE_ICON_NONE, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
-import { archiveChapter, assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, restoreChapter, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
+import { CONNECTION_STATUS, CONNECTION_STATUS_CLASSES, MODULE_ID, SCENE_ICON_NONE, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
+import { archiveChapter, assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionStatus, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, restoreChapter, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, printSceneBoardsAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
 import { connectionGeometry } from "../domain/geometry.js";
@@ -238,6 +238,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       const sourceElement = source.element;
       const targetElement = target.element;
       const connectionType = normalizeConnectionType(connection.connectionType);
+      const connectionStatus = normalizeConnectionStatus(connection.connectionStatus);
       const bilateral = connectionType.startsWith("bilateral");
       const geometry = sourceElement && targetElement
         ? connectionGeometry(sourceElement, targetElement, { bilateral })
@@ -248,6 +249,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         labelPosition: geometry.label,
         reverseArrowPoints: geometry.reverseArrowPoints ?? "",
         connectionType,
+        connectionStatus,
+        connectionStatusClass: CONNECTION_STATUS_CLASSES[connectionStatus],
         isBilateral: bilateral,
         isDeactivated: connectionType.endsWith("deactivated"),
         isSelected: this.selectedConnectionId === connection.id,
@@ -277,6 +280,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const selectedConnection = selectedConnectionRecord ? {
       ...selectedConnectionRecord,
       connectionType: normalizeConnectionType(selectedConnectionRecord.connectionType),
+      connectionStatus: normalizeConnectionStatus(selectedConnectionRecord.connectionStatus),
       sourceTitle: this.#connectionEndpointTitle(selectedConnectionRecord, "source", scenesById),
       targetTitle: this.#connectionEndpointTitle(selectedConnectionRecord, "target", scenesById)
     } : null;
@@ -285,6 +289,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       { value: "unilateral deactivated", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL_DEACTIVATED"), selected: selectedConnection.connectionType === "unilateral deactivated" },
       { value: "bilateral", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL"), selected: selectedConnection.connectionType === "bilateral" },
       { value: "bilateral deactivated", label: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL_DEACTIVATED"), selected: selectedConnection.connectionType === "bilateral deactivated" }
+    ] : [];
+    const connectionStatusOptions = selectedConnection ? [
+      { value: CONNECTION_STATUS.NOT_USED, label: localize("MEL_STORYBOARD.CONNECTION_STATUS.NOT_USED"), selected: selectedConnection.connectionStatus === CONNECTION_STATUS.NOT_USED },
+      { value: CONNECTION_STATUS.USED, label: localize("MEL_STORYBOARD.CONNECTION_STATUS.USED"), selected: selectedConnection.connectionStatus === CONNECTION_STATUS.USED },
+      { value: CONNECTION_STATUS.REPEATED_USED, label: localize("MEL_STORYBOARD.CONNECTION_STATUS.REPEATED_USED"), selected: selectedConnection.connectionStatus === CONNECTION_STATUS.REPEATED_USED }
     ] : [];
     const selectedConnectionObjects = (selectedConnectionRecord?.objectAssignments ?? []).map(assignment => {
       const object = objectsById.get(assignment.objectId);
@@ -338,6 +347,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       selectedScene,
       selectedConnection,
       connectionTypeOptions,
+      connectionStatusOptions,
       selectedConnectionObjects,
       sceneIconOptions: this.#sceneIconOptions(selectedSceneRecord?.iconType),
       showSceneIconsEnabled,
@@ -395,6 +405,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         titleField: localize("MEL_STORYBOARD.LABELS.Title"),
         connectionLabel: localize("MEL_STORYBOARD.LABELS.ConnectionLabel"),
         connectionType: localize("MEL_STORYBOARD.LABELS.ConnectionType"),
+        connectionStatus: localize("MEL_STORYBOARD.LABELS.ConnectionStatus"),
         connectionDescription: localize("MEL_STORYBOARD.LABELS.ConnectionDescription"),
         connectionTypes: {
           unilateral: localize("MEL_STORYBOARD.CONNECTION_TYPES.UNILATERAL"),
@@ -872,8 +883,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!connection) return;
     const label = this.element.querySelector("[data-connection-field='label']")?.value ?? connection.label ?? "";
     const connectionType = this.element.querySelector("[data-connection-field='connectionType']")?.value ?? connection.connectionType;
+    const connectionStatus = this.element.querySelector("[data-connection-field='connectionStatus']")?.value ?? connection.connectionStatus;
     this.history.capture(this.board);
-    updateConnection(connection, { label, connectionType, description: this.#getConnectionDescriptionValue() });
+    updateConnection(connection, { label, connectionType, connectionStatus, description: this.#getConnectionDescriptionValue() });
     this.board = await this.store.save(this.board);
     this.#destroyConnectionDescriptionEditor();
     await this.render({ force: true });
@@ -954,6 +966,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const findTarget = selector => path.find(candidate => candidate instanceof Element && candidate.matches(selector)) ?? target?.closest(selector);
     const connectionTarget = findTarget("[data-connection-id]");
     const chapterConnectionTarget = findTarget("[data-chapter-connection-id]");
+    const playerCharacterTarget = findTarget("[data-player-character-token]");
     const sceneTarget = findTarget("[data-scene-element]");
     const chapterNodeTarget = findTarget("[data-chapter-node]");
     const chapterTarget = findTarget("[data-chapter-id]");
@@ -966,12 +979,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       this.#closeContextMenu();
       return;
     }
-    if (!connectionTarget && !chapterConnectionTarget && !sceneTarget && !chapterNodeTarget && !chapterTarget && !storyTarget && !canvasTarget) return;
+    if (!connectionTarget && !chapterConnectionTarget && !playerCharacterTarget && !sceneTarget && !chapterNodeTarget && !chapterTarget && !storyTarget && !canvasTarget) return;
     event.preventDefault();
     event.stopPropagation();
     this.#openContextMenu(event, {
       connectionId: connectionTarget?.dataset.connectionId ?? null,
       chapterConnectionId: chapterConnectionTarget?.dataset.chapterConnectionId ?? null,
+      playerCharacterObjectId: playerCharacterTarget?.dataset.objectId ?? null,
+      playerCharacterElementId: playerCharacterTarget?.dataset.sceneElementId ?? null,
       elementId: sceneTarget?.dataset.elementId ?? null,
       chapterId: chapterTarget?.dataset.chapterId ?? null,
       nodeId: chapterNodeTarget?.dataset.nodeId ?? null,
@@ -1153,11 +1168,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     svg.style.height = `${height}px`;
   }
 
-  #openContextMenu(event, { connectionId = null, chapterConnectionId = null, elementId = null, chapterId = null, nodeId = null, isStoryRoot = false, isArchived = false } = {}) {
+  #openContextMenu(event, { connectionId = null, chapterConnectionId = null, playerCharacterObjectId = null, playerCharacterElementId = null, elementId = null, chapterId = null, nodeId = null, isStoryRoot = false, isArchived = false } = {}) {
     this.#closeContextMenu();
     const sceneMenu = Boolean(elementId);
     const connectionMenu = Boolean(connectionId);
     const chapterConnectionMenu = Boolean(chapterConnectionId);
+    const playerCharacterMenu = Boolean(playerCharacterObjectId && playerCharacterElementId);
     const chapterMenu = Boolean(chapterId);
     const nodeMenu = Boolean(nodeId);
     const menu = document.createElement("menu");
@@ -1182,6 +1198,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteChapter"), icon: "×", action: () => this.#deleteChapter(chapterId) }
     ]) : isStoryRoot ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.NewChapter"), icon: "+", action: () => this.#createChapter() }
+    ] : playerCharacterMenu ? [
+      { label: localize("MEL_STORYBOARD.ACTIONS.RemovePlayerCharacter"), icon: "×", action: () => this.#removePlayerCharacterFromScene(playerCharacterElementId, playerCharacterObjectId) }
     ] : sceneMenu ? [
       { label: localize("MEL_STORYBOARD.ACTIONS.ConnectScene"), icon: "→", action: async () => { this.selectedElementIds = [elementId]; this.connectionSourceId = elementId; this.connectionSourceType = "SCENE"; ui.notifications.info(localize("MEL_STORYBOARD.NOTIFICATIONS.SelectConnectionTarget")); await this.render({ force: true }); } },
       { label: localize("MEL_STORYBOARD.ACTIONS.DeleteScene"), icon: "×", action: async () => { this.selectedElementIds = [elementId]; await this.#deleteSelected(); } }
@@ -1519,6 +1537,18 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.history.capture(this.board);
     removeObjectAssignment(scene, assignmentId);
     this.board = await this.store.save(this.board);
+  }
+
+  async #removePlayerCharacterFromScene(elementId, objectId) {
+    const element = this.board.elements.find(candidate => candidate.id === elementId);
+    const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
+    const assignment = scene?.objectAssignments?.find(candidate => candidate.objectId === objectId);
+    if (!scene || !assignment) return;
+    this.history.capture(this.board);
+    removeObjectAssignment(scene, assignment.id);
+    this.board = await this.store.save(this.board);
+    this.selectedElementIds = [elementId];
+    await this.render({ force: true });
   }
 
   async #removeObjectFromConnection(assignmentId) {

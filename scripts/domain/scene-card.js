@@ -1,6 +1,7 @@
 export const SCENE_ELEMENT_MIN_WIDTH = 120;
 export const SCENE_ELEMENT_MIN_HEIGHT = 96;
 export const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
+export const SCENE_DESCRIPTION_MAX_LINES = 10;
 
 function measureTextWidth(text, fontSize = 15) {
   return Math.ceil([...String(text ?? "")].length * fontSize * 0.56);
@@ -73,6 +74,15 @@ function wrapText(text, maxCharacters) {
   return lines;
 }
 
+function limitDescriptionLines(lines, maxCharacters) {
+  if (lines.length <= SCENE_DESCRIPTION_MAX_LINES) return lines;
+  const limited = lines.slice(0, SCENE_DESCRIPTION_MAX_LINES);
+  const suffix = "...";
+  const availableCharacters = Math.max(0, maxCharacters - suffix.length);
+  limited[SCENE_DESCRIPTION_MAX_LINES - 1] = `${limited[SCENE_DESCRIPTION_MAX_LINES - 1].slice(0, availableCharacters).trimEnd()}${suffix}`;
+  return limited;
+}
+
 /**
  * Build the shared visual model for a scene card.
  *
@@ -98,8 +108,8 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     : 0;
   const contentWidth = Math.max(textContentWidth, playerCharacterRowWidth);
   const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
-  const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / 7));
-  const descriptionLines = wrapText(description, descriptionCharacters);
+  const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / (11 * .56)));
+  const descriptionLines = limitDescriptionLines(wrapText(description, descriptionCharacters), descriptionCharacters);
   const titleY = 25;
   const descriptionY = titleY + 19;
   const descriptionLineHeight = 15;

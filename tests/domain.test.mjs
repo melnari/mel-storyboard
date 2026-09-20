@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
+import { CONNECTION_STATUS, CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
 import { archiveChapter, assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, moveSceneToChapter, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, restoreChapter, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg, scopeSceneBoard } from "../scripts/domain/export.js";
@@ -121,7 +121,7 @@ test("scenes get stable UUIDs and unique visible IDs", () => {
 test("scene status values use the approved domain keys", () => {
   const board = createSceneBoard();
   const scene = createScene(board);
-  assert.deepEqual(Object.values(STATUS), ["OFFEN", "WAITING", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN"]);
+  assert.deepEqual(Object.values(STATUS), ["OFFEN", "WAITING", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN", "ABGESCHLOSSEN", "UNERLEDIGT"]);
   assert.equal(scene.status, STATUS.OFFEN);
 });
 
@@ -130,6 +130,12 @@ test("scene card descriptions strip rich-text HTML while keeping readable breaks
   const presentation = sceneElementPresentation(createSceneElement(createSceneBoard(), {}), { title: "Scene", description: "<p><em>Readable</em> card text</p>" });
   assert.deepEqual(presentation.descriptionLines, ["Readable card text"]);
   assert.equal(presentation.descriptionLines.some(line => /<[^>]+>/.test(line)), false);
+  const longDescription = Array.from({ length: 80 }, (_, index) => `Line ${index + 1}`).join(" ");
+  const limitedElement = createSceneElement(createSceneBoard(), {});
+  limitedElement.size = { width: 260, height: 180 };
+  const limited = sceneElementPresentation(limitedElement, { title: "Scene", description: longDescription });
+  assert.equal(limited.descriptionLines.length, 10);
+  assert.match(limited.descriptionLines.at(-1), /\.\.\.$/);
 });
 
 test("scene card icons are optional and use the lower-right presentation slot", () => {
@@ -256,7 +262,7 @@ test("connections support labels and place an explicit arrow before the target",
   assert.ok(geometry.target.x < second.position.x);
   assert.ok(geometry.source.x > first.position.x + first.size.width);
   const svg = sceneBoardToSvg(board);
-  assert.match(svg, /class="connection-arrow"/);
+  assert.match(svg, /class="connection-arrow [^"]*"/);
   assert.match(svg, /Weiter/);
 });
 
@@ -281,18 +287,22 @@ test("connections support display types, descriptions, and independent object as
   const object = createBoardObject(board, { objectType: "INFORMATION", title: "Connection clue" });
   const connection = createConnection(board, first.id, second.id);
   assert.equal(connection.connectionType, "unilateral");
+  assert.equal(connection.connectionStatus, CONNECTION_STATUS.NOT_USED);
   assert.deepEqual(connection.objectAssignments, []);
   const assignment = assignObjectToConnection(connection, object.id, "clue", "Only relevant for this transition.");
-  updateConnection(connection, { label: "Branch", connectionType: "bilateral deactivated", description: "A disabled two-way transition." });
+  updateConnection(connection, { label: "Branch", connectionType: "bilateral deactivated", connectionStatus: CONNECTION_STATUS.USED, description: "A disabled two-way transition." });
   assert.equal(connection.label, "Branch");
   assert.equal(connection.connectionType, "bilateral deactivated");
+  assert.equal(connection.connectionStatus, CONNECTION_STATUS.USED);
   assert.equal(connection.description, "A disabled two-way transition.");
   assert.equal(connection.objectAssignments[0].id, assignment.id);
   removeObjectFromConnection(connection, assignment.id);
   assert.equal(connection.objectAssignments.length, 0);
   const svg = sceneBoardToSvg(board);
   assert.match(svg, /stroke-dasharray="2 7"/);
-  assert.equal((svg.match(/class="connection-arrow"/g) ?? []).length, 2);
+  assert.equal((svg.match(/class="connection-arrow [^"]*"/g) ?? []).length, 2);
+  assert.match(svg, /is-status-used/);
+  assert.match(svg, /#4f9d69/);
   assert.equal(validateSceneBoard(board).valid, true);
 });
 
@@ -328,6 +338,7 @@ test("JSON export and import preserve connection data and normalize legacy conne
     legacy.connections[0].connectionType = "FLOW";
     const normalizedLegacy = await new SceneBoardStore(settings).import(legacy);
     assert.equal(normalizedLegacy.connections[0].connectionType, "unilateral");
+    assert.equal(normalizedLegacy.connections[0].connectionStatus, CONNECTION_STATUS.NOT_USED);
     assert.equal(normalizedLegacy.connections[0].description, "");
     assert.deepEqual(normalizedLegacy.connections[0].objectAssignments, []);
     await assert.rejects(() => new SceneBoardStore(settings).import({ schemaVersion: 999 }), /Unsupported scene board schema version/);

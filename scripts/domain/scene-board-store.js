@@ -1,5 +1,5 @@
 import { MODULE_ID, SCENE_ICON_NONE, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
-import { clone, createChapter, createDefaultTemplate, createSceneBoard, normalizeConnectionType } from "./model.js";
+import { clone, createChapter, createDefaultTemplate, createSceneBoard, normalizeConnectionStatus, normalizeConnectionType } from "./model.js";
 import { validateSceneBoard } from "./validation.js";
 
 export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
@@ -76,6 +76,7 @@ export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
     sourceType: connection.sourceType ?? (connection.sourceNodeId ? "CHAPTER_NODE" : "SCENE"),
     targetType: connection.targetType ?? (connection.targetNodeId ? "CHAPTER_NODE" : "SCENE"),
     connectionType: normalizeConnectionType(connection.connectionType),
+    connectionStatus: normalizeConnectionStatus(connection.connectionStatus),
     description: connection.description ?? "",
     objectAssignments: Array.isArray(connection.objectAssignments) ? connection.objectAssignments : []
   }));

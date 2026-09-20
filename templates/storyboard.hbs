@@ -88,10 +88,10 @@
           </defs>
           <rect data-canvas-background width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
           {{#each board.connections}}
-            <line class="mel-storyboard-connection {{#if isDeactivated}}is-deactivated{{/if}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
-            <polygon class="mel-storyboard-connection-arrow {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{arrowPoints}}" />
-            {{#if isBilateral}}<polygon class="mel-storyboard-connection-arrow mel-storyboard-connection-arrow-reverse {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{reverseArrowPoints}}" />{{/if}}
-            {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
+            <line class="mel-storyboard-connection {{#if isDeactivated}}is-deactivated{{/if}} is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
+            <polygon class="mel-storyboard-connection-arrow is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{arrowPoints}}" />
+            {{#if isBilateral}}<polygon class="mel-storyboard-connection-arrow mel-storyboard-connection-arrow-reverse is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{reverseArrowPoints}}" />{{/if}}
+            {{#if hasLabel}}<text class="mel-storyboard-connection-label is-status-{{connectionStatusClass}}" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each chapterConnectionVisuals}}
             <line class="mel-storyboard-chapter-connection" data-chapter-connection-id="{{id}}" x1="{{x1}}" y1="{{y1}}" x2="{{x2}}" y2="{{y2}}" />
@@ -149,6 +149,12 @@
           <label for="mel-storyboard-connection-type">{{labels.connectionType}}</label>
           <select id="mel-storyboard-connection-type" data-connection-field="connectionType">
             {{#each connectionTypeOptions}}
+              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+            {{/each}}
+          </select>
+          <label for="mel-storyboard-connection-status">{{labels.connectionStatus}}</label>
+          <select id="mel-storyboard-connection-status" data-connection-field="connectionStatus">
+            {{#each connectionStatusOptions}}
               <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
             {{/each}}
           </select>

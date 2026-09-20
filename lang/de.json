@@ -76,6 +76,7 @@
       "ObjectNote": "Notiz",
       "EditPage": "Seite bearbeiten",
       "DeleteObject": "Löschen",
+      "RemovePlayerCharacter": "Spielercharakter entfernen",
       "Connect": "Verbinden",
       "Undo": "Rückgängig",
       "Redo": "Wiederholen",
@@ -129,6 +130,7 @@
       "Description": "Beschreibung",
       "ConnectionLabel": "Verbindungsbezeichnung",
       "ConnectionType": "Verbindungstyp",
+      "ConnectionStatus": "Verbindungsstatus",
       "ConnectionDescription": "Beschreibung",
       "SearchScenes": "Szenen suchen",
       "Connections": "Verbindungen",
@@ -249,6 +251,11 @@
       "BILATERAL": "bilateral",
       "BILATERAL_DEACTIVATED": "bilateral deaktiviert"
     },
+    "CONNECTION_STATUS": {
+      "NOT_USED": "nicht verwendet",
+      "USED": "verwendet",
+      "REPEATED_USED": "wiederholt verwendet"
+    },
     "STATUS": {
       "OFFEN": "Offen",
       "WAITING": "Wartend",
@@ -256,7 +263,9 @@
       "ERFOLG": "Erfolg",
       "TEILERFOLG": "Teilerfolg",
       "FEHLSCHLAG": "Fehlschlag",
-      "UEBERSPRUNGEN": "Übersprungen"
+      "UEBERSPRUNGEN": "Übersprungen",
+      "ABGESCHLOSSEN": "Abgeschlossen",
+      "UNERLEDIGT": "Unerledigt"
     }
   }
 }

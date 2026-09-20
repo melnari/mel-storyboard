@@ -1,6 +1,6 @@
 import { connectionGeometry } from "./geometry.js";
-import { STATUS_COLOR_CLASSES } from "./constants.js";
-import { clone, normalizeConnectionType } from "./model.js";
+import { CONNECTION_STATUS_CLASSES, STATUS_COLOR_CLASSES } from "./constants.js";
+import { clone, normalizeConnectionStatus, normalizeConnectionType } from "./model.js";
 import { normalizeSceneElementSize } from "./scene-card.js";
 
 function escapeXml(value) {
@@ -109,15 +109,17 @@ export function sceneBoardToSvg(board, labels = {}) {
     const target = endpoint(connection, "target");
     if (!source || !target) return "";
     const connectionType = normalizeConnectionType(connection.connectionType);
+    const connectionStatusClass = CONNECTION_STATUS_CLASSES[normalizeConnectionStatus(connection.connectionStatus)];
+    const connectionColor = connectionStatusClass === "used" ? "#4f9d69" : connectionStatusClass === "repeated-used" ? "#176b3a" : "#f6c453";
     const isBilateral = connectionType.startsWith("bilateral");
     const isDeactivated = connectionType.endsWith("deactivated");
     const geometry = connectionGeometry(source, target, { bilateral: isBilateral });
     const lineAttributes = isDeactivated ? ' stroke-dasharray="2 7"' : "";
     const label = connection.label?.trim()
-      ? `<text class="connection-label" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
+      ? `<text class="connection-label is-status-${connectionStatusClass}" fill="${connectionColor}" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
       : "";
-    const reverseArrow = geometry.reverseArrowPoints ? `<polygon class="connection-arrow" points="${geometry.reverseArrowPoints}" />` : "";
-    return `<line class="connection"${lineAttributes} x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" /><polygon class="connection-arrow" points="${geometry.arrowPoints}" />${reverseArrow}${label}`;
+    const reverseArrow = geometry.reverseArrowPoints ? `<polygon class="connection-arrow is-status-${connectionStatusClass}" fill="${connectionColor}" points="${geometry.reverseArrowPoints}" />` : "";
+    return `<line class="connection is-status-${connectionStatusClass}" stroke="${connectionColor}"${lineAttributes} x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" /><polygon class="connection-arrow is-status-${connectionStatusClass}" fill="${connectionColor}" points="${geometry.arrowPoints}" />${reverseArrow}${label}`;
   }).join("");
   const elementMarkup = elements.map(element => {
     const scene = sceneById.get(element.sceneId);

@@ -1,4 +1,4 @@
-import { CHAPTER_NODE_TYPES, ELEMENT_TYPES, OBJECT_TYPES, STORE_SCHEMA_VERSION } from "./constants.js";
+import { CHAPTER_NODE_TYPES, CONNECTION_STATUS_VALUES, ELEMENT_TYPES, OBJECT_TYPES, STORE_SCHEMA_VERSION } from "./constants.js";
 
 export function validateSceneBoard(board) {
   const errors = [];
@@ -69,6 +69,7 @@ export function validateSceneBoard(board) {
     const targetExists = targetType === "CHAPTER_NODE" ? nodeById.has(targetId) : elementIds.has(targetId);
     if (!sourceExists) errors.push(`Connection source is missing: ${sourceId}`);
     if (!targetExists) errors.push(`Connection target is missing: ${targetId}`);
+    if (connection.connectionStatus !== undefined && !CONNECTION_STATUS_VALUES.includes(connection.connectionStatus)) errors.push(`Unsupported connection status: ${connection.connectionStatus}`);
     for (const assignment of connection.objectAssignments ?? []) if (!objectIds.has(assignment.objectId)) errors.push(`Connection object assignment references missing object: ${assignment.objectId}`);
     const sourceChapter = sourceType === "CHAPTER_NODE" ? nodeChapterById.get(sourceId) : sceneChapterByElementId.get(sourceId);
     const targetChapter = targetType === "CHAPTER_NODE" ? nodeChapterById.get(targetId) : sceneChapterByElementId.get(targetId);

@@ -1,4 +1,4 @@
-import { CHAPTER_NODE_TYPES, CONNECTION_DISPLAY_TYPES, ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
+import { CHAPTER_NODE_TYPES, CONNECTION_DISPLAY_TYPES, CONNECTION_STATUS, CONNECTION_STATUS_VALUES, ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
 import { nextDisplayId, uuid } from "./ids.js";
 
 export function clone(value) {
@@ -288,6 +288,10 @@ export function normalizeConnectionType(connectionType) {
   return CONNECTION_DISPLAY_TYPES.includes(connectionType) ? connectionType : CONNECTION_DISPLAY_TYPES[0];
 }
 
+export function normalizeConnectionStatus(connectionStatus) {
+  return CONNECTION_STATUS_VALUES.includes(connectionStatus) ? connectionStatus : CONNECTION_STATUS.NOT_USED;
+}
+
 function chapterNodeRecord(board, nodeId) {
   for (const chapter of board.chapters ?? []) {
     const node = (chapter.nodes ?? []).find(candidate => candidate.id === nodeId);
@@ -318,7 +322,7 @@ function connectionIsAllowed(source, target) {
     || source.type === "SCENE" && target.type === "CHAPTER_NODE" && target.node.nodeType === "EXIT";
 }
 
-export function createConnection(board, sourceId, targetId, connectionType = "unilateral", label = "", sourceType = null, targetType = null) {
+export function createConnection(board, sourceId, targetId, connectionType = "unilateral", label = "", sourceType = null, targetType = null, connectionStatus = CONNECTION_STATUS.NOT_USED) {
   const source = connectionEndpoint(board, sourceId, sourceType);
   const target = connectionEndpoint(board, targetId, targetType);
   if (!source) throw new Error("The source scene or chapter node does not exist.");
@@ -337,6 +341,7 @@ export function createConnection(board, sourceId, targetId, connectionType = "un
     sourceType: source.type,
     targetType: target.type,
     connectionType: normalizeConnectionType(connectionType),
+    connectionStatus: normalizeConnectionStatus(connectionStatus),
     label: String(label ?? "").trim(),
     description: "",
     objectAssignments: [],
@@ -477,9 +482,10 @@ export function removeChapter(board, chapterId) {
   board.updatedAt = timestamp();
 }
 
-export function updateConnection(connection, { label = null, connectionType = null, description = null } = {}) {
+export function updateConnection(connection, { label = null, connectionType = null, connectionStatus = null, description = null } = {}) {
   if (label !== null) connection.label = String(label ?? "").trim();
   if (connectionType !== null) connection.connectionType = normalizeConnectionType(connectionType);
+  if (connectionStatus !== null) connection.connectionStatus = normalizeConnectionStatus(connectionStatus);
   if (description !== null) connection.description = String(description ?? "");
   connection.updatedAt = timestamp();
   return connection;
