@@ -116,7 +116,7 @@ export function sceneBoardToSvg(board, labels = {}) {
     const geometry = connectionGeometry(source, target, { bilateral: isBilateral });
     const lineAttributes = isDeactivated ? ' stroke-dasharray="2 7"' : "";
     const label = connection.label?.trim()
-      ? `<text class="connection-label is-status-${connectionStatusClass}" fill="${connectionColor}" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
+      ? `<text class="connection-label" fill="#f6c453" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
       : "";
     const reverseArrow = geometry.reverseArrowPoints ? `<polygon class="connection-arrow is-status-${connectionStatusClass}" fill="${connectionColor}" points="${geometry.reverseArrowPoints}" />` : "";
     return `<line class="connection is-status-${connectionStatusClass}" stroke="${connectionColor}"${lineAttributes} x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" /><polygon class="connection-arrow is-status-${connectionStatusClass}" fill="${connectionColor}" points="${geometry.arrowPoints}" />${reverseArrow}${label}`;

@@ -1396,14 +1396,6 @@
   cursor: context-menu;
 }
 
-.mel-storyboard-connection-label.is-status-used {
-  fill: #4f9d69;
-}
-
-.mel-storyboard-connection-label.is-status-repeated-used {
-  fill: #176b3a;
-}
-
 .mel-storyboard-chapter-connection {
   stroke: #6ed6a0;
   stroke-width: 2;

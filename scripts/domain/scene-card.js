@@ -3,12 +3,22 @@ export const SCENE_ELEMENT_MIN_HEIGHT = 96;
 export const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
 export const SCENE_DESCRIPTION_MAX_LINES = 10;
 
-function measureTextWidth(text, fontSize = 15) {
-  return Math.ceil([...String(text ?? "")].length * fontSize * 0.56);
-}
+let textMeasurementContext;
 
-function estimateTextWidth(text, fontSize = 15) {
-  return measureTextWidth(text, fontSize) + SCENE_ELEMENT_HORIZONTAL_PADDING;
+function measureTextWidth(text, fontSize = 15, fontWeight = 400) {
+  const value = String(text ?? "");
+  if (globalThis.document?.createElement) {
+    if (textMeasurementContext === undefined) {
+      const canvas = globalThis.document.createElement("canvas");
+      textMeasurementContext = canvas.getContext?.("2d") ?? null;
+    }
+    if (textMeasurementContext) {
+      const fontFamily = globalThis.getComputedStyle?.(globalThis.document.body)?.fontFamily || "Arial, sans-serif";
+      textMeasurementContext.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+      return Math.ceil(textMeasurementContext.measureText(value).width);
+    }
+  }
+  return Math.ceil([...value].length * fontSize * 0.56);
 }
 
 const HTML_BLOCK_END_TAG = /<\/(?:address|article|blockquote|dd|div|dl|dt|h[1-6]|li|ol|p|pre|section|table|tr|ul)>/gi;
@@ -44,7 +54,7 @@ export function plainTextFromHtml(value) {
     .trim();
 }
 
-function wrapText(text, maxCharacters) {
+function wrapText(text, maxWidth, fontSize, fontWeight = 400) {
   const paragraphs = String(text ?? "").split(/\r?\n/);
   const lines = [];
   for (const paragraph of paragraphs) {
@@ -55,16 +65,24 @@ function wrapText(text, maxCharacters) {
     }
     let line = "";
     for (const word of words) {
-      if (word.length > maxCharacters) {
+      if (measureTextWidth(word, fontSize, fontWeight) > maxWidth) {
         if (line) {
           lines.push(line);
           line = "";
         }
-        for (let index = 0; index < word.length; index += maxCharacters) lines.push(word.slice(index, index + maxCharacters));
+        let chunk = "";
+        for (const character of word) {
+          const candidate = `${chunk}${character}`;
+          if (chunk && measureTextWidth(candidate, fontSize, fontWeight) > maxWidth) {
+            lines.push(chunk);
+            chunk = character;
+          } else chunk = candidate;
+        }
+        if (chunk) lines.push(chunk);
         continue;
       }
       const candidate = line ? `${line} ${word}` : word;
-      if (candidate.length > maxCharacters && line) {
+      if (measureTextWidth(candidate, fontSize, fontWeight) > maxWidth && line) {
         lines.push(line);
         line = word;
       } else line = candidate;
@@ -74,12 +92,13 @@ function wrapText(text, maxCharacters) {
   return lines;
 }
 
-function limitDescriptionLines(lines, maxCharacters) {
-  if (lines.length <= SCENE_DESCRIPTION_MAX_LINES) return lines;
-  const limited = lines.slice(0, SCENE_DESCRIPTION_MAX_LINES);
+function limitDescriptionLines(lines, maxWidth, fontSize, maxLines = SCENE_DESCRIPTION_MAX_LINES) {
+  if (lines.length <= maxLines) return lines;
+  const limited = lines.slice(0, maxLines);
   const suffix = "...";
-  const availableCharacters = Math.max(0, maxCharacters - suffix.length);
-  limited[SCENE_DESCRIPTION_MAX_LINES - 1] = `${limited[SCENE_DESCRIPTION_MAX_LINES - 1].slice(0, availableCharacters).trimEnd()}${suffix}`;
+  let lastLine = limited[maxLines - 1].trimEnd();
+  while (lastLine && measureTextWidth(`${lastLine}${suffix}`, fontSize) > maxWidth) lastLine = lastLine.slice(0, -1).trimEnd();
+  limited[maxLines - 1] = `${lastLine}${suffix}`;
   return limited;
 }
 
@@ -93,12 +112,9 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const title = String(scene?.title ?? element.title ?? fallbackTitle).replace(/\s+/g, " ").trim();
   const description = plainTextFromHtml(scene?.description ?? "");
   const displayId = scene?.displayId ?? "";
-  const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11) + 16);
-  const titleAndIdWidth = measureTextWidth(title, 15) + measureTextWidth(displayId, 11) + 36;
+  const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11, 600) + 16);
   const textContentWidth = Math.max(
     SCENE_ELEMENT_MIN_WIDTH,
-    estimateTextWidth(title),
-    titleAndIdWidth,
     statusBadgeWidth + 20
   );
   const initialWidth = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, textContentWidth);
@@ -108,19 +124,26 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     : 0;
   const contentWidth = Math.max(textContentWidth, playerCharacterRowWidth);
   const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
-  const descriptionCharacters = Math.max(12, Math.floor((width - SCENE_ELEMENT_HORIZONTAL_PADDING) / (11 * .56)));
-  const descriptionLines = limitDescriptionLines(wrapText(description, descriptionCharacters), descriptionCharacters);
+  const displayIdWidth = displayId ? measureTextWidth(displayId, 11) : 0;
+  const titleWidth = Math.max(30, width - SCENE_ELEMENT_HORIZONTAL_PADDING - displayIdWidth - 12);
+  const descriptionWidth = Math.max(30, width - SCENE_ELEMENT_HORIZONTAL_PADDING);
+  const titleLines = wrapText(title, titleWidth, 15, 600);
+  const allDescriptionLines = limitDescriptionLines(wrapText(description, descriptionWidth, 11), descriptionWidth, 11);
   const titleY = 25;
-  const descriptionY = titleY + 19;
+  const titleLineHeight = 18;
+  const descriptionY = titleY + titleLines.length * titleLineHeight + 1;
   const descriptionLineHeight = 15;
-  const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
-  const statusY = displayIdY + 17;
   const playerCharacterRowHeight = playerCharacterCount ? playerCharacterTokenSize + 17 : 0;
-  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, statusY + 19 + playerCharacterRowHeight);
+  const bottomReservedHeight = 19 + playerCharacterRowHeight;
+  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, descriptionY + descriptionLineHeight + 10 + bottomReservedHeight);
   const height = Math.max(Number(element.size?.height) || SCENE_ELEMENT_MIN_HEIGHT, minimumHeight);
+  const statusY = height - bottomReservedHeight;
+  const visibleDescriptionLines = Math.max(1, Math.floor((statusY - descriptionY - 10) / descriptionLineHeight));
+  const descriptionLines = limitDescriptionLines(allDescriptionLines, descriptionWidth, 11, Math.min(SCENE_DESCRIPTION_MAX_LINES, visibleDescriptionLines));
+  const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
   return {
     title,
-    titleLines: [title],
+    titleLines,
     descriptionLines,
     displayId,
     statusLabel,
@@ -147,11 +170,5 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
 }
 
 export function normalizeSceneElementSize(element, scene, options = {}) {
-  const presentation = sceneElementPresentation(element, scene, options);
-  const isLegacyDefaultWidth = Number(element.size?.width) === 180 && !element.visualConfig?.sizeLocked;
-  if (isLegacyDefaultWidth && presentation.contentWidth < element.size.width) {
-    element.size.width = presentation.contentWidth;
-    return sceneElementPresentation(element, scene, options);
-  }
-  return presentation;
+  return sceneElementPresentation(element, scene, options);
 }

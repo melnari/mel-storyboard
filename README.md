@@ -40,7 +40,7 @@ Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. A
 
 Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit nodes can be moved on the canvas like Scene Cards. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter, with the additional valid paths Entry → Scene and Scene → Exit.
 
-Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. The preview uses the full inner card width and is limited to ten rendered lines; longer text ends with `...` on the tenth line. The full description remains available in Scene Details. Their width and height adapt to their content and can also be resized manually. Text wraps when the card is resized.
+Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. The preview uses the full inner card width and is limited to ten rendered lines; longer text ends with `...` on the last visible line. Cards can be resized below the description's natural height; text that no longer fits is shortened with `...`, while the full description remains available in Scene Details. Titles and descriptions wrap to the available card width, including after manual resizing.
 
 Scene Cards do not open a separate detail window on double-click. Select a Scene Card to use the right-side Scene Details inspector for editing.
 
@@ -80,7 +80,7 @@ Click a Connection to open Connection Details in the right inspector. The follow
 
 - Connection Label;
 - Connection Type;
-- Connection Status (`not used`, `used`, or `repeatedly used`);
+- Connection Status (`not used`, `used`, or `repeatedly used`); the line and arrows use the selected status color, while the label remains in the neutral standard color;
 - Rich Text Description using Foundry's editor;
 - Save button;
 - independent Object assignments through Drag & Drop.

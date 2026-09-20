@@ -132,10 +132,18 @@ test("scene card descriptions strip rich-text HTML while keeping readable breaks
   assert.equal(presentation.descriptionLines.some(line => /<[^>]+>/.test(line)), false);
   const longDescription = Array.from({ length: 80 }, (_, index) => `Line ${index + 1}`).join(" ");
   const limitedElement = createSceneElement(createSceneBoard(), {});
-  limitedElement.size = { width: 260, height: 180 };
+  limitedElement.size = { width: 260, height: 280 };
   const limited = sceneElementPresentation(limitedElement, { title: "Scene", description: longDescription });
   assert.equal(limited.descriptionLines.length, 10);
   assert.match(limited.descriptionLines.at(-1), /\.\.\.$/);
+  const wrappedElement = { ...limitedElement, size: { width: 120, height: 96 } };
+  const wrappedTitle = sceneElementPresentation(wrappedElement, { title: "A title that must wrap", description: "" });
+  assert.ok(wrappedTitle.titleLines.length > 1);
+  assert.ok(wrappedTitle.size.height > 96);
+  const compact = sceneElementPresentation({ ...limitedElement, size: { width: 260, height: 96 } }, { title: "Scene", description: longDescription });
+  assert.equal(compact.size.height, 96);
+  assert.equal(compact.descriptionLines.length, 1);
+  assert.match(compact.descriptionLines[0], /\.\.\.$/);
 });
 
 test("scene card icons are optional and use the lower-right presentation slot", () => {
@@ -303,6 +311,7 @@ test("connections support display types, descriptions, and independent object as
   assert.equal((svg.match(/class="connection-arrow [^"]*"/g) ?? []).length, 2);
   assert.match(svg, /is-status-used/);
   assert.match(svg, /#4f9d69/);
+  assert.match(svg, /class="connection-label" fill="#f6c453"/);
   assert.equal(validateSceneBoard(board).valid, true);
 });
 
@@ -418,8 +427,8 @@ test("chapter-scoped graphic exports isolate chapter content", () => {
   createSceneElement(board, { sceneId: secondScene.id });
   const firstChapterSvg = sceneBoardToSvg(scopeSceneBoard(board, [board.chapters[0].id]));
   const secondChapterSvg = sceneBoardToSvg(scopeSceneBoard(board, [secondChapter.id]));
-  assert.match(firstChapterSvg, /First chapter scene/);
+  assert.match(firstChapterSvg, /First/);
   assert.doesNotMatch(firstChapterSvg, /Second chapter scene/);
-  assert.match(secondChapterSvg, /Second chapter scene/);
+  assert.match(secondChapterSvg, /Second/);
   assert.doesNotMatch(secondChapterSvg, /First chapter scene/);
 });

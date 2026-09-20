@@ -305,7 +305,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         assignmentNotesPreview: assignment.notes ? foundry.applications.ux.TextEditor.previewHTML(assignment.notes, 140) : ""
       } : null;
     }).filter(Boolean);
-    const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: (selectedScene?.status ?? activeChapter?.status) === value }));
+    const statuses = Object.values(STATUS).map(value => ({ value, label: localize(`MEL_STORYBOARD.STATUS.${value}`), selected: (selectedScene?.status ?? activeChapter?.status) === value }))
+      .sort((left, right) => left.label.localeCompare(right.label, game.i18n?.lang, { sensitivity: "base" }));
     const selectedSceneId = selectedSceneRecord?.id ?? null;
     const sceneTree = buildChapterTree((this.board.chapters ?? []).filter(chapter => !chapter.archived), this.board.scenes, this.activeChapterId, selectedSceneId).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id) }));
     const archiveTree = buildChapterTree((this.board.chapters ?? []).filter(chapter => chapter.archived), this.board.scenes, this.activeChapterId, selectedSceneId).map(chapter => ({ ...chapter, isExpanded: this.expandedChapterIds.has(chapter.id), isArchived: true }));
@@ -957,7 +958,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         })(),
         selected: value === selectedValue
       }))
-    ];
+    ].sort((left, right) => left.label.localeCompare(right.label, game.i18n?.lang, { sensitivity: "base" }));
   }
 
   #onContextMenu(event) {

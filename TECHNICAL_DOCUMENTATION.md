@@ -41,7 +41,8 @@ Die frühere Storyline-Ebene und die aktive Template-Verwaltung gehören nicht m
 - Mausrad sowie `+` und `-` in der Titelleiste ändern den Zoom.
 - Die Zoomstufe liegt zwischen `0.4` und `2.5` und wird in Schritten von `0.1` verändert.
 - Scene Cards zeigen Titel, Beschreibung als reinen Text, ID, Status, optionale Scene-Icons und Player-Character-Tokens.
-- Die Kartenbeschreibung nutzt die volle innere Breite, hat links und rechts denselben Rand und wird auf maximal zehn gerenderte Zeilen gekürzt; die zehnte Zeile endet bei Bedarf mit `...`. Die Beschreibung in `Scene Details` bleibt vollständig.
+- Die Kartenbeschreibung nutzt die volle innere Breite, hat links und rechts denselben Rand und wird auf maximal zehn gerenderte Zeilen gekürzt. Wird eine Karte kleiner als der natürliche Beschreibungstext gezogen, wird zusätzlich auf die sichtbaren Zeilen gekürzt und die letzte sichtbare Zeile mit `...` abgeschlossen. Die Beschreibung in `Scene Details` bleibt vollständig.
+- Titel werden anhand der verfügbaren Kartenbreite in mehrere Zeilen umgebrochen. Das gilt auch nach dem manuellen Verkleinern; die Kartenhöhe berücksichtigt die zusätzliche Titelzeilen.
 - HTML-Tags werden in der kompakten Beschreibung entfernt; Zeilenumbrüche bleiben erhalten.
 - Karten passen ihre automatische Größe an den Inhalt an und können manuell vergrößert/verkleinert werden.
 - Manuell veränderte Kartengrößen werden über `visualConfig.sizeLocked` geschützt.
@@ -73,6 +74,7 @@ Zusätzlich besitzt jede Verbindung einen Verbindungsstatus:
 - `repeated-used` – dunkelgrüne Linie, Pfeile und Beschriftung.
 
 Der Verbindungsstatus ist unabhängig vom Verbindungstyp; bei deaktivierten Typen bleibt die Linie gepunktet.
+Das Connection-Label bleibt unabhängig vom Verbindungsstatus in der neutralen Standardfarbe.
 
 Kapitelverbindungen sind davon getrennt. Sie verbinden ausschließlich Exit-Knoten eines Kapitels mit Entry-Knoten eines anderen Kapitels. Ein Doppelklick auf einen Knoten springt zum jeweils verknüpften Knoten im anderen Kapitel.
 
