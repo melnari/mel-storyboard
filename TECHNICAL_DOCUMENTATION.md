@@ -84,7 +84,7 @@ Foundry-Dokumente können per Drag & Drop auf eine Scene Card oder eine Connecti
 
 - Actors, einschließlich Player Characters und NPCs;
 - Items;
-- Journals und Journal Pages;
+- Journals, Journal Pages und Links auf Überschriften innerhalb von Journal Pages;
 - Scenes;
 - Rollable Tables;
 - Macros;
@@ -93,7 +93,7 @@ Foundry-Dokumente können per Drag & Drop auf eine Scene Card oder eine Connecti
 
 Ein Objekt wird nur einmal je Szene bzw. Connection zugeordnet. Jede Zuordnung besitzt eigene Notizen, die nicht automatisch mit anderen Zuordnungen desselben Foundry-Dokuments geteilt werden.
 
-Der Objektname wird als Foundry-Link dargestellt. Für Foundry Scenes wird für den GM die native `Scene.view()`-Funktion verwendet. Bei einzelnen Playlist-Tracks wird die native Playlist-Seitenleiste geöffnet, die übergeordnete Playlist ausgeklappt und der Track sichtbar gemacht. Die separate Track-Konfiguration wird nicht geöffnet.
+Der Objektname wird als Foundry-Link dargestellt. Für Journals können vorhandene Foundry-Content-Links per Drag & Drop übernommen werden. Die vollständige UUID inklusive optionalem Fragment hinter `#` wird gespeichert, beispielsweise `JournalEntry...JournalEntryPage...#heading-id`. Beim Öffnen wird die Dokument-UUID ohne Fragment aufgelöst; anschließend öffnet das Modul die native Journal-Ansicht und fokussiert die Seite beziehungsweise den Anker, sofern dieser im gerenderten Journal vorhanden ist. Für Foundry Scenes wird für den GM die native `Scene.view()`-Funktion verwendet. Bei einzelnen Playlist-Tracks wird die native Playlist-Seitenleiste geöffnet, die übergeordnete Playlist ausgeklappt und der Track sichtbar gemacht. Die separate Track-Konfiguration wird nicht geöffnet.
 
 Player Characters werden mit ihrem Artwork als kleine Tokens am unteren Rand einer Scene Card dargestellt. Ein Token kann mit gedrückter linker Maustaste auf eine andere Scene Card gezogen werden; dadurch wird die Zuordnung von der ursprünglichen Szene entfernt und der Zielszene zugeordnet.
 
@@ -334,6 +334,8 @@ Knoten liegen im Array `chapter.nodes`. Ihre Position ist eine Canvas-Position i
   updatedAt: "ISO timestamp"
 }
 ```
+
+`foundryUuid` may contain a Journal-Fragment hinter `#`. Für die Auflösung wird nur der Dokumentteil verwendet; das Fragment bleibt für den Foundry-Link und den Ziel-Sprung erhalten.
 
 Unterstützte interne `objectType`-Werte sind:
 

@@ -30,6 +30,74 @@ function createFoundryLinkHtml(uuid, label, classes = []) {
   return anchor.outerHTML;
 }
 
+function splitFoundryUuid(uuid) {
+  const value = String(uuid ?? "").trim();
+  const separator = value.indexOf("#");
+  return separator < 0
+    ? { uuid: value, anchor: "" }
+    : { uuid: value.slice(0, separator), anchor: value.slice(separator + 1) };
+}
+
+function appendFoundryAnchor(uuid, anchor) {
+  const parts = splitFoundryUuid(uuid);
+  const slug = typeof anchor === "string" ? anchor : anchor?.slug ?? anchor?.hash ?? "";
+  return parts.uuid + (parts.anchor || !slug ? (parts.anchor ? `#${parts.anchor}` : "") : `#${slug}`);
+}
+
+function stripHtml(value) {
+  return String(value ?? "").replace(/<[^>]*>/g, "").replace(/&(?:amp|lt|gt|quot|#39);/g, match => ({ "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" }[match] ?? match)).trim();
+}
+
+function parseFoundryLinkValue(value) {
+  const source = String(value ?? "");
+  const uuidMatch = source.match(/@UUID\[([^\]]+)\](?:\{([^}]*)\})?/i);
+  if (uuidMatch) return { uuid: uuidMatch[1], label: stripHtml(uuidMatch[2] ?? "") };
+  const htmlMatch = source.match(/<a\b[^>]*data-uuid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
+  if (htmlMatch) {
+    const hashMatch = htmlMatch[0].match(/\bdata-(?:hash|anchor)=["']([^"']+)["']/i);
+    return {
+      uuid: appendFoundryAnchor(htmlMatch[1], hashMatch?.[1] ?? ""),
+      label: stripHtml(htmlMatch[2])
+    };
+  }
+  return null;
+}
+
+function parseFoundryDropData(event) {
+  const transfer = event.dataTransfer;
+  const values = [
+    transfer?.getData("text/plain"),
+    transfer?.getData("text"),
+    transfer?.getData("text/html")
+  ].filter(Boolean);
+  let payload = null;
+  for (const value of values) {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === "object" && parsed.uuid) {
+        payload = { ...(payload ?? {}), ...parsed };
+        break;
+      }
+    } catch {
+      // Foundry may provide a UUID link as text instead of JSON drag data.
+    }
+  }
+  for (const value of values) {
+    const link = parseFoundryLinkValue(value);
+    if (link) {
+      payload = { ...(payload ?? {}), ...link };
+      break;
+    }
+  }
+  if (!payload?.uuid) return null;
+  const anchor = payload.anchor ?? payload.hash ?? "";
+  return {
+    ...payload,
+    uuid: appendFoundryAnchor(payload.uuid, anchor),
+    label: payload.label?.trim() || anchor?.name?.trim() || payload.name?.trim() || ""
+  };
+}
+
 function isPlaceholderArtwork(path) {
   return !path || /(?:^|\/)mystery-man\.svg$/i.test(path);
 }
@@ -50,16 +118,17 @@ function foundryArtwork(document) {
 
 async function resolveFoundryDocument(uuid) {
   if (!uuid) return null;
+  const documentUuid = splitFoundryUuid(uuid).uuid;
   try {
-    const document = await fromUuid(uuid);
+    const document = await fromUuid(documentUuid);
     if (document) return document;
   } catch {
     // Fall back to the world collection below. Some player-owned Actors can
     // be resolved from the collection even when UUID resolution is delayed.
   }
-  const [documentName, id] = String(uuid).split(".");
-  if (documentName === "Actor" && id) return game.actors?.get(id) ?? globalThis.fromUuidSync?.(uuid) ?? null;
-  return globalThis.fromUuidSync?.(uuid) ?? null;
+  const [documentName, id] = String(documentUuid).split(".");
+  if (documentName === "Actor" && id) return game.actors?.get(id) ?? globalThis.fromUuidSync?.(documentUuid) ?? null;
+  return globalThis.fromUuidSync?.(documentUuid) ?? null;
 }
 
 const OBJECT_ICONS = Object.freeze({
@@ -637,24 +706,33 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async #openFoundryDocument(event) {
     event.preventDefault();
     event.stopPropagation();
-    const uuid = event.currentTarget?.dataset?.uuid;
-    if (!uuid) return;
-    const document = await fromUuid(uuid);
-    if (!document) {
+    const fullUuid = event.currentTarget?.dataset?.uuid;
+    if (!fullUuid) return;
+    const { uuid, anchor } = splitFoundryUuid(fullUuid);
+    const foundryDocument = await fromUuid(uuid);
+    if (!foundryDocument) {
       ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
       return;
     }
-    if (document.documentName === "Scene" && typeof document.view === "function") {
-      await document.view();
+    if (foundryDocument.documentName === "Scene" && typeof foundryDocument.view === "function") {
+      await foundryDocument.view();
       return;
     }
-    if (document.documentName === "PlaylistSound") {
-      await this.#openPlaylistSoundInSidebar(document);
+    if (foundryDocument.documentName === "PlaylistSound") {
+      await this.#openPlaylistSoundInSidebar(foundryDocument);
       return;
     }
-    const sheet = document.sheet;
+    const journalPage = foundryDocument.documentName === "JournalEntryPage";
+    const sheet = journalPage ? foundryDocument.parent?.sheet : foundryDocument.sheet;
     if (sheet?.render) {
-      await sheet.render({ force: true });
+      if (journalPage || anchor) {
+        await sheet.render(true, {
+          ...(journalPage ? { pageId: foundryDocument.id } : {}),
+          ...(anchor ? { anchor } : {})
+        });
+      } else {
+        await sheet.render({ force: true });
+      }
       sheet.bringToFront?.();
       return;
     }
@@ -1669,23 +1747,22 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #onFoundryDrop(event) {
-    const raw = event.dataTransfer?.getData("text/plain") || event.dataTransfer?.getData("text");
-    if (!raw) return;
-    let data;
-    try { data = JSON.parse(raw); } catch { return; }
+    const data = parseFoundryDropData(event);
+    if (!data) return;
     const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene", "RollTable", "Macro", "Playlist", "PlaylistSound"]);
     if (!data?.uuid) return;
+    const { uuid: documentUuid } = splitFoundryUuid(data.uuid);
     const target = event.target instanceof Element ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
     const element = this.board.elements.find(candidate => candidate.id === target?.dataset.elementId);
     const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
     const connection = this.board.connections.find(candidate => candidate.id === target?.dataset.connectionId);
     if (!scene && !connection) return;
-    const document = await fromUuid(data.uuid);
-    if (!document) throw new Error("The dropped Foundry document could not be resolved.");
-    const foundryType = data.type ?? document.documentName;
+    const foundryDocument = await fromUuid(documentUuid);
+    if (!foundryDocument) throw new Error("The dropped Foundry document could not be resolved.");
+    const foundryType = foundryDocument.documentName ?? data.type;
     if (!supportedTypes.has(foundryType)) return;
     const objectType = foundryType === "Actor"
-      ? (document.type === "character" ? "PLAYER_CHARACTER" : "NPC")
+      ? (foundryDocument.type === "character" ? "PLAYER_CHARACTER" : "NPC")
       : foundryType === "Item" ? "ITEM" : foundryType === "Scene" ? "FOUNDRY_SCENE" : "JOURNAL";
     const extendedObjectType = foundryType === "RollTable"
       ? "ROLLABLE_TABLE"
@@ -1694,10 +1771,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const existing = this.board.objects.find(object => object.foundryUuid === data.uuid);
     const object = existing ?? createBoardObject(this.board, {
       objectType: extendedObjectType,
-      title: document.name ?? data.uuid,
+      title: data.label?.trim() || data.name?.trim() || foundryDocument.name || data.uuid,
       foundryUuid: data.uuid,
       foundryDocumentType: foundryType,
-      image: foundryArtwork(document)
+      image: foundryArtwork(foundryDocument)
     });
     if (scene) assignObjectToScene(scene, object.id);
     else assignObjectToConnection(connection, object.id);

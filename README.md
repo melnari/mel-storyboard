@@ -104,14 +104,14 @@ Foundry documents can be dragged onto a Scene Card or Connection. The module sup
 
 - Actors, including Player Characters and NPCs;
 - Items;
-- Journals and Journal Pages;
+- Journals, Journal Pages, and links to headings within Journal Pages;
 - Scenes;
 - Rollable Tables;
 - Macros;
 - Playlists;
 - individual Playlist tracks (`PlaylistSound`).
 
-Assigned Objects show their title, artwork or icon, type, and optional note. The title links back to the corresponding Foundry document. Foundry Scenes are opened with their native `View` behavior for the GM. Individual Playlist tracks retain their embedded `PlaylistSound` UUID and open the native Foundry Playlist sidebar with the parent Playlist expanded and the linked track brought into view; the separate track configuration is not opened.
+Assigned Objects show their title, artwork or icon, type, and optional note. The title links back to the corresponding Foundry document. Existing Foundry Journal links can be dragged onto a Scene, including direct Journal Page links and heading anchors such as `@UUID[JournalEntry...JournalEntryPage...#heading-id]{Heading}`. The complete UUID including the optional anchor is preserved in JSON and graphic-board data. Clicking such a link opens the native Journal view and focuses the selected page or heading when available. Foundry Scenes are opened with their native `View` behavior for the GM. Individual Playlist tracks retain their embedded `PlaylistSound` UUID and open the native Foundry Playlist sidebar with the parent Playlist expanded and the linked track brought into view; the separate track configuration is not opened.
 
 Object Details provide the document type, title, UUID, Foundry document type, and a Foundry-compatible Rich Text note editor. Notes are stored on the assignment, so a note can be maintained independently for each Scene or Connection assignment.
 
