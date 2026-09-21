@@ -2,7 +2,7 @@
   "id": "mel-storyboard",
   "title": "Mel-Storyboard",
   "description": "Mel-Storyboard is a Foundry VTT module for visually planning branching stories and adventures. It organizes scenes into chapters on an interactive canvas with draggable scene cards, connections, statuses, notes, and entry or exit nodes. Foundry documents such as Actors, Items, Journals, Scenes, Playlists, and individual Playlist tracks can be linked directly. The storyboard supports GM-focused editing, localized interfaces, status-based coloring, scene icons, and JSON or graphic exports.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "compatibility": {
     "minimum": "14",
     "verified": "14.368"
