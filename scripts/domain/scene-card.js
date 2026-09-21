@@ -15,12 +15,13 @@ export function sceneShapeFrame(shape, width, height) {
   const safeHeight = Math.max(Number(height) || 0, 1);
   if (sceneShape === SCENE_SHAPES.DECISION) {
     return {
-      kind: "path",
-      path: `M ${safeWidth / 2} 0 L ${safeWidth} ${safeHeight / 2} L ${safeWidth / 2} ${safeHeight} L 0 ${safeHeight / 2} Z`
+      kind: "decision-rect",
+      radius: 10,
+      markerPath: "M 24 15 L 33 24 L 24 33 L 15 24 Z"
     };
   }
   if (sceneShape === SCENE_SHAPES.EVENT) {
-    const skew = Math.min(24, Math.max(14, safeWidth * 0.14));
+    const skew = Math.min(32, Math.max(18, safeWidth * 0.18));
     return {
       kind: "path",
       path: `M ${skew} 0 H ${safeWidth} L ${safeWidth - skew} ${safeHeight} H 0 Z`
@@ -146,8 +147,8 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const description = plainTextFromHtml(scene?.description ?? "");
   const displayId = scene?.displayId ?? "";
   const sceneShape = normalizeSceneShape(scene?.sceneShape);
-  const centeredShape = sceneShape === SCENE_SHAPES.DECISION;
-  const shapeHorizontalPadding = centeredShape ? 42 : sceneShape === SCENE_SHAPES.EVENT ? 46 : SCENE_ELEMENT_HORIZONTAL_PADDING;
+  const decisionShape = sceneShape === SCENE_SHAPES.DECISION;
+  const shapeHorizontalPadding = decisionShape ? 56 : sceneShape === SCENE_SHAPES.EVENT ? 64 : SCENE_ELEMENT_HORIZONTAL_PADDING;
   const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11, 600) + 16);
   const textContentWidth = Math.max(
     SCENE_ELEMENT_MIN_WIDTH,
@@ -178,7 +179,10 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const descriptionLines = limitDescriptionLines(allDescriptionLines, descriptionWidth, 11, Math.min(SCENE_DESCRIPTION_MAX_LINES, visibleDescriptionLines));
   const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
   const frame = sceneShapeFrame(sceneShape, width, height);
-  const textX = centeredShape ? width / 2 : sceneShape === SCENE_SHAPES.EVENT ? 24 : 14;
+  const eventSkew = sceneShape === SCENE_SHAPES.EVENT ? Math.min(32, Math.max(18, width * 0.18)) : 0;
+  const textX = decisionShape ? 42 : sceneShape === SCENE_SHAPES.EVENT ? eventSkew + 8 : 14;
+  const statusBadgeX = 10;
+  const iconRightInset = sceneShape === SCENE_SHAPES.EVENT ? 60 : 42;
   return {
     title,
     titleLines,
@@ -188,10 +192,11 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     isEventShape: sceneShape === SCENE_SHAPES.EVENT,
     isChallengeShape: sceneShape === SCENE_SHAPES.CHALLENGE,
     framePath: frame.path ?? "",
+    frameMarkerPath: frame.markerPath ?? "",
     frameRadius: frame.radius ?? 0,
     frameInner: frame.inner ?? null,
     textX,
-    textAnchor: centeredShape ? "middle" : "start",
+    textAnchor: "start",
     displayId,
     statusLabel,
     contentWidth,
@@ -202,6 +207,8 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     displayIdY,
     displayIdX: width - 14,
     statusY,
+    statusBadgeX,
+    statusTextX: statusBadgeX + 8,
     statusBadgeY: statusY - 14,
     statusBadgeWidth,
     playerCharacterTokenSize,
@@ -209,7 +216,7 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     iconPath,
     iconColorClass,
     iconSize: iconPath ? 24 : 0,
-    iconX: iconPath ? width - 42 : 0,
+    iconX: iconPath ? width - iconRightInset : 0,
     iconY: iconPath ? height - 42 : 0,
     resizeHandleX: width - 14,
     resizeHandleY: height - 14

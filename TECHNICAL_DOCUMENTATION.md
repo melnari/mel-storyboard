@@ -107,7 +107,7 @@ Der rechte Inspector zeigt je nach Auswahl:
 
 Beschreibungen und Objekt-Notizen verwenden Foundrys ProseMirror-/Rich-Text-Editor. Der Editor arbeitet für Board-Daten lokal und benötigt keine Foundry-Dokument-UUID. Speichern erfolgt über den jeweiligen `Save`-Button oder das Speichern im Editor-Menü.
 
-Die Scene-Form wird als `sceneShape` auf der Scene gespeichert. Unterstützte Werte sind `STANDARD`, `DECISION`, `EVENT` und `CHALLENGE`. Fehlende oder unbekannte Werte werden bei der Normalisierung als `STANDARD` behandelt. Die gemeinsame Präsentationslogik in `scripts/domain/scene-card.js` liefert die Geometrie für Canvas und Exporte; `scripts/domain/geometry.js` verwendet für Rauten und Parallelogramme die tatsächliche Formkante als Verbindungsgrenze.
+Die Scene-Form wird als `sceneShape` auf der Scene gespeichert. Unterstützte Werte sind `STANDARD`, `DECISION`, `EVENT` und `CHALLENGE`. Fehlende oder unbekannte Werte werden bei der Normalisierung als `STANDARD` behandelt. Die gemeinsame Präsentationslogik in `scripts/domain/scene-card.js` liefert die Geometrie für Canvas und Exporte. `DECISION` verwendet eine rechteckige Scene Card mit Rautenmarkierung; `EVENT` verwendet ein Parallelogramm, dessen tatsächliche Formkante `scripts/domain/geometry.js` für Verbindungen berücksichtigt wird.
 
 ### Statusfärbung und Scene-Icons
 

@@ -30,20 +30,9 @@ function polygonEdgeDistance(element, unit, vertices) {
 
 function edgeDistance(element, unit) {
   const shape = element.sceneShape;
-  if (shape === SCENE_SHAPES.DECISION) {
-    const origin = center(element);
-    const halfWidth = element.size.width / 2;
-    const halfHeight = element.size.height / 2;
-    return polygonEdgeDistance(element, unit, [
-      { x: origin.x, y: origin.y - halfHeight },
-      { x: origin.x + halfWidth, y: origin.y },
-      { x: origin.x, y: origin.y + halfHeight },
-      { x: origin.x - halfWidth, y: origin.y }
-    ]);
-  }
   if (shape === SCENE_SHAPES.EVENT) {
     const origin = center(element);
-    const skew = Math.min(24, Math.max(14, element.size.width * 0.14));
+    const skew = Math.min(32, Math.max(18, element.size.width * 0.18));
     const halfWidth = element.size.width / 2;
     const halfHeight = element.size.height / 2;
     return polygonEdgeDistance(element, unit, [

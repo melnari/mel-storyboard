@@ -981,6 +981,13 @@
   pointer-events: none;
 }
 
+.mel-storyboard-element .mel-storyboard-element-decision-marker {
+  fill: rgba(246, 196, 83, .16);
+  stroke: #f6c453;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
 .mel-storyboard-element:hover .mel-storyboard-element-frame,
 .mel-storyboard-element:hover .mel-storyboard-element-frame-inner,
 .mel-storyboard-element:focus .mel-storyboard-element-frame,

@@ -107,7 +107,8 @@
           {{#each board.elements}}
             <g class="mel-storyboard-element {{#if statusColorClass}}status-{{statusColorClass}}{{/if}} {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
               {{#if isDecisionShape}}
-                <path class="mel-storyboard-element-frame" d="{{framePath}}" />
+                <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="{{frameRadius}}" />
+                <path class="mel-storyboard-element-decision-marker" d="{{frameMarkerPath}}" />
               {{else if isEventShape}}
                 <path class="mel-storyboard-element-frame" d="{{framePath}}" />
               {{else if isChallengeShape}}
@@ -125,8 +126,8 @@
                 </text>
               {{/if}}
               <text class="mel-storyboard-element-id" x="{{displayIdX}}" y="{{titleY}}" text-anchor="end">{{displayId}}</text>
-              <rect class="mel-storyboard-element-status-badge" x="10" y="{{statusBadgeY}}" width="{{statusBadgeWidth}}" height="18" rx="9" />
-              <text class="mel-storyboard-element-status" x="18" y="{{statusY}}">{{statusLabel}}</text>
+              <rect class="mel-storyboard-element-status-badge" x="{{statusBadgeX}}" y="{{statusBadgeY}}" width="{{statusBadgeWidth}}" height="18" rx="9" />
+              <text class="mel-storyboard-element-status" x="{{statusTextX}}" y="{{statusY}}">{{statusLabel}}</text>
               {{#if iconPath}}<image class="mel-storyboard-scene-icon {{iconColorClass}}" href="{{iconPath}}" x="{{iconX}}" y="{{iconY}}" width="{{iconSize}}" height="{{iconSize}}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" />{{/if}}
               <rect class="mel-storyboard-element-resize-handle" data-scene-resize data-element-id="{{id}}" x="{{resizeHandleX}}" y="{{resizeHandleY}}" width="10" height="10" rx="2" aria-label="Resize scene" />
               {{#each playerCharacterTokens}}

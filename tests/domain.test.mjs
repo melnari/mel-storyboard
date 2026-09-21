@@ -139,7 +139,11 @@ test("scene shapes default safely and are rendered consistently for live-card pr
     const presentation = sceneElementPresentation(element, scene);
     const svg = sceneBoardToSvg(shapeBoard, { scene: "Scene", status: status => status });
     assert.equal(presentation.sceneShape, sceneShape);
-    assert.match(svg, sceneShape === SCENE_SHAPES.CHALLENGE ? /class="element-frame-inner"/ : sceneShape === SCENE_SHAPES.DECISION ? /<path class="element-frame" d="M/ : /<path class="element-frame" d="M/);
+    assert.match(svg, sceneShape === SCENE_SHAPES.CHALLENGE
+      ? /class="element-frame-inner"/
+      : sceneShape === SCENE_SHAPES.DECISION
+        ? /class="element-decision-marker"/
+        : /<path class="element-frame" d="M/);
   }
 });
 
@@ -183,6 +187,15 @@ test("scene card icons are optional and use the lower-right presentation slot", 
   assert.equal(presentation.iconX, presentation.size.width - 42);
   assert.equal(presentation.iconY, presentation.size.height - 42);
   assert.equal(sceneElementPresentation(element, scene).iconSize, 0);
+});
+
+test("event scene icons stay inside the slanted card edge", () => {
+  const board = createSceneBoard();
+  const scene = createScene(board, { sceneShape: SCENE_SHAPES.EVENT });
+  const element = createSceneElement(board, { sceneId: scene.id });
+  const presentation = sceneElementPresentation(element, scene, { iconPath: "icons/svg/book.svg" });
+  assert.equal(presentation.iconX, presentation.size.width - 60);
+  assert.ok(presentation.iconX + presentation.iconSize < presentation.size.width);
 });
 
 test("templates support board copies, versions, previews, and confirmed migrations", () => {

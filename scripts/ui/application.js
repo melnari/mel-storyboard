@@ -2234,7 +2234,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       return child;
     };
     const frame = sceneShapeFrame(presentation.sceneShape, presentation.size.width, presentation.size.height);
-    const frameChildren = frame.kind === "path"
+    const frameChildren = frame.kind === "decision-rect"
+      ? [
+        create("rect", { class: "mel-storyboard-element-frame", width: presentation.size.width, height: presentation.size.height, rx: frame.radius }),
+        create("path", { class: "mel-storyboard-element-decision-marker", d: frame.markerPath })
+      ]
+      : frame.kind === "path"
       ? [create("path", { class: "mel-storyboard-element-frame", d: frame.path })]
       : frame.kind === "double-rect"
         ? [
@@ -2253,8 +2258,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (presentation.iconPath) children.push(create("image", { class: `mel-storyboard-scene-icon ${presentation.iconColorClass}`, href: presentation.iconPath, x: presentation.iconX, y: presentation.iconY, width: presentation.iconSize, height: presentation.iconSize, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" }));
     children.push(
       create("text", { class: "mel-storyboard-element-id", x: presentation.displayIdX, y: presentation.titleY, "text-anchor": "end" }, presentation.displayId),
-      create("rect", { class: "mel-storyboard-element-status-badge", x: 10, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
-      create("text", { class: "mel-storyboard-element-status", x: 18, y: presentation.statusY }, presentation.statusLabel),
+      create("rect", { class: "mel-storyboard-element-status-badge", x: presentation.statusBadgeX, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
+      create("text", { class: "mel-storyboard-element-status", x: presentation.statusTextX, y: presentation.statusY }, presentation.statusLabel),
       create("rect", { class: "mel-storyboard-element-resize-handle", "data-scene-resize": "", "data-element-id": element.id, x: presentation.resizeHandleX, y: presentation.resizeHandleY, width: 10, height: 10, rx: 2, "aria-label": "Resize scene" })
     );
     for (const [index, object] of this.#playerCharacterObjects(scene).entries()) {
