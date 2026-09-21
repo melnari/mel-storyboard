@@ -127,6 +127,7 @@
       "Title": "Título",
       "Status": "Estado",
       "SceneIconType": "Tipo",
+      "SceneShape": "Forma de escena",
       "Description": "Descripción",
       "ConnectionLabel": "Etiqueta de conexión",
       "ConnectionType": "Tipo de conexión",
@@ -228,6 +229,12 @@
       "Trap": "Trampa",
       "Village": "Aldea",
       "Waterfall": "Cascada"
+    },
+    "SCENE_SHAPES": {
+      "STANDARD": "Escena estándar",
+      "DECISION": "Decisión",
+      "EVENT": "Evento",
+      "CHALLENGE": "Desafío"
     },
     "OBJECT_TYPES": {
       "PLAYER_CHARACTER": "Personaje jugador",

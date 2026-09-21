@@ -127,6 +127,7 @@
       "Title": "Titel",
       "Status": "Status",
       "SceneIconType": "Type",
+      "SceneShape": "Scènevorm",
       "Description": "Beschrijving",
       "ConnectionLabel": "Verbindingslabel",
       "ConnectionType": "Verbindingstype",
@@ -228,6 +229,12 @@
       "Trap": "Val",
       "Village": "Dorp",
       "Waterfall": "Waterval"
+    },
+    "SCENE_SHAPES": {
+      "STANDARD": "Standaardscène",
+      "DECISION": "Beslissing",
+      "EVENT": "Gebeurtenis",
+      "CHALLENGE": "Uitdaging"
     },
     "OBJECT_TYPES": {
       "PLAYER_CHARACTER": "Spelerpersonage",

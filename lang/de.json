@@ -127,6 +127,7 @@
       "Title": "Titel",
       "Status": "Status",
       "SceneIconType": "Typ",
+      "SceneShape": "Szene-Form",
       "Description": "Beschreibung",
       "ConnectionLabel": "Verbindungsbezeichnung",
       "ConnectionType": "Verbindungstyp",
@@ -228,6 +229,12 @@
       "Trap": "Falle",
       "Village": "Dorf",
       "Waterfall": "Wasserfall"
+    },
+    "SCENE_SHAPES": {
+      "STANDARD": "Standard-Szene",
+      "DECISION": "Entscheidung",
+      "EVENT": "Ereignis",
+      "CHALLENGE": "Herausforderung"
     },
     "OBJECT_TYPES": {
       "PLAYER_CHARACTER": "Spielercharakter",

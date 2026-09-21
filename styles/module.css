@@ -968,20 +968,31 @@
   cursor: grabbing;
 }
 
-.mel-storyboard-element rect {
+.mel-storyboard-element .mel-storyboard-element-frame {
   fill: #313846;
   stroke: #9aa4b2;
   stroke-width: 2;
 }
 
-.mel-storyboard-element:hover rect,
-.mel-storyboard-element:focus rect,
-.mel-storyboard-element.is-selected rect {
+.mel-storyboard-element .mel-storyboard-element-frame-inner {
+  fill: none;
+  stroke: #9aa4b2;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.mel-storyboard-element:hover .mel-storyboard-element-frame,
+.mel-storyboard-element:hover .mel-storyboard-element-frame-inner,
+.mel-storyboard-element:focus .mel-storyboard-element-frame,
+.mel-storyboard-element:focus .mel-storyboard-element-frame-inner,
+.mel-storyboard-element.is-selected .mel-storyboard-element-frame,
+.mel-storyboard-element.is-selected .mel-storyboard-element-frame-inner {
   stroke: #f6c453;
   stroke-width: 3;
 }
 
-.mel-storyboard-element.is-drop-target rect {
+.mel-storyboard-element.is-drop-target .mel-storyboard-element-frame,
+.mel-storyboard-element.is-drop-target .mel-storyboard-element-frame-inner {
   stroke: #f6c453;
   stroke-dasharray: 6 3;
   stroke-width: 3;
@@ -1242,6 +1253,14 @@
   fill: #7449a2 !important;
 }
 
+.mel-storyboard-element.status-open .mel-storyboard-element-frame-inner { stroke: #9aa4b2 !important; }
+.mel-storyboard-element.status-waiting .mel-storyboard-element-frame-inner { stroke: #8a97a6 !important; }
+.mel-storyboard-element.status-active .mel-storyboard-element-frame-inner { stroke: #7899b8 !important; }
+.mel-storyboard-element.status-success .mel-storyboard-element-frame-inner { stroke: #82ad8b !important; }
+.mel-storyboard-element.status-partial-success .mel-storyboard-element-frame-inner { stroke: #c69a62 !important; }
+.mel-storyboard-element.status-failure .mel-storyboard-element-frame-inner { stroke: #c9898e !important; }
+.mel-storyboard-element.status-skipped .mel-storyboard-element-frame-inner { stroke: #aa91bf !important; }
+
 /* Status rules target every text element inside a colored card. Keep the
  * temporary Player Character name overlay white for reliable contrast. */
 .mel-storyboard-element[class*="status-"] .mel-storyboard-player-token-label {
@@ -1249,6 +1268,11 @@
 }
 
 .mel-storyboard-element.is-selected .mel-storyboard-element-frame {
+  stroke: #f6c453 !important;
+  stroke-width: 3 !important;
+}
+
+.mel-storyboard-element.is-selected .mel-storyboard-element-frame-inner {
   stroke: #f6c453 !important;
   stroke-width: 3 !important;
 }

@@ -18,6 +18,15 @@ export const STATUS_COLOR_SETTING = "statusColors";
 export const SHOW_SCENE_ICONS_SETTING = "showSceneIcons";
 export const SCENE_ICON_NONE = "NONE";
 
+export const SCENE_SHAPES = Object.freeze({
+  STANDARD: "STANDARD",
+  DECISION: "DECISION",
+  EVENT: "EVENT",
+  CHALLENGE: "CHALLENGE"
+});
+
+export const SCENE_SHAPE_VALUES = Object.freeze(Object.values(SCENE_SHAPES));
+
 export const STATUS_COLOR_CLASSES = Object.freeze({
   OFFEN: "open",
   WAITING: "waiting",

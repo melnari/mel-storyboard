@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CONNECTION_STATUS, CONNECTION_TYPES, STATUS } from "../scripts/domain/constants.js";
+import { CONNECTION_STATUS, CONNECTION_TYPES, SCENE_SHAPES, STATUS } from "../scripts/domain/constants.js";
 import { HistoryStack } from "../scripts/domain/history.js";
 import { archiveChapter, assignActorToScene, assignObjectToConnection, assignObjectToScene, copySceneElements, createBoardObject, createBoardTemplate, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, createTemplateVersion, duplicateSceneElements, migrateSceneTemplate, moveObjectAssignment, moveSceneToChapter, pasteSceneElements, previewTemplateMigration, removeConnection, removeObjectAssignment, removeObjectFromConnection, restoreChapter, updateConnection, updateObjectAssignment } from "../scripts/domain/model.js";
 import { sceneBoardToJson, sceneBoardToSvg, scopeSceneBoard } from "../scripts/domain/export.js";
@@ -123,6 +123,32 @@ test("scene status values use the approved domain keys", () => {
   const scene = createScene(board);
   assert.deepEqual(Object.values(STATUS), ["OFFEN", "WAITING", "AKTIV", "ERFOLG", "TEILERFOLG", "FEHLSCHLAG", "UEBERSPRUNGEN", "ABGESCHLOSSEN", "UNERLEDIGT"]);
   assert.equal(scene.status, STATUS.OFFEN);
+});
+
+test("scene shapes default safely and are rendered consistently for live-card presentation and SVG export", () => {
+  const board = createSceneBoard();
+  const standard = createScene(board);
+  const standardElement = createSceneElement(board, { sceneId: standard.id });
+  assert.equal(standard.sceneShape, SCENE_SHAPES.STANDARD);
+  assert.equal(sceneElementPresentation(standardElement, standard).sceneShape, SCENE_SHAPES.STANDARD);
+
+  for (const sceneShape of [SCENE_SHAPES.DECISION, SCENE_SHAPES.EVENT, SCENE_SHAPES.CHALLENGE]) {
+    const shapeBoard = createSceneBoard();
+    const scene = createScene(shapeBoard, { sceneShape });
+    const element = createSceneElement(shapeBoard, { sceneId: scene.id });
+    const presentation = sceneElementPresentation(element, scene);
+    const svg = sceneBoardToSvg(shapeBoard, { scene: "Scene", status: status => status });
+    assert.equal(presentation.sceneShape, sceneShape);
+    assert.match(svg, sceneShape === SCENE_SHAPES.CHALLENGE ? /class="element-frame-inner"/ : sceneShape === SCENE_SHAPES.DECISION ? /<path class="element-frame" d="M/ : /<path class="element-frame" d="M/);
+  }
+});
+
+test("scene connection geometry follows non-rectangular scene boundaries", () => {
+  const source = { position: { x: 0, y: 0 }, size: { width: 180, height: 96 }, sceneShape: SCENE_SHAPES.DECISION };
+  const target = { position: { x: 320, y: 0 }, size: { width: 180, height: 96 }, sceneShape: SCENE_SHAPES.EVENT };
+  const geometry = connectionGeometry(source, target);
+  assert.ok(geometry.source.x > source.position.x + source.size.width / 2);
+  assert.ok(geometry.target.x < target.position.x + target.size.width / 2);
 });
 
 test("scene card descriptions strip rich-text HTML while keeping readable breaks", () => {

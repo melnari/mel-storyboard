@@ -1,4 +1,4 @@
-import { MODULE_ID, SCENE_ICON_NONE, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
+import { MODULE_ID, SCENE_ICON_NONE, SCENE_SHAPES, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
 import { clone, createChapter, createDefaultTemplate, createSceneBoard, normalizeConnectionStatus, normalizeConnectionType } from "./model.js";
 import { validateSceneBoard } from "./validation.js";
 
@@ -62,6 +62,7 @@ export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
       ...scene,
       chapterId: board.chapters.some(chapter => chapter.id === scene.chapterId) ? scene.chapterId : board.chapters[0].id,
       parentId: scene.parentId ?? null,
+      sceneShape: Object.values(SCENE_SHAPES).includes(scene.sceneShape) ? scene.sceneShape : SCENE_SHAPES.STANDARD,
       iconType: scene.iconType ?? SCENE_ICON_NONE,
       notes: scene.notes ?? "",
       templateId: scene.templateId ?? template?.id ?? null,

@@ -106,13 +106,22 @@
           {{/each}}
           {{#each board.elements}}
             <g class="mel-storyboard-element {{#if statusColorClass}}status-{{statusColorClass}}{{/if}} {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
-              <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="10" />
-              <text class="mel-storyboard-element-title" x="14" y="{{titleY}}">
-                {{#each titleLines}}<tspan x="14" dy="{{#if @first}}0{{else}}18{{/if}}">{{this}}</tspan>{{/each}}
+              {{#if isDecisionShape}}
+                <path class="mel-storyboard-element-frame" d="{{framePath}}" />
+              {{else if isEventShape}}
+                <path class="mel-storyboard-element-frame" d="{{framePath}}" />
+              {{else if isChallengeShape}}
+                <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="{{frameRadius}}" />
+                <rect class="mel-storyboard-element-frame-inner" x="{{frameInner.x}}" y="{{frameInner.y}}" width="{{frameInner.width}}" height="{{frameInner.height}}" rx="{{frameInner.radius}}" />
+              {{else}}
+                <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="{{frameRadius}}" />
+              {{/if}}
+              <text class="mel-storyboard-element-title" x="{{textX}}" y="{{titleY}}" text-anchor="{{textAnchor}}">
+                {{#each titleLines}}<tspan x="{{../textX}}" dy="{{#if @first}}0{{else}}18{{/if}}">{{this}}</tspan>{{/each}}
               </text>
               {{#if descriptionLines.length}}
-                <text class="mel-storyboard-element-description" x="14" y="{{descriptionY}}">
-                  {{#each descriptionLines}}<tspan x="14" dy="{{#if @first}}0{{else}}{{../descriptionLineHeight}}{{/if}}">{{this}}</tspan>{{/each}}
+                <text class="mel-storyboard-element-description" x="{{textX}}" y="{{descriptionY}}" text-anchor="{{textAnchor}}">
+                  {{#each descriptionLines}}<tspan x="{{../textX}}" dy="{{#if @first}}0{{else}}{{../descriptionLineHeight}}{{/if}}">{{this}}</tspan>{{/each}}
                 </text>
               {{/if}}
               <text class="mel-storyboard-element-id" x="{{displayIdX}}" y="{{titleY}}" text-anchor="end">{{displayId}}</text>
@@ -203,6 +212,12 @@
           <label for="mel-storyboard-scene-status">{{labels.status}}</label>
           <select id="mel-storyboard-scene-status" data-scene-field="status">
             {{#each statuses}}
+              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+            {{/each}}
+          </select>
+          <label for="mel-storyboard-scene-shape">{{labels.sceneShape}}</label>
+          <select id="mel-storyboard-scene-shape" data-scene-field="sceneShape">
+            {{#each sceneShapeOptions}}
               <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
             {{/each}}
           </select>

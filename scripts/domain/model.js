@@ -1,4 +1,4 @@
-import { CHAPTER_NODE_TYPES, CONNECTION_DISPLAY_TYPES, CONNECTION_STATUS, CONNECTION_STATUS_VALUES, ELEMENT_TYPES, OBJECT_TYPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
+import { CHAPTER_NODE_TYPES, CONNECTION_DISPLAY_TYPES, CONNECTION_STATUS, CONNECTION_STATUS_VALUES, ELEMENT_TYPES, OBJECT_TYPES, SCENE_SHAPES, STATUS, STORE_SCHEMA_VERSION } from "./constants.js";
 import { nextDisplayId, uuid } from "./ids.js";
 
 export function clone(value) {
@@ -92,7 +92,7 @@ export function restoreChapter(board, chapterId) {
   return chapter;
 }
 
-export function createScene(board, { title = "New scene", description = "", chapterId = null } = {}) {
+export function createScene(board, { title = "New scene", description = "", chapterId = null, sceneShape = SCENE_SHAPES.STANDARD } = {}) {
   const now = timestamp();
   const chapter = board.chapters?.find(candidate => candidate.id === chapterId) ?? board.chapters?.[0] ?? createChapter(board, { title: "Chapter 1" });
   const scene = {
@@ -102,6 +102,7 @@ export function createScene(board, { title = "New scene", description = "", chap
     parentId: null,
     title: title.trim() || "New scene",
     description,
+    sceneShape: Object.values(SCENE_SHAPES).includes(sceneShape) ? sceneShape : SCENE_SHAPES.STANDARD,
     iconType: "NONE",
     notes: "",
     status: STATUS.OFFEN,

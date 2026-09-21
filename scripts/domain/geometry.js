@@ -1,3 +1,5 @@
+import { SCENE_SHAPES } from "./constants.js";
+
 function center(element) {
   return {
     x: element.position.x + element.size.width / 2,
@@ -5,7 +7,52 @@ function center(element) {
   };
 }
 
+function cross(first, second) {
+  return first.x * second.y - first.y * second.x;
+}
+
+function polygonEdgeDistance(element, unit, vertices) {
+  const origin = center(element);
+  let closest = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < vertices.length; index += 1) {
+    const start = vertices[index];
+    const end = vertices[(index + 1) % vertices.length];
+    const edge = { x: end.x - start.x, y: end.y - start.y };
+    const fromOrigin = { x: start.x - origin.x, y: start.y - origin.y };
+    const denominator = cross(unit, edge);
+    if (Math.abs(denominator) < 0.0001) continue;
+    const distance = cross(fromOrigin, edge) / denominator;
+    const position = cross(fromOrigin, unit) / denominator;
+    if (distance >= 0 && position >= 0 && position <= 1) closest = Math.min(closest, distance);
+  }
+  return Number.isFinite(closest) ? closest : Math.min(element.size.width, element.size.height) / 2;
+}
+
 function edgeDistance(element, unit) {
+  const shape = element.sceneShape;
+  if (shape === SCENE_SHAPES.DECISION) {
+    const origin = center(element);
+    const halfWidth = element.size.width / 2;
+    const halfHeight = element.size.height / 2;
+    return polygonEdgeDistance(element, unit, [
+      { x: origin.x, y: origin.y - halfHeight },
+      { x: origin.x + halfWidth, y: origin.y },
+      { x: origin.x, y: origin.y + halfHeight },
+      { x: origin.x - halfWidth, y: origin.y }
+    ]);
+  }
+  if (shape === SCENE_SHAPES.EVENT) {
+    const origin = center(element);
+    const skew = Math.min(24, Math.max(14, element.size.width * 0.14));
+    const halfWidth = element.size.width / 2;
+    const halfHeight = element.size.height / 2;
+    return polygonEdgeDistance(element, unit, [
+      { x: origin.x - halfWidth + skew, y: origin.y - halfHeight },
+      { x: origin.x + halfWidth, y: origin.y - halfHeight },
+      { x: origin.x + halfWidth - skew, y: origin.y + halfHeight },
+      { x: origin.x - halfWidth, y: origin.y + halfHeight }
+    ]);
+  }
   const horizontal = Math.abs(unit.x) > 0.0001 ? element.size.width / 2 / Math.abs(unit.x) : Number.POSITIVE_INFINITY;
   const vertical = Math.abs(unit.y) > 0.0001 ? element.size.height / 2 / Math.abs(unit.y) : Number.POSITIVE_INFINITY;
   return Math.min(horizontal, vertical);

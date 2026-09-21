@@ -101,11 +101,13 @@ Player Characters werden mit ihrem Artwork als kleine Tokens am unteren Rand ein
 
 Der rechte Inspector zeigt je nach Auswahl:
 
-- `Scene Details` mit Titel, Status, optionalem Scene-Icon, Beschreibung, Objektzuordnungen und Verbindungsübersicht;
+- `Scene Details` mit Titel, Status, Scene-Form, optionalem Scene-Icon, Beschreibung, Objektzuordnungen und Verbindungsübersicht;
 - `Chapter Details` mit Titel, Status, Beschreibung und Entry-/Exit-Knoten;
 - `Connection Details` mit Label, Connection Type, Connection Status, Beschreibung und direkt zugeordneten Objekten.
 
 Beschreibungen und Objekt-Notizen verwenden Foundrys ProseMirror-/Rich-Text-Editor. Der Editor arbeitet für Board-Daten lokal und benötigt keine Foundry-Dokument-UUID. Speichern erfolgt über den jeweiligen `Save`-Button oder das Speichern im Editor-Menü.
+
+Die Scene-Form wird als `sceneShape` auf der Scene gespeichert. Unterstützte Werte sind `STANDARD`, `DECISION`, `EVENT` und `CHALLENGE`. Fehlende oder unbekannte Werte werden bei der Normalisierung als `STANDARD` behandelt. Die gemeinsame Präsentationslogik in `scripts/domain/scene-card.js` liefert die Geometrie für Canvas und Exporte; `scripts/domain/geometry.js` verwendet für Rauten und Parallelogramme die tatsächliche Formkante als Verbindungsgrenze.
 
 ### Statusfärbung und Scene-Icons
 
@@ -315,6 +317,12 @@ Knoten liegen im Array `chapter.nodes`. Ihre Position ist eine Canvas-Position i
 ```
 
 `sceneId` verbindet das visuelle Element mit der fachlichen Szene. Scene Connections referenzieren die `id` des Elements, nicht direkt die Scene-ID.
+
+Die fachliche Scene enthält zusätzlich:
+
+```js
+sceneShape: "STANDARD" // STANDARD | DECISION | EVENT | CHALLENGE
+```
 
 ### 5.6 Board Object
 

@@ -1,7 +1,40 @@
+import { SCENE_SHAPES } from "./constants.js";
+
 export const SCENE_ELEMENT_MIN_WIDTH = 120;
 export const SCENE_ELEMENT_MIN_HEIGHT = 96;
 export const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
 export const SCENE_DESCRIPTION_MAX_LINES = 10;
+
+export function normalizeSceneShape(value) {
+  return Object.values(SCENE_SHAPES).includes(value) ? value : SCENE_SHAPES.STANDARD;
+}
+
+export function sceneShapeFrame(shape, width, height) {
+  const sceneShape = normalizeSceneShape(shape);
+  const safeWidth = Math.max(Number(width) || 0, 1);
+  const safeHeight = Math.max(Number(height) || 0, 1);
+  if (sceneShape === SCENE_SHAPES.DECISION) {
+    return {
+      kind: "path",
+      path: `M ${safeWidth / 2} 0 L ${safeWidth} ${safeHeight / 2} L ${safeWidth / 2} ${safeHeight} L 0 ${safeHeight / 2} Z`
+    };
+  }
+  if (sceneShape === SCENE_SHAPES.EVENT) {
+    const skew = Math.min(24, Math.max(14, safeWidth * 0.14));
+    return {
+      kind: "path",
+      path: `M ${skew} 0 H ${safeWidth} L ${safeWidth - skew} ${safeHeight} H 0 Z`
+    };
+  }
+  if (sceneShape === SCENE_SHAPES.CHALLENGE) {
+    return {
+      kind: "double-rect",
+      radius: 10,
+      inner: { x: 6, y: 6, width: Math.max(1, safeWidth - 12), height: Math.max(1, safeHeight - 12), radius: 6 }
+    };
+  }
+  return { kind: "rect", radius: 10 };
+}
 
 let textMeasurementContext;
 
@@ -112,6 +145,9 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const title = String(scene?.title ?? element.title ?? fallbackTitle).replace(/\s+/g, " ").trim();
   const description = plainTextFromHtml(scene?.description ?? "");
   const displayId = scene?.displayId ?? "";
+  const sceneShape = normalizeSceneShape(scene?.sceneShape);
+  const centeredShape = sceneShape === SCENE_SHAPES.DECISION;
+  const shapeHorizontalPadding = centeredShape ? 42 : sceneShape === SCENE_SHAPES.EVENT ? 46 : SCENE_ELEMENT_HORIZONTAL_PADDING;
   const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11, 600) + 16);
   const textContentWidth = Math.max(
     SCENE_ELEMENT_MIN_WIDTH,
@@ -125,8 +161,8 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const contentWidth = Math.max(textContentWidth, playerCharacterRowWidth);
   const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
   const displayIdWidth = displayId ? measureTextWidth(displayId, 11) : 0;
-  const titleWidth = Math.max(30, width - SCENE_ELEMENT_HORIZONTAL_PADDING - displayIdWidth - 12);
-  const descriptionWidth = Math.max(30, width - SCENE_ELEMENT_HORIZONTAL_PADDING);
+  const titleWidth = Math.max(30, width - shapeHorizontalPadding - displayIdWidth - 12);
+  const descriptionWidth = Math.max(30, width - shapeHorizontalPadding);
   const titleLines = wrapText(title, titleWidth, 15, 600);
   const allDescriptionLines = limitDescriptionLines(wrapText(description, descriptionWidth, 11), descriptionWidth, 11);
   const titleY = 25;
@@ -141,10 +177,21 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
   const visibleDescriptionLines = Math.max(1, Math.floor((statusY - descriptionY - 10) / descriptionLineHeight));
   const descriptionLines = limitDescriptionLines(allDescriptionLines, descriptionWidth, 11, Math.min(SCENE_DESCRIPTION_MAX_LINES, visibleDescriptionLines));
   const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
+  const frame = sceneShapeFrame(sceneShape, width, height);
+  const textX = centeredShape ? width / 2 : sceneShape === SCENE_SHAPES.EVENT ? 24 : 14;
   return {
     title,
     titleLines,
     descriptionLines,
+    sceneShape,
+    isDecisionShape: sceneShape === SCENE_SHAPES.DECISION,
+    isEventShape: sceneShape === SCENE_SHAPES.EVENT,
+    isChallengeShape: sceneShape === SCENE_SHAPES.CHALLENGE,
+    framePath: frame.path ?? "",
+    frameRadius: frame.radius ?? 0,
+    frameInner: frame.inner ?? null,
+    textX,
+    textAnchor: centeredShape ? "middle" : "start",
     displayId,
     statusLabel,
     contentWidth,

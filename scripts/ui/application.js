@@ -1,11 +1,11 @@
-import { CONNECTION_STATUS, CONNECTION_STATUS_CLASSES, MODULE_ID, SCENE_ICON_NONE, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
+import { CONNECTION_STATUS, CONNECTION_STATUS_CLASSES, MODULE_ID, SCENE_ICON_NONE, SCENE_SHAPES, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
 import { archiveChapter, assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionStatus, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, restoreChapter, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, printSceneBoardsAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
 import { connectionGeometry } from "../domain/geometry.js";
 import { HistoryStack } from "../domain/history.js";
 import { uuid } from "../domain/ids.js";
-import { SCENE_ELEMENT_MIN_WIDTH, normalizeSceneElementSize, sceneElementPresentation } from "../domain/scene-card.js";
+import { SCENE_ELEMENT_MIN_WIDTH, normalizeSceneElementSize, sceneElementPresentation, sceneShapeFrame } from "../domain/scene-card.js";
 import { ObjectDetailsApplication } from "./object-details.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -364,6 +364,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       { value: CONNECTION_STATUS.USED, label: localize("MEL_STORYBOARD.CONNECTION_STATUS.USED"), selected: selectedConnection.connectionStatus === CONNECTION_STATUS.USED },
       { value: CONNECTION_STATUS.REPEATED_USED, label: localize("MEL_STORYBOARD.CONNECTION_STATUS.REPEATED_USED"), selected: selectedConnection.connectionStatus === CONNECTION_STATUS.REPEATED_USED }
     ] : [];
+    const sceneShapeOptions = selectedScene ? [
+      { value: SCENE_SHAPES.STANDARD, label: localize("MEL_STORYBOARD.SCENE_SHAPES.STANDARD"), selected: selectedScene.sceneShape === SCENE_SHAPES.STANDARD },
+      { value: SCENE_SHAPES.DECISION, label: localize("MEL_STORYBOARD.SCENE_SHAPES.DECISION"), selected: selectedScene.sceneShape === SCENE_SHAPES.DECISION },
+      { value: SCENE_SHAPES.EVENT, label: localize("MEL_STORYBOARD.SCENE_SHAPES.EVENT"), selected: selectedScene.sceneShape === SCENE_SHAPES.EVENT },
+      { value: SCENE_SHAPES.CHALLENGE, label: localize("MEL_STORYBOARD.SCENE_SHAPES.CHALLENGE"), selected: selectedScene.sceneShape === SCENE_SHAPES.CHALLENGE }
+    ] : [];
     const selectedConnectionObjects = (selectedConnectionRecord?.objectAssignments ?? []).map(assignment => {
       const object = objectsById.get(assignment.objectId);
       return object ? {
@@ -418,6 +424,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       selectedConnection,
       connectionTypeOptions,
       connectionStatusOptions,
+      sceneShapeOptions,
       selectedConnectionObjects,
       sceneIconOptions: this.#sceneIconOptions(selectedSceneRecord?.iconType),
       showSceneIconsEnabled,
@@ -484,6 +491,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
           bilateralDeactivated: localize("MEL_STORYBOARD.CONNECTION_TYPES.BILATERAL_DEACTIVATED")
         },
         status: localize("MEL_STORYBOARD.LABELS.Status"),
+        sceneShape: localize("MEL_STORYBOARD.LABELS.SceneShape"),
         sceneIconType: localize("MEL_STORYBOARD.LABELS.SceneIconType"),
         description: localize("MEL_STORYBOARD.LABELS.Description"),
         save: localize("MEL_STORYBOARD.ACTIONS.Save"),
@@ -2225,12 +2233,21 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       if (text !== null) child.textContent = text;
       return child;
     };
-    const title = create("text", { class: "mel-storyboard-element-title", x: 14, y: presentation.titleY });
-    for (const [index, line] of presentation.titleLines.entries()) title.append(create("tspan", { x: 14, dy: index ? 18 : 0 }, line));
-    const children = [create("rect", { class: "mel-storyboard-element-frame", width: presentation.size.width, height: presentation.size.height, rx: 10 }), title];
+    const frame = sceneShapeFrame(presentation.sceneShape, presentation.size.width, presentation.size.height);
+    const frameChildren = frame.kind === "path"
+      ? [create("path", { class: "mel-storyboard-element-frame", d: frame.path })]
+      : frame.kind === "double-rect"
+        ? [
+          create("rect", { class: "mel-storyboard-element-frame", width: presentation.size.width, height: presentation.size.height, rx: frame.radius }),
+          create("rect", { class: "mel-storyboard-element-frame-inner", x: frame.inner.x, y: frame.inner.y, width: frame.inner.width, height: frame.inner.height, rx: frame.inner.radius })
+        ]
+        : [create("rect", { class: "mel-storyboard-element-frame", width: presentation.size.width, height: presentation.size.height, rx: frame.radius })];
+    const title = create("text", { class: "mel-storyboard-element-title", x: presentation.textX, y: presentation.titleY, "text-anchor": presentation.textAnchor });
+    for (const [index, line] of presentation.titleLines.entries()) title.append(create("tspan", { x: presentation.textX, dy: index ? 18 : 0 }, line));
+    const children = [...frameChildren, title];
     if (presentation.descriptionLines.length) {
-      const description = create("text", { class: "mel-storyboard-element-description", x: 14, y: presentation.descriptionY });
-      for (const [index, line] of presentation.descriptionLines.entries()) description.append(create("tspan", { x: 14, dy: index ? presentation.descriptionLineHeight : 0 }, line));
+      const description = create("text", { class: "mel-storyboard-element-description", x: presentation.textX, y: presentation.descriptionY, "text-anchor": presentation.textAnchor });
+      for (const [index, line] of presentation.descriptionLines.entries()) description.append(create("tspan", { x: presentation.textX, dy: index ? presentation.descriptionLineHeight : 0 }, line));
       children.push(description);
     }
     if (presentation.iconPath) children.push(create("image", { class: `mel-storyboard-scene-icon ${presentation.iconColorClass}`, href: presentation.iconPath, x: presentation.iconX, y: presentation.iconY, width: presentation.iconSize, height: presentation.iconSize, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" }));
