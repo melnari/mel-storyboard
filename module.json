@@ -17,7 +17,7 @@
   ],
   "url": "https://github.com/melnari/mel-storyboard",
   "manifest": "https://raw.githubusercontent.com/melnari/mel-storyboard/main/module.json",
-  "download": "https://github.com/melnari/mel-storyboard/releases/download/v0.2.0/mel-storyboard.zip",
+  "download": "https://github.com/melnari/mel-storyboard/releases/download/v0.2.1/mel-storyboard.zip",
   "esmodules": [
     "scripts/main.js"
   ],
