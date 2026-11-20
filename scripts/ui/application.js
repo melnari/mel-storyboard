@@ -1,4 +1,4 @@
-import { CONNECTION_STATUS, CONNECTION_STATUS_CLASSES, MODULE_ID, SCENE_ICON_NONE, SCENE_SHAPES, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING, UI_STATE_SETTING } from "../domain/constants.js";
+import { CONNECTION_STATUS, CONNECTION_STATUS_CLASSES, MODULE_ID, SCENE_DISPLAY_MODE_SETTING, SCENE_DISPLAY_MODES, SCENE_ICON_NONE, SCENE_SHAPES, SHOW_SCENE_ICONS_SETTING, STATUS, STATUS_COLOR_CLASSES, STATUS_COLOR_SETTING } from "../domain/constants.js";
 import { archiveChapter, assignObjectToConnection, assignObjectToScene, clone, createBoardObject, createChapter, createChapterConnection, createChapterNode, createConnection, createScene, createSceneBoard, createSceneElement, duplicateSceneElements, copySceneElements, moveObjectAssignment, moveSceneToChapter, normalizeConnectionStatus, normalizeConnectionType, pasteSceneElements, removeChapter, removeChapterConnection, removeChapterNode, removeObjectAssignment, removeObjectFromConnection, removeSceneElements, removeConnection, reorderChapters, restoreChapter, updateChapterNode, updateConnection, updateObjectAssignment } from "../domain/model.js";
 import { downloadSceneBoardJson, downloadSceneBoardPng, downloadSceneBoardSvg, printSceneBoardAsPdf, printSceneBoardsAsPdf, sceneBoardFromJson, scopeSceneBoard } from "../domain/export.js";
 import { normalizeSceneBoard } from "../domain/scene-board-store.js";
@@ -28,11 +28,8 @@ const READ_ONLY_ACTIONS = new Set([
 
 function readUserViewState() {
   if (!isDesignatedGamemaster()) return {};
-  try {
-    return game.settings.get(MODULE_ID, UI_STATE_SETTING) ?? {};
-  } catch {
-    return {};
-  }
+  const state = game.melStoryboard?.viewState;
+  return state && typeof state === "object" ? state : {};
 }
 
 function readOnlyMessage(store) {
@@ -225,7 +222,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.pendingViewSave = null;
     this.positionObserver = null;
     this.canvasViewport = null;
-    this.selectedElementIds = [];
     this.history = new HistoryStack();
     this.drag = null;
     this.connectionDrag = null;
@@ -238,13 +234,40 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.activeChapterId = this.board.chapters?.some(chapter => chapter.id === savedView.activeChapterId && !chapter.archived)
       ? savedView.activeChapterId
       : this.board.chapters?.find(chapter => !chapter.archived)?.id ?? null;
-    this.expandedChapterIds = new Set(this.activeChapterId ? [this.activeChapterId] : []);
-    this.archiveExpanded = false;
+    const activeChapter = this.board.chapters?.find(chapter => chapter.id === this.activeChapterId) ?? null;
+    const activeSceneIds = new Set((this.board.scenes ?? [])
+      .filter(scene => scene.chapterId === this.activeChapterId)
+      .map(scene => scene.id));
+    const activeElementIds = new Set((this.board.elements ?? [])
+      .filter(element => activeSceneIds.has(element.sceneId))
+      .map(element => element.id));
+    this.selectedElementIds = Array.isArray(savedView.selectedElementIds)
+      ? savedView.selectedElementIds.filter(id => activeElementIds.has(id))
+      : [];
+    const activeNodeIds = new Set((activeChapter?.nodes ?? []).map(node => node.id));
+    const connectionBelongsToActiveChapter = connection => {
+      const endpoint = (side) => {
+        const type = connection[`${side}Type`] ?? (connection[`${side}NodeId`] ? "CHAPTER_NODE" : "SCENE");
+        return type === "CHAPTER_NODE"
+          ? { type, id: connection[`${side}NodeId`] }
+          : { type, id: connection[`${side}ElementId`] };
+      };
+      return [endpoint("source"), endpoint("target")].every(({ type, id }) => type === "CHAPTER_NODE" ? activeNodeIds.has(id) : activeElementIds.has(id));
+    };
+    this.selectedConnectionId = this.board.connections?.some(connection => connection.id === savedView.selectedConnectionId && connectionBelongsToActiveChapter(connection))
+      ? savedView.selectedConnectionId
+      : null;
+    if (this.selectedConnectionId) this.selectedElementIds = [];
+    const validChapterIds = new Set((this.board.chapters ?? []).map(chapter => chapter.id));
+    const savedExpandedChapterIds = Array.isArray(savedView.expandedChapterIds)
+      ? savedView.expandedChapterIds.filter(id => validChapterIds.has(id))
+      : [];
+    this.expandedChapterIds = new Set(savedExpandedChapterIds.length ? savedExpandedChapterIds : (this.activeChapterId ? [this.activeChapterId] : []));
+    this.archiveExpanded = Boolean(savedView.archiveExpanded);
     this.connectionSourceId = null;
     this.connectionSourceType = null;
     this.connectionTargetId = null;
     this.connectionTargetType = null;
-    this.selectedConnectionId = null;
     this.connectionDescriptionEditor = null;
     this.connectionDescriptionEditorShell = null;
     this.connectionDescriptionEditorGeneration = 0;
@@ -287,8 +310,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
     const statusColorsEnabled = Boolean(game.settings.get(MODULE_ID, STATUS_COLOR_SETTING));
     const showSceneIconsEnabled = Boolean(game.settings.get(MODULE_ID, SHOW_SCENE_ICONS_SETTING));
+    const sceneDisplayMode = game.settings.get(MODULE_ID, SCENE_DISPLAY_MODE_SETTING) === SCENE_DISPLAY_MODES.COMPACT
+      ? SCENE_DISPLAY_MODES.COMPACT
+      : SCENE_DISPLAY_MODES.DETAILED;
+    const compactScenes = sceneDisplayMode === SCENE_DISPLAY_MODES.COMPACT;
     this.statusColorsEnabled = statusColorsEnabled;
     this.showSceneIconsEnabled = showSceneIconsEnabled;
+    this.sceneDisplayMode = sceneDisplayMode;
+    this.compactScenes = compactScenes;
     if (!this.board.chapters?.some(chapter => chapter.id === this.activeChapterId)) this.activeChapterId = this.board.chapters?.find(chapter => !chapter.archived)?.id ?? null;
     const activeChapter = this.board.chapters?.find(chapter => chapter.id === this.activeChapterId) ?? null;
     const scenesById = new Map(this.board.scenes.map(scene => [scene.id, scene]));
@@ -327,7 +356,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
         playerCharacterCount: playerCharacters.length,
         iconPath: showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : "",
-        iconColorClass: sceneIconColorClass(statusColorsEnabled, scene?.status)
+        iconColorClass: sceneIconColorClass(statusColorsEnabled, scene?.status),
+        compact: compactScenes
       });
       // Keep legacy elements usable with the new multi-line layout. The
       // normalized dimensions are persisted with the next board save.
@@ -339,7 +369,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         playerCharacterTokens: playerCharacters.map((object, index) => ({
           ...object,
           objectId: object.id,
-          tokenX: 10 + index * (presentation.playerCharacterTokenSize + 4),
+          tokenX: presentation.playerCharacterTokenStartX + index * (presentation.playerCharacterTokenSize + 4),
           tokenY: presentation.playerCharacterTokenY,
           tokenSize: presentation.playerCharacterTokenSize,
           tokenLabelX: presentation.playerCharacterTokenSize / 2,
@@ -404,9 +434,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }).filter(Boolean);
     const selectedScene = selectedSceneRecord ? {
       ...selectedSceneRecord,
-      statusLabel: localize(`MEL_STORYBOARD.STATUS.${selectedSceneRecord.status}`),
-      incomingCount: this.board.connections.filter(connection => connection.targetElementId === selectedElement?.id).length,
-      outgoingCount: this.board.connections.filter(connection => connection.sourceElementId === selectedElement?.id).length
+      statusLabel: localize(`MEL_STORYBOARD.STATUS.${selectedSceneRecord.status}`)
     } : null;
     const selectedConnectionRecord = this.board.connections.find(connection => connection.id === this.selectedConnectionId);
     const selectedConnection = selectedConnectionRecord ? {
@@ -491,6 +519,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       selectedConnectionObjects,
       sceneIconOptions: this.#sceneIconOptions(selectedSceneRecord?.iconType),
       showSceneIconsEnabled,
+      compactScenes,
       sidebarCollapsed: this.sidebarCollapsed,
       inspectorCollapsed: this.inspectorCollapsed,
       readOnly: this.readOnly,
@@ -573,9 +602,6 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         discardChanges: localize("MEL_STORYBOARD.ACTIONS.DiscardChanges"),
         continueEditing: localize("MEL_STORYBOARD.ACTIONS.ContinueEditing"),
         editorAccessChanged: localize("MEL_STORYBOARD.NOTIFICATIONS.EditorAccessChanged"),
-        connections: localize("MEL_STORYBOARD.LABELS.Connections"),
-        incoming: localize("MEL_STORYBOARD.LABELS.Incoming"),
-        outgoing: localize("MEL_STORYBOARD.LABELS.Outgoing"),
         selectScene: localize("MEL_STORYBOARD.EMPTY.SelectScene")
       }
     };
@@ -586,8 +612,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#destroySceneDescriptionEditor();
     this.#destroyChapterDescriptionEditor();
     await super._onRender(context, options);
-    const windowTitle = context.activeChapter ? `${localize("MEL_STORYBOARD.UI.Title")} – ${context.activeChapter.displayId}: ${context.activeChapter.title}` : localize("MEL_STORYBOARD.UI.Title");
-    this.element.querySelector(".window-title")?.replaceChildren(document.createTextNode(windowTitle));
+    this.element.querySelector(".window-title")?.replaceChildren(document.createTextNode(localize("MEL_STORYBOARD.UI.Title")));
     this.#closeContextMenu();
     if (this.contextMenuHost !== this.element) {
       this.contextMenuHost?.removeEventListener("contextmenu", this.contextMenuHandler, true);
@@ -939,7 +964,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #saveViewState() {
-    if (this.readOnly || !this.store.canWrite || !this.canEdit || !game.settings?.set) return;
+    if (this.readOnly || !this.store.canWrite || !this.canEdit) return;
     if (this.pendingViewSave) {
       window.clearTimeout(this.pendingViewSave);
       this.pendingViewSave = null;
@@ -951,17 +976,17 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       width: Math.round(rect.width),
       height: Math.round(rect.height)
     } : {};
-    try {
-      await game.settings.set(MODULE_ID, UI_STATE_SETTING, {
-        position,
-        sidebarCollapsed: this.sidebarCollapsed,
-        inspectorCollapsed: this.inspectorCollapsed,
-        activeChapterId: this.activeChapterId,
-        zoom: this.zoom
-      });
-    } catch (error) {
-      console.warn(`[${MODULE_ID}] Could not save storyboard view preferences`, error);
-    }
+    game.melStoryboard.viewState = {
+      position,
+      sidebarCollapsed: this.sidebarCollapsed,
+      inspectorCollapsed: this.inspectorCollapsed,
+      activeChapterId: this.activeChapterId,
+      selectedElementIds: [...this.selectedElementIds],
+      selectedConnectionId: this.selectedConnectionId,
+      expandedChapterIds: [...this.expandedChapterIds],
+      archiveExpanded: this.archiveExpanded,
+      zoom: this.zoom
+    };
   }
 
   #cancelActiveEdits() {
@@ -1486,6 +1511,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       status: status => localize(`MEL_STORYBOARD.STATUS.${status}`),
       statusColors: this.statusColorsEnabled,
       showSceneIcons: this.showSceneIconsEnabled,
+      compactScenes: this.compactScenes,
       sceneIconPaths: globalThis.CONFIG?.JournalEntry?.noteIcons ?? {}
     };
   }
@@ -2773,7 +2799,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       statusLabel: scene ? localize(`MEL_STORYBOARD.STATUS.${scene.status}`) : "",
       playerCharacterCount: this.#playerCharacterObjects(scene).length,
       iconPath: this.showSceneIconsEnabled ? this.#sceneIconPath(scene?.iconType) : "",
-      iconColorClass: sceneIconColorClass(this.statusColorsEnabled, scene?.status)
+      iconColorClass: sceneIconColorClass(this.statusColorsEnabled, scene?.status),
+      compact: this.compactScenes
     });
     for (const className of [...node.classList]) {
       if (className.startsWith("status-")) node.classList.remove(className);
@@ -2788,8 +2815,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       if (text !== null) child.textContent = text;
       return child;
     };
-    const frame = sceneShapeFrame(presentation.sceneShape, presentation.size.width, presentation.size.height);
-    const frameChildren = frame.kind === "decision-rect"
+    const frame = sceneShapeFrame(presentation.sceneShape, presentation.size.width, presentation.size.height, { compact: presentation.isCompact });
+    const frameChildren = frame.kind === "diamond"
+      ? [create("path", { class: "mel-storyboard-element-frame", d: frame.path })]
+      : frame.kind === "decision-rect"
       ? [
         create("rect", { class: "mel-storyboard-element-frame", width: presentation.size.width, height: presentation.size.height, rx: frame.radius }),
         create("path", { class: "mel-storyboard-element-decision-marker", d: frame.markerPath })
@@ -2812,7 +2841,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
     if (presentation.iconPath) children.push(create("image", { class: `mel-storyboard-scene-icon ${presentation.iconColorClass}`, href: presentation.iconPath, x: presentation.iconX, y: presentation.iconY, width: presentation.iconSize, height: presentation.iconSize, preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true" }));
     children.push(
-      create("text", { class: "mel-storyboard-element-id", x: presentation.displayIdX, y: presentation.titleY, "text-anchor": "end" }, presentation.displayId),
+      create("text", { class: "mel-storyboard-element-id", x: presentation.displayIdX, y: presentation.displayIdY, "text-anchor": presentation.displayIdAnchor }, presentation.displayId),
       create("rect", { class: "mel-storyboard-element-status-badge", x: presentation.statusBadgeX, y: presentation.statusBadgeY, width: presentation.statusBadgeWidth, height: 18, rx: 9 }),
       create("text", { class: "mel-storyboard-element-status", x: presentation.statusTextX, y: presentation.statusY }, presentation.statusLabel),
       create("rect", { class: "mel-storyboard-element-resize-handle", "data-scene-resize": "", "data-element-id": element.id, x: presentation.resizeHandleX, y: presentation.resizeHandleY, width: 10, height: 10, rx: 2, "aria-label": "Resize scene" })
@@ -2823,7 +2852,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
         "data-player-character-token": "",
         "data-object-id": object.id,
         "data-scene-element-id": element.id,
-        transform: `translate(${10 + index * (presentation.playerCharacterTokenSize + 4)} ${presentation.playerCharacterTokenY})`,
+        transform: `translate(${presentation.playerCharacterTokenStartX + index * (presentation.playerCharacterTokenSize + 4)} ${presentation.playerCharacterTokenY})`,
         tabindex: "0",
         role: "button",
         "aria-label": object.title
@@ -2901,7 +2930,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       const node = this.board.chapters.flatMap(chapter => chapter.nodes ?? []).find(candidate => candidate.id === id);
       return node ? { position: { x: node.position.x - 18, y: node.position.y - 18 }, size: { width: 36, height: 36 } } : null;
     }
-    return this.board.elements.find(element => element.id === id) ?? null;
+    const element = this.board.elements.find(candidate => candidate.id === id);
+    if (!element) return null;
+    const scene = this.board.scenes.find(candidate => candidate.id === element.sceneId);
+    return {
+      ...element,
+      isCompactDecisionShape: Boolean(this.compactScenes && scene?.sceneShape === SCENE_SHAPES.DECISION)
+    };
   }
 
   async #finishDrag() {

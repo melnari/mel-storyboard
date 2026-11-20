@@ -4,16 +4,27 @@ export const SCENE_ELEMENT_MIN_WIDTH = 120;
 export const SCENE_ELEMENT_MIN_HEIGHT = 96;
 export const SCENE_ELEMENT_HORIZONTAL_PADDING = 28;
 export const SCENE_DESCRIPTION_MAX_LINES = 10;
+export const SCENE_COMPACT_MIN_HEIGHT = 84;
+export const SCENE_COMPACT_DECISION_MIN_WIDTH = 220;
+export const SCENE_COMPACT_DECISION_MIN_HEIGHT = 132;
+export const SCENE_COMPACT_DECISION_MAX_TITLE_LINES = 2;
+export const SCENE_COMPACT_DECISION_TITLE_INSET = 22;
 
 export function normalizeSceneShape(value) {
   return Object.values(SCENE_SHAPES).includes(value) ? value : SCENE_SHAPES.STANDARD;
 }
 
-export function sceneShapeFrame(shape, width, height) {
+export function sceneShapeFrame(shape, width, height, { compact = false } = {}) {
   const sceneShape = normalizeSceneShape(shape);
   const safeWidth = Math.max(Number(width) || 0, 1);
   const safeHeight = Math.max(Number(height) || 0, 1);
   if (sceneShape === SCENE_SHAPES.DECISION) {
+    if (compact) {
+      return {
+        kind: "diamond",
+        path: `M ${safeWidth / 2} 0 L ${safeWidth} ${safeHeight / 2} L ${safeWidth / 2} ${safeHeight} L 0 ${safeHeight / 2} Z`
+      };
+    }
     return {
       kind: "decision-rect",
       radius: 10,
@@ -136,59 +147,119 @@ function limitDescriptionLines(lines, maxWidth, fontSize, maxLines = SCENE_DESCR
   return limited;
 }
 
+function limitTextLines(lines, maxWidth, fontSize, fontWeight, maxLines) {
+  if (lines.length <= maxLines) return lines;
+  const limited = lines.slice(0, maxLines);
+  const suffix = "...";
+  let lastLine = limited[maxLines - 1].trimEnd();
+  while (lastLine && measureTextWidth(`${lastLine}${suffix}`, fontSize, fontWeight) > maxWidth) lastLine = lastLine.slice(0, -1).trimEnd();
+  limited[maxLines - 1] = `${lastLine}${suffix}`;
+  return limited;
+}
+
+function diamondInnerWidth(width, height, y, inset = 12) {
+  const safeHeight = Math.max(Number(height) || 1, 1);
+  const centerY = safeHeight / 2;
+  const halfHeight = safeHeight / 2;
+  const crossSection = Math.max(0, 1 - Math.abs(y - centerY) / halfHeight);
+  return Math.max(30, Math.floor(width * crossSection - inset * 2));
+}
+
 /**
  * Build the shared visual model for a scene card.
  *
  * The same model is used by the live board and SVG-based exports so that
  * PNG and PDF output do not fall back to the old card layout.
  */
-export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "", playerCharacterCount = 0, iconPath = "", iconColorClass = "icon-default" } = {}) {
+export function sceneElementPresentation(element, scene, { fallbackTitle = "Scene", statusLabel = "", playerCharacterCount = 0, iconPath = "", iconColorClass = "icon-default", compact = false } = {}) {
   const title = String(scene?.title ?? element.title ?? fallbackTitle).replace(/\s+/g, " ").trim();
-  const description = plainTextFromHtml(scene?.description ?? "");
+  const isCompact = Boolean(compact);
+  const description = isCompact ? "" : plainTextFromHtml(scene?.description ?? "");
   const displayId = scene?.displayId ?? "";
   const sceneShape = normalizeSceneShape(scene?.sceneShape);
   const decisionShape = sceneShape === SCENE_SHAPES.DECISION;
-  const shapeHorizontalPadding = decisionShape ? 56 : sceneShape === SCENE_SHAPES.EVENT ? 64 : SCENE_ELEMENT_HORIZONTAL_PADDING;
+  const compactDecisionShape = isCompact && decisionShape;
+  const minimumWidth = compactDecisionShape ? SCENE_COMPACT_DECISION_MIN_WIDTH : SCENE_ELEMENT_MIN_WIDTH;
+  const shapeHorizontalPadding = compactDecisionShape ? 56 : decisionShape ? 56 : sceneShape === SCENE_SHAPES.EVENT ? 64 : SCENE_ELEMENT_HORIZONTAL_PADDING;
   const statusBadgeWidth = Math.max(40, measureTextWidth(statusLabel, 11, 600) + 16);
   const textContentWidth = Math.max(
-    SCENE_ELEMENT_MIN_WIDTH,
+    minimumWidth,
     statusBadgeWidth + 20
   );
-  const initialWidth = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, textContentWidth);
+  const initialWidth = Math.max(Number(element.size?.width) || minimumWidth, textContentWidth);
   const playerCharacterTokenSize = Math.max(18, Math.min(30, Math.floor(initialWidth * .1)));
   const playerCharacterRowWidth = playerCharacterCount
     ? playerCharacterCount * playerCharacterTokenSize + Math.max(0, playerCharacterCount - 1) * 4 + 20
     : 0;
   const contentWidth = Math.max(textContentWidth, playerCharacterRowWidth);
-  const width = Math.max(Number(element.size?.width) || SCENE_ELEMENT_MIN_WIDTH, contentWidth);
-  const displayIdWidth = displayId ? measureTextWidth(displayId, 11) : 0;
-  const titleWidth = Math.max(30, width - shapeHorizontalPadding - displayIdWidth - 12);
-  const descriptionWidth = Math.max(30, width - shapeHorizontalPadding);
-  const titleLines = wrapText(title, titleWidth, 15, 600);
-  const allDescriptionLines = limitDescriptionLines(wrapText(description, descriptionWidth, 11), descriptionWidth, 11);
-  const titleY = 25;
+  const width = Math.max(Number(element.size?.width) || minimumWidth, contentWidth);
+  // A compact decision card has a narrow upper tip. Put the ID above the
+  // title and move the centered title into the wider middle of the diamond.
+  const titleY = compactDecisionShape ? 44 : 25;
   const titleLineHeight = 18;
-  const descriptionY = titleY + titleLines.length * titleLineHeight + 1;
-  const descriptionLineHeight = 15;
   const playerCharacterRowHeight = playerCharacterCount ? playerCharacterTokenSize + 17 : 0;
   const bottomReservedHeight = 19 + playerCharacterRowHeight;
-  const minimumHeight = Math.max(SCENE_ELEMENT_MIN_HEIGHT, descriptionY + descriptionLineHeight + 10 + bottomReservedHeight);
-  const height = Math.max(Number(element.size?.height) || SCENE_ELEMENT_MIN_HEIGHT, minimumHeight);
-  const statusY = height - bottomReservedHeight;
-  const visibleDescriptionLines = Math.max(1, Math.floor((statusY - descriptionY - 10) / descriptionLineHeight));
-  const descriptionLines = limitDescriptionLines(allDescriptionLines, descriptionWidth, 11, Math.min(SCENE_DESCRIPTION_MAX_LINES, visibleDescriptionLines));
-  const displayIdY = descriptionY + Math.max(descriptionLines.length, 1) * descriptionLineHeight + 7;
-  const frame = sceneShapeFrame(sceneShape, width, height);
+  // Keep the scene icon centered at the bottom. If player-character tokens are
+  // present as well, reserve a little more vertical space so their row can sit
+  // above the icon instead of competing for the same bottom position.
+  const statusReservedHeight = compactDecisionShape
+    ? Math.max(bottomReservedHeight, iconPath && playerCharacterCount ? 75 : 55)
+    : bottomReservedHeight;
+  const persistedHeight = Number(element.size?.height);
+  const estimatedDecisionHeight = compactDecisionShape
+    ? Math.max(
+      SCENE_COMPACT_DECISION_MIN_HEIGHT,
+      titleY + 2 * titleLineHeight + statusReservedHeight + 18,
+      Boolean(element.visualConfig?.sizeLocked) && Number.isFinite(persistedHeight) ? persistedHeight : 0
+    )
+    : 0;
+  const displayIdWidth = displayId ? measureTextWidth(displayId, 11) : 0;
+  const titleWidth = Math.max(30, compactDecisionShape
+    ? Math.min(
+      diamondInnerWidth(width, estimatedDecisionHeight, titleY, SCENE_COMPACT_DECISION_TITLE_INSET),
+      diamondInnerWidth(width, estimatedDecisionHeight, titleY + titleLineHeight, SCENE_COMPACT_DECISION_TITLE_INSET)
+    )
+    : width - shapeHorizontalPadding - displayIdWidth - 12);
+  const descriptionWidth = Math.max(30, width - shapeHorizontalPadding);
+  const titleLines = compactDecisionShape
+    ? limitTextLines(wrapText(title, titleWidth, 15, 600), titleWidth, 15, 600, SCENE_COMPACT_DECISION_MAX_TITLE_LINES)
+    : wrapText(title, titleWidth, 15, 600);
+  const allDescriptionLines = isCompact ? [] : limitDescriptionLines(wrapText(description, descriptionWidth, 11), descriptionWidth, 11);
+  const descriptionY = titleY + titleLines.length * titleLineHeight + 1;
+  const descriptionLineHeight = 15;
+  const compactDecisionMinimumHeight = titleY + titleLines.length * titleLineHeight + statusReservedHeight + 18;
+  const minimumHeight = Math.max(
+    compactDecisionShape ? SCENE_COMPACT_DECISION_MIN_HEIGHT : isCompact ? SCENE_COMPACT_MIN_HEIGHT : SCENE_ELEMENT_MIN_HEIGHT,
+    compactDecisionShape ? compactDecisionMinimumHeight : descriptionY + (isCompact ? 0 : descriptionLineHeight) + 10 + statusReservedHeight
+  );
+  const keepPersistedHeight = !isCompact || Boolean(element.visualConfig?.sizeLocked);
+  const height = Math.max(keepPersistedHeight && Number.isFinite(persistedHeight) ? persistedHeight : 0, minimumHeight);
+  const statusY = height - statusReservedHeight;
+  const visibleDescriptionLines = isCompact ? 0 : Math.max(1, Math.floor((statusY - descriptionY - 10) / descriptionLineHeight));
+  const descriptionLines = isCompact ? [] : limitDescriptionLines(allDescriptionLines, descriptionWidth, 11, Math.min(SCENE_DESCRIPTION_MAX_LINES, visibleDescriptionLines));
+  const displayIdY = compactDecisionShape ? 24 : titleY;
+  const frame = sceneShapeFrame(sceneShape, width, height, { compact: isCompact });
   const eventSkew = sceneShape === SCENE_SHAPES.EVENT ? Math.min(32, Math.max(18, width * 0.18)) : 0;
-  const textX = decisionShape ? 42 : sceneShape === SCENE_SHAPES.EVENT ? eventSkew + 8 : 14;
-  const statusBadgeX = 10;
-  const iconRightInset = sceneShape === SCENE_SHAPES.EVENT ? 60 : 42;
+  const textX = compactDecisionShape ? width / 2 : decisionShape ? 42 : sceneShape === SCENE_SHAPES.EVENT ? eventSkew + 8 : 14;
+  const textAnchor = compactDecisionShape ? "middle" : "start";
+  const statusBadgeX = compactDecisionShape ? Math.max(10, (width - statusBadgeWidth) / 2) : 10;
+  const iconRightInset = compactDecisionShape || sceneShape === SCENE_SHAPES.EVENT ? 60 : 42;
+  const displayIdX = compactDecisionShape ? width / 2 : width - 14;
+  const playerCharacterTokenStartX = compactDecisionShape
+    ? Math.max(10, (width - playerCharacterRowWidth - (iconPath ? 36 : 0)) / 2)
+    : 10;
+  const iconSize = iconPath ? 24 : 0;
+  const iconX = iconPath
+    ? compactDecisionShape ? (width - iconSize) / 2 : width - iconRightInset
+    : 0;
   return {
     title,
     titleLines,
     descriptionLines,
     sceneShape,
     isDecisionShape: sceneShape === SCENE_SHAPES.DECISION,
+    isCompact,
+    isCompactDecisionShape: compactDecisionShape,
     isEventShape: sceneShape === SCENE_SHAPES.EVENT,
     isChallengeShape: sceneShape === SCENE_SHAPES.CHALLENGE,
     framePath: frame.path ?? "",
@@ -196,7 +267,7 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     frameRadius: frame.radius ?? 0,
     frameInner: frame.inner ?? null,
     textX,
-    textAnchor: "start",
+    textAnchor,
     displayId,
     statusLabel,
     contentWidth,
@@ -205,21 +276,25 @@ export function sceneElementPresentation(element, scene, { fallbackTitle = "Scen
     descriptionY,
     descriptionLineHeight,
     displayIdY,
-    displayIdX: width - 14,
+    displayIdX,
+    displayIdAnchor: compactDecisionShape ? "middle" : "end",
     statusY,
     statusBadgeX,
     statusTextX: statusBadgeX + 8,
     statusBadgeY: statusY - 14,
     statusBadgeWidth,
     playerCharacterTokenSize,
-    playerCharacterTokenY: height - playerCharacterTokenSize - 17,
+    playerCharacterTokenStartX,
+    playerCharacterTokenY: compactDecisionShape && iconPath && playerCharacterCount
+      ? height - playerCharacterTokenSize - 48
+      : height - playerCharacterTokenSize - 17,
     iconPath,
     iconColorClass,
-    iconSize: iconPath ? 24 : 0,
-    iconX: iconPath ? width - iconRightInset : 0,
+    iconSize,
+    iconX,
     iconY: iconPath ? height - 42 : 0,
-    resizeHandleX: width - 14,
-    resizeHandleY: height - 14
+    resizeHandleX: compactDecisionShape ? width - 22 : width - 14,
+    resizeHandleY: compactDecisionShape ? Math.max(4, height / 2 - 5) : height - 14
   };
 }
 

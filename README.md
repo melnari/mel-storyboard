@@ -22,7 +22,7 @@ The Storyboard can be opened through:
 
 - the module entry in Foundry Game Settings;
 - the Storyboard icon in the Foundry Scene Controls;
-- the `Ctrl+Alt+S` keybinding.
+- the `Alt+S` keybinding, which toggles the application open and closed.
 
 The application is a Foundry-native window and cannot be detached into a separate window.
 
@@ -34,7 +34,7 @@ The module does not use browser locks, heartbeats, or a module-owned edit lease.
 
 Scene, Chapter, Connection, and Object note editors keep edits as drafts until their editor Save action is used. Leaving edited details or closing the window prompts the GM to save, discard, or continue editing. If editing access is lost, the current draft stays visible and can be saved only after access returns.
 
-The full GM's window size and position, zoom, active Chapter, and collapsed navigation/inspector state are saved per user and restored on the next open. Read-only users may adjust their view while the window is open, but those temporary view changes are not persisted.
+While the Foundry session remains active, the full GM's window size and position, zoom, active Chapter, selected element, and collapsed navigation/inspector state are retained when the application is closed and reopened. This view state is intentionally held only in memory and returns to the normal initial state after Foundry or the GM session is restarted. Read-only users may adjust their view while the window is open, but those temporary view changes are not persisted.
 
 ## Interface and links
 
@@ -45,7 +45,7 @@ The Storyboard uses a desktop-first Foundry application window with a consistent
 The interface consists of three areas:
 
 - A collapsible navigation tree on the left. The active root is named `Story`; Chapters contain their Scenes with display IDs and titles. A second root named `Archive` contains archived Chapters only, with their Scenes nested below them.
-- A central canvas with a grid and the Scene Cards of the selected Chapter.
+- A central canvas with the Scene Cards of the selected Chapter.
 - A collapsible inspector on the right for Chapter Details, Scene Details, or Connection Details.
 
 The expanded navigation and inspector columns are sized for comfortable editing. Both columns can be collapsed independently. Hover a Chapter or Scene entry for two seconds to display its complete title below the entry; long titles wrap without changing the normal tree layout.
@@ -55,6 +55,8 @@ Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. A
 Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit nodes can be moved on the canvas like Scene Cards. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter, with the additional valid paths Entry → Scene and Scene → Exit.
 
 Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. The preview uses the full inner card width and is limited to ten rendered lines; longer text ends with `...` on the last visible line. Cards can be resized below the description's natural height; text that no longer fits is shortened with `...`, while the full description remains available in Scene Details. Titles and descriptions wrap to the available card width, including after manual resizing.
+
+The world setting `Scene display` selects between `Detailed scenes` (the default) and `Compact scenes`. Detailed cards use the full layout described above. Compact cards retain the title, display ID, status, Scene icon, Player Character tokens, and Connections but omit the description from the card; the full description remains available in Scene Details. Standard, Event, and Challenge shapes continue to work without the description. A compact Decision scene is rendered as a flat diamond containing its title, ID, status, and available icons/tokens; titles are limited to two lines and end with `...` when necessary. Compact card height is calculated from the remaining content unless the card was explicitly resized.
 
 Scene Details also provide a localized `Scene shape` selector. The default `Standard scene` uses the existing rounded card. `Decision` uses the same readable rectangular card with a diamond marker in the header, `Event` renders a parallelogram with wider side margins, and `Challenge` renders a double-framed card. The selected shape is stored with the Scene and is reflected in the live canvas and SVG, PNG, and PDF exports. Connections continue to follow the visible shape boundary.
 
@@ -161,7 +163,8 @@ View preferences are kept in a user-scoped setting and are written only by the e
 The module adds two world settings under `Mel-Storyboard`:
 
 - `Use status-based coloring`, disabled by default;
-- `Show Icons on Scene`, disabled by default.
+- `Show Icons on Scene`, disabled by default;
+- `Scene display`, set to `Detailed scenes` by default, with `Compact scenes` as the alternative.
 
 Both settings are GM-restricted. Disabling either setting hides its visual effect while retaining the saved Scene data.
 

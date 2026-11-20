@@ -1152,7 +1152,6 @@
 
 .mel-storyboard-element-id {
   font-family: monospace;
-  text-anchor: end;
 }
 
 .mel-storyboard-element-status-badge {
@@ -2469,4 +2468,232 @@ body.theme-dark .mel-storyboard,
 .mel-storyboard .mel-storyboard-read-only-rich-text,
 .mel-storyboard .mel-storyboard-read-only-rich-text :is(p, li, blockquote, strong, em, h1, h2, h3, h4, h5, h6) {
   color: var(--mel-theme-text) !important;
+}
+
+/* Keep the Foundry application chrome in the same Light/Dark theme as the
+   Storyboard itself. ApplicationV2 places the window header outside the
+   .mel-storyboard content root, so the neutral theme variables above cannot
+   style that header directly. Removing window-content padding also lets the
+   workspace use the complete height below the title bar. */
+#mel-storyboard-application {
+  color-scheme: var(--color-scheme, dark);
+}
+
+body.theme-light #mel-storyboard-application {
+  color-scheme: light;
+}
+
+body.theme-dark #mel-storyboard-application {
+  color-scheme: dark;
+}
+
+#mel-storyboard-application .window-header {
+  background: var(--color-header-background, var(--background, var(--color-data-background, #17191f)));
+  border-color: var(--color-data-border, var(--color-border, #3a4350));
+  color: var(--color-text-emphatic, var(--color-text-primary, var(--color-text-light-primary, #edf2f7)));
+}
+
+#mel-storyboard-application .window-header .window-title {
+  color: var(--color-text-emphatic, var(--color-text-primary, var(--color-text-light-primary, #edf2f7)));
+}
+
+#mel-storyboard-application .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0 !important;
+  background: var(--background, var(--color-data-background, #17191f));
+}
+
+#mel-storyboard-application .window-content > .mel-storyboard-workspace {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+#mel-storyboard-application .mel-storyboard-workspace {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Open is the neutral status. When status colouring is enabled it must still
+   use the active Foundry neutral surface instead of a fixed dark card, so the
+   same markup remains readable in both themes. Preserve the stronger focus
+   border when a card is selected or is a drag target. */
+.mel-storyboard .mel-storyboard-element.status-open:not(.is-selected):not(.is-drop-target):not(.is-player-character-drop-target):not(.is-connection-drag-source):not(.is-connection-drop-target) .mel-storyboard-element-frame {
+  fill: var(--mel-theme-surface-raised) !important;
+  stroke: var(--mel-theme-border-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-element.status-open text {
+  fill: var(--mel-theme-text-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-description,
+.mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-id {
+  fill: var(--mel-theme-text-muted) !important;
+}
+
+.mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-status-badge {
+  fill: color-mix(in srgb, var(--mel-theme-accent) 14%, transparent) !important;
+  stroke: var(--mel-theme-border-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-status {
+  fill: var(--mel-theme-accent) !important;
+}
+
+/* Foundry's native content-link colour is intentionally not reused for the
+   card title in the inspector: some Light themes make it orange on a pale
+   surface. The link keeps its border/hover affordance, while its resting text
+   and icon use the same readable foreground as the rest of the inspector. */
+.mel-storyboard .mel-storyboard-object-main > i,
+.mel-storyboard .mel-storyboard-object-title-link,
+.mel-storyboard .content-link[data-storyboard-foundry-link] {
+  color: var(--mel-theme-text-strong) !important;
+}
+
+.mel-storyboard .content-link[data-storyboard-foundry-link]:hover,
+.mel-storyboard .content-link[data-storyboard-foundry-link]:focus-visible {
+  color: var(--mel-theme-link) !important;
+}
+
+/* Context menus are rendered inside the application root but must not inherit
+   Foundry's low-contrast Light-theme menu text. */
+.mel-storyboard .mel-storyboard-context-menu {
+  background: var(--mel-theme-surface) !important;
+  border-color: var(--mel-theme-border-strong) !important;
+  color: var(--mel-theme-text-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-context-menu-item,
+.mel-storyboard .mel-storyboard-context-menu-item:hover,
+.mel-storyboard .mel-storyboard-context-menu-item:focus,
+.mel-storyboard .mel-storyboard-context-menu-item:active {
+  background: transparent !important;
+  color: var(--mel-theme-text-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-context-menu-item:hover,
+.mel-storyboard .mel-storyboard-context-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--mel-theme-accent) 14%, var(--mel-theme-surface)) !important;
+}
+
+/* Unselected navigation rows follow the sidebar surface. Only the row with
+   .is-active receives a selection background; this applies to both chapter
+   labels and their two-line scene children. */
+.mel-storyboard .mel-storyboard-tree-children,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active),
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-node,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-node .mel-storyboard-tree-label,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-label {
+  background: transparent !important;
+}
+
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-node:hover,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-node:focus,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-node:active,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-label:hover,
+.mel-storyboard .mel-storyboard-tree-item:not(.is-active) > .mel-storyboard-tree-label:focus {
+  background: color-mix(in srgb, var(--mel-theme-accent) 8%, transparent) !important;
+}
+
+/* ApplicationV2 can place the id on the outer application shell or on the
+   content shell depending on the Foundry build. Cover both layouts so the
+   default window-content inset cannot reintroduce the empty strip below the
+   title bar. */
+#mel-storyboard-application.window-content,
+#mel-storyboard-application > .window-content,
+#mel-storyboard-application .window-content,
+.mel-storyboard > .window-content,
+.mel-storyboard .window-content {
+  box-sizing: border-box;
+  margin-block: 0 !important;
+  padding: 0 !important;
+}
+
+#mel-storyboard-application.window-content > .mel-storyboard-workspace,
+#mel-storyboard-application > .window-content > .mel-storyboard-workspace,
+#mel-storyboard-application .window-content > .mel-storyboard-workspace,
+.mel-storyboard > .window-content > .mel-storyboard-workspace,
+.mel-storyboard .window-content > .mel-storyboard-workspace {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  margin-block: 0;
+}
+
+/* Foundry keeps the application chrome dark in the Light theme. Use a light
+   title colour there as well as in the Dark theme instead of inheriting the
+   dark Light-theme body text colour. */
+#mel-storyboard-application .window-header,
+#mel-storyboard-application .window-header .window-title {
+  color: #f2f4f7 !important;
+}
+
+body.theme-light #mel-storyboard-application .window-header,
+body.theme-light #mel-storyboard-application .window-header .window-title {
+  background: #2b2f37;
+  color: #f2f4f7 !important;
+}
+
+/* In the Light theme the neutral Open card needs the same dark readable
+   surface as the existing Dark-theme neutral card. A selected card is a
+   little darker so the active/editing state remains visible through the
+   focus border as well. */
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-frame {
+  fill: #354050 !important;
+  stroke: #7f8c9d !important;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open.is-selected .mel-storyboard-element-frame {
+  fill: #292f3a !important;
+  stroke: var(--mel-theme-focus) !important;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open text {
+  fill: #f2f4f7 !important;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-description,
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-id {
+  fill: #d7dee8 !important;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-status-badge {
+  fill: rgba(246, 196, 83, .14) !important;
+  stroke: #8290a2 !important;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-element.status-open .mel-storyboard-element-status {
+  fill: #f6c453 !important;
+}
+
+/* Entry and Exit nodes use a matching dark neutral fill in the Light theme;
+   their semantic green/accent outlines remain unchanged. */
+body.theme-light .mel-storyboard .mel-storyboard-chapter-node-circle {
+  fill: #354050 !important;
+  stroke: #8b98a9;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-chapter-node-title {
+  fill: #f2f4f7 !important;
+}
+
+body.theme-light .mel-storyboard .mel-storyboard-chapter-node-canvas.is-entry .mel-storyboard-chapter-node-circle,
+body.theme-light .mel-storyboard .mel-storyboard-chapter-node-canvas.is-connection-drag-source .mel-storyboard-chapter-node-circle,
+body.theme-light .mel-storyboard .mel-storyboard-chapter-node-canvas.is-connection-drop-target .mel-storyboard-chapter-node-circle {
+  stroke: var(--mel-theme-positive) !important;
+}
+
+/* The compact status badge in the inspector needs a real surface behind its
+   accent text. Restrict this to the neutral/Open state so the pastel semantic
+   badges for the other statuses remain intact. */
+body.theme-light .mel-storyboard .mel-storyboard-inspector .mel-storyboard-status-badge:not([class*="status-"]),
+body.theme-light .mel-storyboard .mel-storyboard-inspector .mel-storyboard-status-badge.status-open {
+  background: #354050 !important;
+  border-color: #8290a2 !important;
+  color: #f6c453 !important;
 }

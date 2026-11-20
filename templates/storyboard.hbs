@@ -107,7 +107,9 @@
           {{/each}}
           {{#each board.elements}}
             <g class="mel-storyboard-element {{#if statusColorClass}}status-{{statusColorClass}}{{/if}} {{#if isSelected}}is-selected{{/if}}" data-scene-element data-element-id="{{id}}" transform="translate({{position.x}} {{position.y}})" tabindex="0" role="button" aria-label="{{title}}">
-              {{#if isDecisionShape}}
+              {{#if isCompactDecisionShape}}
+                <path class="mel-storyboard-element-frame" d="{{framePath}}" />
+              {{else if isDecisionShape}}
                 <rect class="mel-storyboard-element-frame" width="{{size.width}}" height="{{size.height}}" rx="{{frameRadius}}" />
                 <path class="mel-storyboard-element-decision-marker" d="{{frameMarkerPath}}" />
               {{else if isEventShape}}
@@ -126,7 +128,7 @@
                   {{#each descriptionLines}}<tspan x="{{../textX}}" dy="{{#if @first}}0{{else}}{{../descriptionLineHeight}}{{/if}}">{{this}}</tspan>{{/each}}
                 </text>
               {{/if}}
-              <text class="mel-storyboard-element-id" x="{{displayIdX}}" y="{{titleY}}" text-anchor="end">{{displayId}}</text>
+              <text class="mel-storyboard-element-id" x="{{displayIdX}}" y="{{displayIdY}}" text-anchor="{{displayIdAnchor}}">{{displayId}}</text>
               <rect class="mel-storyboard-element-status-badge" x="{{statusBadgeX}}" y="{{statusBadgeY}}" width="{{statusBadgeWidth}}" height="18" rx="9" />
               <text class="mel-storyboard-element-status" x="{{statusTextX}}" y="{{statusY}}">{{statusLabel}}</text>
               {{#if iconPath}}<image class="mel-storyboard-scene-icon {{iconColorClass}}" href="{{iconPath}}" x="{{iconX}}" y="{{iconY}}" width="{{iconSize}}" height="{{iconSize}}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" />{{/if}}
@@ -273,13 +275,6 @@
           {{else}}
             <p class="mel-storyboard-empty">{{labels.noObjects}}</p>
           {{/if}}
-        </section>
-        <section class="mel-storyboard-inspector-section mel-storyboard-connection-summary">
-          <h3>{{labels.connections}}</h3>
-          <div class="mel-storyboard-connection-counts">
-            <span><strong>{{selectedScene.incomingCount}}</strong> {{labels.incoming}}</span>
-            <span><strong>{{selectedScene.outgoingCount}}</strong> {{labels.outgoing}}</span>
-          </div>
         </section>
       {{else if activeChapter}}
         <header class="mel-storyboard-inspector-header">

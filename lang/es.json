@@ -8,7 +8,7 @@
       "OpenDesigner": {
         "Name": "Storyboard",
         "Label": "Abrir tablero de escenas",
-        "Hint": "Abrir el tablero de escenas del DJ."
+        "Hint": "Mostrar u ocultar el tablero de escenas del DJ con Alt+S."
       },
       "StatusColors": {
         "Name": "Usar colores según el estado",
@@ -17,6 +17,14 @@
       "ShowSceneIcons": {
         "Name": "Mostrar iconos en las escenas",
         "Hint": "Muestra el icono de Foundry Map Notes seleccionado en la esquina inferior derecha de las tarjetas de escena y las exportaciones gráficas."
+      },
+      "SceneDisplayMode": {
+        "Name": "Visualización de escenas",
+        "Hint": "Elige entre tarjetas de escena con descripción y una vista compacta.",
+        "Choices": {
+          "Detailed": "Escenas detalladas",
+          "Compact": "Escenas compactas"
+        }
       },
       "ManageTemplates": {
         "Name": "Gestionar plantillas",

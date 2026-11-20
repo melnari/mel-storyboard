@@ -21,7 +21,8 @@ function svgTextLines(className, x, y, lines, lineHeight, attributes = {}) {
 }
 
 function sceneFrameMarkup(element) {
-  const frame = sceneShapeFrame(element.sceneShape, element.size.width, element.size.height);
+  const frame = sceneShapeFrame(element.sceneShape, element.size.width, element.size.height, { compact: element.isCompact });
+  if (frame.kind === "diamond") return `<path class="element-frame" d="${escapeXml(frame.path)}" />`;
   if (frame.kind === "decision-rect") return `<rect class="element-frame" width="${element.size.width}" height="${element.size.height}" rx="${frame.radius}" /><path class="element-decision-marker" d="${escapeXml(frame.markerPath)}" />`;
   if (frame.kind === "path") return `<path class="element-frame" d="${escapeXml(frame.path)}" />`;
   if (frame.kind === "double-rect") {
@@ -112,29 +113,52 @@ function base64FromBytes(bytes) {
 }
 
 async function embedSceneIcons(board, labels = {}) {
-  if (!labels.showSceneIcons) return labels;
-  const sourcePaths = labels.sceneIconPaths ?? globalThis.CONFIG?.JournalEntry?.noteIcons ?? {};
-  const iconTypes = [...new Set((board.scenes ?? []).map(scene => scene.iconType).filter(iconType => iconType && iconType !== "NONE"))];
-  const sceneIconPaths = { ...sourcePaths };
-  await Promise.all(iconTypes.map(async iconType => {
-    const path = sourcePaths[iconType];
-    if (!path || /^data:/i.test(path)) return;
+  const result = { ...labels };
+  if (labels.showSceneIcons) {
+    const sourcePaths = labels.sceneIconPaths ?? globalThis.CONFIG?.JournalEntry?.noteIcons ?? {};
+    const iconTypes = [...new Set((board.scenes ?? []).map(scene => scene.iconType).filter(iconType => iconType && iconType !== "NONE"))];
+    const sceneIconPaths = { ...sourcePaths };
+    await Promise.all(iconTypes.map(async iconType => {
+      const path = sourcePaths[iconType];
+      if (!path || /^data:/i.test(path)) return;
+      try {
+        const response = await fetch(absoluteAssetUrl(path), { credentials: "same-origin" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        sceneIconPaths[iconType] = `data:${assetMimeType(path, response)};base64,${base64FromBytes(bytes)}`;
+      } catch (error) {
+        console.warn(`[mel-storyboard] Could not embed scene icon ${iconType} for export`, error);
+        sceneIconPaths[iconType] = absoluteAssetUrl(path);
+      }
+    }));
+    result.sceneIconPaths = sceneIconPaths;
+  }
+  const playerCharacterImagePaths = { ...(labels.playerCharacterImagePaths ?? {}) };
+  const playerCharacterObjects = (board.objects ?? []).filter(object => object.objectType === "PLAYER_CHARACTER" && object.visualConfig?.image);
+  await Promise.all(playerCharacterObjects.map(async object => {
+    const path = object.visualConfig.image;
+    if (!path || /^data:/i.test(path)) {
+      playerCharacterImagePaths[object.id] = path;
+      return;
+    }
     try {
       const response = await fetch(absoluteAssetUrl(path), { credentials: "same-origin" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const bytes = new Uint8Array(await response.arrayBuffer());
-      sceneIconPaths[iconType] = `data:${assetMimeType(path, response)};base64,${base64FromBytes(bytes)}`;
+      playerCharacterImagePaths[object.id] = `data:${assetMimeType(path, response)};base64,${base64FromBytes(bytes)}`;
     } catch (error) {
-      console.warn(`[mel-storyboard] Could not embed scene icon ${iconType} for export`, error);
-      sceneIconPaths[iconType] = absoluteAssetUrl(path);
+      console.warn(`[mel-storyboard] Could not embed player character artwork for export`, error);
+      playerCharacterImagePaths[object.id] = absoluteAssetUrl(path);
     }
   }));
-  return { ...labels, sceneIconPaths };
+  result.playerCharacterImagePaths = playerCharacterImagePaths;
+  return result;
 }
 
 export function sceneBoardToSvg(board, labels = {}) {
   const theme = exportThemeTokens();
   const sceneById = new Map(board.scenes.map(scene => [scene.id, scene]));
+  const objectsById = new Map((board.objects ?? []).map(object => [object.id, object]));
   const elements = board.elements.map(element => {
     const scene = sceneById.get(element.sceneId);
     const source = {
@@ -146,11 +170,23 @@ export function sceneBoardToSvg(board, labels = {}) {
       fallbackTitle: labels.scene || "Scene",
       statusLabel: labels.status?.(scene?.status) ?? scene?.status ?? "",
       iconPath: sceneIconPath(scene, labels),
-      iconColorClass: labels.statusColors ? `icon-${STATUS_COLOR_CLASSES[scene?.status] ?? STATUS_COLOR_CLASSES.OFFEN}` : "icon-default"
+      iconColorClass: labels.statusColors ? `icon-${STATUS_COLOR_CLASSES[scene?.status] ?? STATUS_COLOR_CLASSES.OFFEN}` : "icon-default",
+      compact: Boolean(labels.compactScenes)
     });
+    const playerCharacters = (scene?.objectAssignments ?? [])
+      .map(assignment => objectsById.get(assignment.objectId))
+      .filter(object => object?.objectType === "PLAYER_CHARACTER");
     return {
       ...source,
       ...presentation,
+      playerCharacterTokens: playerCharacters.map((object, index) => ({
+        objectId: object.id,
+        title: object.title ?? "",
+        image: object.visualConfig?.image || "icons/svg/mystery-man.svg",
+        tokenX: presentation.playerCharacterTokenStartX + index * (presentation.playerCharacterTokenSize + 4),
+        tokenY: presentation.playerCharacterTokenY,
+        tokenSize: presentation.playerCharacterTokenSize
+      })),
       statusColorClass: labels.statusColors ? STATUS_COLOR_CLASSES[scene?.status] ?? STATUS_COLOR_CLASSES.OFFEN : ""
     };
   });
@@ -189,11 +225,15 @@ export function sceneBoardToSvg(board, labels = {}) {
     const description = element.descriptionLines.length
       ? svgTextLines("element-description", element.textX, element.descriptionY, element.descriptionLines, element.descriptionLineHeight, { "text-anchor": element.textAnchor })
       : "";
-    const displayId = `<text class="element-id" x="${element.displayIdX}" y="${element.titleY}" text-anchor="end">${escapeXml(element.displayId)}</text>`;
+    const displayId = `<text class="element-id" x="${element.displayIdX}" y="${element.displayIdY}" text-anchor="${element.displayIdAnchor}">${escapeXml(element.displayId)}</text>`;
     const status = `<rect class="element-status-badge" x="${element.statusBadgeX}" y="${element.statusBadgeY}" width="${element.statusBadgeWidth}" height="18" rx="9" /><text class="element-status" x="${element.statusTextX}" y="${element.statusY}">${escapeXml(element.statusLabel)}</text>`;
     const icon = element.iconPath ? `<image class="scene-icon ${escapeXml(element.iconColorClass)}" href="${escapeXml(element.iconPath)}" x="${element.iconX}" y="${element.iconY}" width="${element.iconSize}" height="${element.iconSize}" preserveAspectRatio="xMidYMid meet" />` : "";
+    const playerCharacters = (element.playerCharacterTokens ?? []).map(token => {
+      const image = labels.playerCharacterImagePaths?.[token.objectId] ?? token.image;
+      return `<g class="player-character-token" transform="translate(${token.tokenX},${token.tokenY})"><title>${escapeXml(token.title)}</title><rect class="player-character-token-frame" width="${token.tokenSize}" height="${token.tokenSize}" rx="3" /><image href="${escapeXml(absoluteAssetUrl(image))}" width="${token.tokenSize}" height="${token.tokenSize}" preserveAspectRatio="xMidYMid slice" /></g>`;
+    }).join("");
     const statusClass = element.statusColorClass ? ` status-${element.statusColorClass}` : "";
-    return `<g class="element${statusClass}" transform="translate(${element.position.x},${element.position.y})">${sceneFrameMarkup(element)}${title}${description}${displayId}${status}${icon}</g>`;
+    return `<g class="element${statusClass}" transform="translate(${element.position.x},${element.position.y})">${sceneFrameMarkup(element)}${title}${description}${displayId}${status}${icon}${playerCharacters}</g>`;
   }).join("");
   const chapterNodeMarkup = (board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => {
     const color = node.nodeType === "ENTRY" ? theme.positive : theme.accent;
@@ -220,7 +260,7 @@ export function sceneBoardToSvg(board, labels = {}) {
   const statusColorStyles = labels.statusColors ? ".element.status-open .element-frame{fill:#313846;stroke:#9aa4b2}.element.status-open text{fill:#f0f3f7}.element.status-open .element-description,.element.status-open .element-id{fill:#d3dae4}.element.status-open .element-status-badge{fill:rgba(246,196,83,.12);stroke:#59687a}.element.status-open .element-status{fill:#f6c453}.element.status-waiting .element-frame{fill:#e2e5ea;stroke:#8a97a6}.element.status-waiting text{fill:#20252d}.element.status-waiting .element-description,.element.status-waiting .element-id{fill:#3f4a57}.element.status-waiting .element-status-badge{fill:rgba(72,84,99,.13);stroke:#6f7d8c}.element.status-waiting .element-status{fill:#485463}.element.status-active .element-frame{fill:#cfe1f4;stroke:#7899b8}.element.status-active text{fill:#1e3044}.element.status-active .element-description,.element.status-active .element-id{fill:#40566c}.element.status-active .element-status-badge{fill:rgba(36,95,157,.13);stroke:#7899b8}.element.status-active .element-status{fill:#245f9d}.element.status-success .element-frame{fill:#d2ead6;stroke:#82ad8b}.element.status-success text{fill:#1e3a25}.element.status-success .element-description,.element.status-success .element-id{fill:#46664d}.element.status-success .element-status-badge{fill:rgba(46,125,70,.13);stroke:#82ad8b}.element.status-success .element-status{fill:#2e7d46}.element.status-partial-success .element-frame{fill:#f6dfbd;stroke:#c69a62}.element.status-partial-success text{fill:#4a2d14}.element.status-partial-success .element-description,.element.status-partial-success .element-id{fill:#705333}.element.status-partial-success .element-status-badge{fill:rgba(164,96,25,.13);stroke:#c69a62}.element.status-partial-success .element-status{fill:#a46019}.element.status-failure .element-frame{fill:#f3cccc;stroke:#c9898e}.element.status-failure text{fill:#4a2023}.element.status-failure .element-description,.element.status-failure .element-id{fill:#71464a}.element.status-failure .element-status-badge{fill:rgba(163,58,66,.13);stroke:#c9898e}.element.status-failure .element-status{fill:#a33a42}.element.status-skipped .element-frame{fill:#e2d3f0;stroke:#aa91bf}.element.status-skipped text{fill:#352342}.element.status-skipped .element-description,.element.status-skipped .element-id{fill:#614c73}.element.status-skipped .element-status-badge{fill:rgba(116,73,162,.13);stroke:#aa91bf}.element.status-skipped .element-status{fill:#7449a2}" : "";
   const shapeStatusStyles = labels.statusColors ? ".element.status-open .element-frame-inner{stroke:#9aa4b2}.element.status-waiting .element-frame-inner{stroke:#8a97a6}.element.status-active .element-frame-inner{stroke:#7899b8}.element.status-success .element-frame-inner{stroke:#82ad8b}.element.status-partial-success .element-frame-inner{stroke:#c69a62}.element.status-failure .element-frame-inner{stroke:#c9898e}.element.status-skipped .element-frame-inner{stroke:#aa91bf}" : "";
   const sceneIconColorStyles = ".scene-icon.icon-default,.scene-icon.icon-open{filter:brightness(0) invert(1)}.scene-icon.icon-waiting{filter:brightness(0) saturate(100%) invert(31%) sepia(10%) saturate(819%) hue-rotate(174deg) brightness(92%) contrast(88%)}.scene-icon.icon-active{filter:brightness(0) saturate(100%) invert(15%) sepia(14%) saturate(1324%) hue-rotate(173deg) brightness(92%) contrast(93%)}.scene-icon.icon-success{filter:brightness(0) saturate(100%) invert(39%) sepia(17%) saturate(1014%) hue-rotate(86deg) brightness(90%) contrast(89%)}.scene-icon.icon-partial-success{filter:brightness(0) saturate(100%) invert(17%) sepia(22%) saturate(1133%) hue-rotate(349deg) brightness(95%) contrast(91%)}.scene-icon.icon-failure{filter:brightness(0) saturate(100%) invert(15%) sepia(23%) saturate(1046%) hue-rotate(313deg) brightness(89%) contrast(92%)}.scene-icon.icon-skipped{filter:brightness(0) saturate(100%) invert(15%) sepia(21%) saturate(1280%) hue-rotate(252deg) brightness(88%) contrast(94%)}";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:${theme.fontFamily};background:${theme.canvas}}.connection{stroke:${theme.border};stroke-width:3;fill:none;stroke-linecap:round}.connection.is-status-used{stroke:${theme.positiveBorder}}.connection.is-status-repeated-used{stroke:${theme.positive}}.connection-arrow{fill:${theme.border}}.connection-arrow.is-status-used{fill:${theme.positiveBorder}}.connection-arrow.is-status-repeated-used{fill:${theme.positive}}.connection-label{fill:${theme.accent};font-size:12px;font-weight:600;paint-order:stroke;stroke:${theme.canvas};stroke-width:4px;text-anchor:middle}.chapter-connection{stroke:${theme.positive};stroke-width:2;stroke-dasharray:6 5;fill:none}.chapter-connection-arrow{fill:${theme.positive}}.chapter-connection-label{fill:${theme.positive};font-size:12px;font-weight:600;paint-order:stroke;stroke:${theme.canvas};stroke-width:4px;text-anchor:middle}.element-frame{fill:${theme.surface};stroke:${theme.border};stroke-width:2}.element-frame-inner{fill:none;stroke:${theme.border};stroke-width:2}.element-decision-marker{fill:${theme.accent};fill-opacity:.16;stroke:${theme.accent};stroke-width:2}.element text{fill:${theme.text}}.element-title{font-size:15px;font-weight:600}.element-description,.element-id{fill:${theme.mutedText};font-size:11px}.element-id{font-family:monospace}.element-status-badge{fill:${theme.accent};fill-opacity:.12;stroke:${theme.border};stroke-width:1}.element-status{fill:${theme.accent};font-size:11px;font-weight:600}.scene-icon{pointer-events:none}${sceneIconColorStyles}.chapter-node-title{fill:${theme.text};font-size:12px}${statusColorStyles}${shapeStatusStyles}</style>${lines}${chapterConnectionMarkup}${chapterNodeMarkup}${elementMarkup}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:${theme.fontFamily};background:${theme.canvas}}.connection{stroke:${theme.border};stroke-width:3;fill:none;stroke-linecap:round}.connection.is-status-used{stroke:${theme.positiveBorder}}.connection.is-status-repeated-used{stroke:${theme.positive}}.connection-arrow{fill:${theme.border}}.connection-arrow.is-status-used{fill:${theme.positiveBorder}}.connection-arrow.is-status-repeated-used{fill:${theme.positive}}.connection-label{fill:${theme.accent};font-size:12px;font-weight:600;paint-order:stroke;stroke:${theme.canvas};stroke-width:4px;text-anchor:middle}.chapter-connection{stroke:${theme.positive};stroke-width:2;stroke-dasharray:6 5;fill:none}.chapter-connection-arrow{fill:${theme.positive}}.chapter-connection-label{fill:${theme.positive};font-size:12px;font-weight:600;paint-order:stroke;stroke:${theme.canvas};stroke-width:4px;text-anchor:middle}.element-frame{fill:${theme.surface};stroke:${theme.border};stroke-width:2}.element-frame-inner{fill:none;stroke:${theme.border};stroke-width:2}.element-decision-marker{fill:${theme.accent};fill-opacity:.16;stroke:${theme.accent};stroke-width:2}.element text{fill:${theme.text}}.element-title{font-size:15px;font-weight:600}.element-description,.element-id{fill:${theme.mutedText};font-size:11px}.element-id{font-family:monospace}.element-status-badge{fill:${theme.accent};fill-opacity:.12;stroke:${theme.border};stroke-width:1}.element-status{fill:${theme.accent};font-size:11px;font-weight:600}.scene-icon{pointer-events:none}.player-character-token-frame{fill:${theme.surface};stroke:${theme.border};stroke-width:1}${sceneIconColorStyles}.chapter-node-title{fill:${theme.text};font-size:12px}${statusColorStyles}${shapeStatusStyles}</style>${lines}${chapterConnectionMarkup}${chapterNodeMarkup}${elementMarkup}</svg>`;
 }
 
 export function sceneBoardToJson(board) {

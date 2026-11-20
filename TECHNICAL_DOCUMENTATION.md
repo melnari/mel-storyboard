@@ -58,6 +58,8 @@ Die Oberfläche ist für Foundry Desktop ausgelegt. Sie verwendet ein konsistent
 - HTML-Tags werden in der kompakten Beschreibung entfernt; Zeilenumbrüche bleiben erhalten.
 - Karten passen ihre automatische Größe an den Inhalt an und können manuell vergrößert/verkleinert werden.
 - Manuell veränderte Kartengrößen werden über `visualConfig.sizeLocked` geschützt.
+- Die World-Einstellung `sceneDisplayMode` steuert das Kartenlayout. `DETAILED` ist der Default und behält die Beschreibungsvorschau; `COMPACT` entfernt Beschreibungen aus Scene Cards, behält aber Titel, ID, Status, Scene-Icons, Player-Character-Tokens und Connections. Die vollständige Beschreibung bleibt in Scene Details erhalten.
+- In `COMPACT` behalten Standard, Event und Challenge ihre Formen ohne Beschreibung. Eine kompakte Decision-Szene wird als flache Raute gezeichnet; Titel, ID, Status und verfügbare Icons/Tokens bleiben innerhalb der Form. Der Titel wird auf zwei Zeilen mit `...` begrenzt. Die automatische Höhe wird aus dem verbleibenden Inhalt berechnet; eine explizit per Resize gesperrte Karte behält ihre Höhe.
 
 ### Verbindungen
 
@@ -143,6 +145,8 @@ Verwendete interne Statuswerte:
 
 Die World-Einstellung `Show Icons on Scene` ist ebenfalls standardmäßig deaktiviert. Bei Aktivierung kann in `Scene Details` ein Foundry-Map-Notes-Icon ausgewählt werden. Die Liste stammt aus `CONFIG.JournalEntry.noteIcons` und enthält zusätzlich den Eintrag `None`, jedoch keinen Custom-Eintrag. Das gewählte Icon wird unten rechts auf der Scene Card angezeigt und in grafische Exporte eingebettet. Der gespeicherte Schlüssel bleibt sprachunabhängig; nur die Anzeige wird lokalisiert.
 
+Die World-Einstellung `Scene display` (`sceneDisplayMode`) ist standardmäßig `DETAILED`; `COMPACT` ist die alternative globale Darstellung. Beide Modi verwenden dieselbe Präsentationsfunktion in `scripts/domain/scene-card.js`, damit Canvas und SVG/PNG/PDF dieselben Zeilenumbrüche, Größen, Formen und Sichtbarkeitsregeln verwenden.
+
 ## 3. Projektstruktur
 
 | Datei/Bereich | Aufgabe |
@@ -200,11 +204,11 @@ In `Hooks.once("init")` werden registriert:
 
 - das interne World-Setting `sceneBoard` als laufenden Board-Speicher;
 - die alten Journal-Flags `privateBoardStorage` und `sceneBoard` ausschließlich als Kompatibilitätsquelle für eine einmalige Migration;
-- das interne User-Setting `uiState` für Fenster- und Ansichtspräferenzen;
 - die World-Einstellung `statusColors`;
 - die World-Einstellung `showSceneIcons`;
+- die World-Einstellung `sceneDisplayMode` mit `DETAILED` als Default und `COMPACT` als Alternative;
 - das GM-restricted Settings-Menü zum Öffnen des Storyboards;
-- das GM-restricted Keybinding `Ctrl+Alt+S`.
+- das GM-restricted Keybinding `Alt+S` zum Öffnen und Schließen des Storyboards.
 
 `Hooks.once("ready")` lädt den World-Speicher. Wenn dort keine gültigen Board-Daten liegen, sucht der Store einmalig nach einem Journal aus einem Zwischenstand und kopiert gültige Daten zurück in das World-Setting. Nur Foundrys aktiver Full-GM darf diese Migration oder einen neuen leeren Speicher schreiben. Andere GM-Clients lesen den World-Speicher und bleiben schreibgeschützt. Der Store dedupliziert parallele Initialisierungsaufrufe.
 
@@ -566,7 +570,7 @@ Die wichtigsten genutzten Foundry-Schnittstellen sind:
 | `Hooks.on("getSceneControlButtons")` | Storyboard-Button in den Token-Controls |
 | `game.settings.register` | World-Daten und World-Optionen |
 | `game.settings.registerMenu` | Öffnen über die Foundry-Settings |
-| `game.keybindings.register` | `Ctrl+Alt+S` |
+| `game.keybindings.register` | `Alt+S` toggles the Storyboard open or closed |
 | `foundry.applications.api.ApplicationV2` | native Application-Basis |
 | `HandlebarsApplicationMixin` | Handlebars-Part-Rendering |
 | `fromUuid` | Foundry-Dokumente aus Links und Drops auflösen |
@@ -632,7 +636,7 @@ Die Anwendung ruft `capture` vor mutierenden Operationen auf. Während Pointer-M
 - `game.users.activeGM` wählt den aktiven Gamemaster, der modulweit Bearbeitungszugriff erhält. Das Modul verlangt zusätzlich die exakte Rolle `CONST.USER_ROLES.GAMEMASTER`, damit ein Assistant GM nicht versehentlich Schreibzugriff bekommt.
 - Das Modul speichert keine Bearbeitungssitzung und verwendet weder Browser-Locks noch World-Leases oder Heartbeats. Zwei Tabs desselben aktiven GM-Users teilen dieselbe Berechtigung; parallel geöffnete Tabs werden nicht gegeneinander gesperrt.
 - Assistant GMs können öffnen, lesen, zwischen Kapiteln navigieren, Foundry-Dokumente öffnen und exportieren. Alle Datenmutationen, Imports, Undo/Redo, Drag & Drop und Kontextmenüs sind deaktiviert.
-- Schreibgeschützte Benutzer speichern weder Fenster-/Ansichtsstatus noch Board-Inhalte. Nur Foundrys aktiver Full-GM liest und schreibt `uiState`.
+- Schreibgeschützte Benutzer speichern weder Fenster-/Ansichtsstatus noch Board-Inhalte. Der aktive Full-GM hält Fensterposition, Fenstergröße, Zoom, aktive Kapitelansicht, Auswahl sowie eingeklappte Seitenleisten ausschließlich im laufenden Client-Speicher `game.melStoryboard.viewState`.
 - Das Board liegt im World-Setting `sceneBoard`. Nur der aktive Full-GM darf über den Store speichern; Assistant GMs und andere Full-GMs bleiben lesend.
 - Alte Journal-Daten werden nur als Kompatibilitätsmigration gelesen. Das Journal wird nicht gelöscht und nicht als laufender Speicher verwendet.
 - Detailfelder und Rich-Text-Beschreibungen bleiben bis zum jeweiligen `Save`-Befehl unveröffentlicht. Beim Wechsel oder Schließen erscheint eine Auswahl für Speichern, Verwerfen oder Verbleiben. Verliert der User die aktive GM-Auswahl, werden Speichern und Datenmutationen gesperrt; Entwürfe bleiben sichtbar.
@@ -642,7 +646,7 @@ Die Anwendung ruft `capture` vor mutierenden Operationen auf. Während Pointer-M
 - Ein nicht verfügbares oder gelöschtes Foundry-Dokument kann aus dem Board nicht geöffnet werden.
 - Die Board-Daten liegen gemeinsam in der World. Die Bearbeitung wird durch die exakte Foundry-Rolle und die Auswahl des aktiven Full-GM begrenzt; Spieler öffnen das GM-restricted Modul nicht.
 - Die Auswahl des aktiven GM folgt Foundrys `game.users.activeGM`. Foundry beschreibt diesen Zugriff als einen aktiven Gamemaster, wobei ein Full-GM bevorzugt wird, sofern einer verbunden ist. Das Modul prüft danach die exakte Rolle.
-- `uiState` ist ein User-Setting und enthält `position`, `sidebarCollapsed`, `inspectorCollapsed`, `activeChapterId` und `zoom`.
+- `game.melStoryboard.viewState` wird beim Schließen und erneuten Öffnen derselben laufenden Foundry-Sitzung verwendet. Es wird nicht in den Foundry-Settings gespeichert und ist nach einem Foundry- oder GM-Sitzungsneustart nicht mehr vorhanden; dann greifen die normalen Initialwerte.
 - Objekte, Bilder und Dokument-Sheets werden nicht durch das Modul für andere Benutzer freigeschaltet; Foundrys eigene Sichtbarkeits- und Ownership-Regeln bleiben maßgeblich.
 
 ## 13. Wartung durch Junior Developer
@@ -728,9 +732,9 @@ Nach einer Änderung sollte mindestens geprüft werden:
 2. Mit einem älteren Board prüfen, dass der Voll-GM beim Weltstart gültige Journal-Daten einmalig in `sceneBoard` übernimmt und der bestehende World-Speicher danach weiter als Quelle verwendet wird.
 3. Mit einer Assistant-GM-Rolle prüfen, dass das Storyboard geöffnet und gelesen werden kann, aber Daten und Fensteransicht nicht gespeichert werden; mit einem Player prüfen, dass kein Board verfügbar ist.
 4. Zwei Full-GM-Clients nacheinander verbinden: Foundrys aktiver Full-GM muss bearbeiten können; weitere Full-GMs und Assistant GMs müssen schreibgeschützt bleiben. Beim Abmelden des aktiven GMs muss sich die Freigabe auf den von Foundry neu bestimmten aktiven Full-GM verlagern.
-5. Fenstergröße, Position, Zoom, Kapitel und Seitenleisten mit dem schreibberechtigten GM ändern, schließen und erneut öffnen; anschließend die gleiche Ansicht im Assistant-GM-Konto ändern und schließen, ohne dass dessen Änderungen erhalten bleiben.
+5. Fenstergröße, Position, Zoom, Kapitel, Auswahl und Seitenleisten mit dem schreibberechtigten GM ändern, schließen und erneut öffnen; anschließend Foundry neu starten und prüfen, dass die normalen Initialwerte greifen.
 6. Ungespeicherte Details und Object-Notizen beim Kapitelwechsel und beim Schließen speichern, verwerfen und weiterbearbeiten.
-7. Storyboard über Settings, Scene Controls und `Ctrl+Alt+S` öffnen.
+7. Storyboard über Settings, Scene Controls und `Alt+S` öffnen und mit `Alt+S` wieder schließen.
 8. Kapitel, Szene, Entry-/Exit-Knoten und Verbindungen anlegen, verschieben und löschen.
 9. Szene in ein anderes Kapitel ziehen und die automatische Connection-Bereinigung prüfen.
 10. Scene Details, Chapter Details und Connection Details speichern.

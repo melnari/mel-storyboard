@@ -176,6 +176,35 @@ test("scene card descriptions strip rich-text HTML while keeping readable breaks
   assert.match(compact.descriptionLines[0], /\.\.\.$/);
 });
 
+test("compact scene presentation hides descriptions and renders decision scenes as flat diamonds", () => {
+  const board = createSceneBoard();
+  const scene = createScene(board, {
+    title: "A decision title that is deliberately long enough to wrap beyond two lines",
+    description: "This description belongs only to detailed scene cards.",
+    sceneShape: SCENE_SHAPES.DECISION
+  });
+  const element = createSceneElement(board, { sceneId: scene.id });
+  const playerCharacter = createBoardObject(board, { objectType: "PLAYER_CHARACTER", title: "Hero", foundryUuid: "Actor.hero" });
+  assignObjectToScene(scene, playerCharacter.id);
+  const presentation = sceneElementPresentation(element, scene, { compact: true, statusLabel: "Open", playerCharacterCount: 1, iconPath: "icons/svg/book.svg" });
+  const svg = sceneBoardToSvg(board, { scene: "Scene", status: status => status, compactScenes: true });
+  assert.equal(presentation.isCompact, true);
+  assert.equal(presentation.descriptionLines.length, 0);
+  assert.ok(presentation.titleLines.length <= 2);
+  assert.match(presentation.titleLines.at(-1), /\.\.\.$/);
+  assert.equal(presentation.isCompactDecisionShape, true);
+  assert.ok(presentation.displayIdY < presentation.titleY);
+  assert.equal(presentation.displayIdX, presentation.size.width / 2);
+  assert.equal(presentation.displayIdAnchor, "middle");
+  assert.equal(presentation.iconX + presentation.iconSize / 2, presentation.size.width / 2);
+  assert.ok(presentation.playerCharacterTokenY < presentation.iconY);
+  assert.equal(presentation.textAnchor, "middle");
+  assert.ok(presentation.size.height < 200);
+  assert.match(svg, /M 110 0 L 220/);
+  assert.doesNotMatch(svg, /<text class="element-description"/);
+  assert.match(svg, /player-character-token/);
+});
+
 test("scene card icons are optional and use the lower-right presentation slot", () => {
   const board = createSceneBoard();
   const scene = createScene(board, { title: "Icon scene" });
@@ -375,21 +404,26 @@ test("JSON export and import preserve connection data and normalize legacy conne
     set: async (_moduleId, _key, value) => { stored.board = value; }
   };
   const previousGame = globalThis.game;
-  globalThis.game = { user: { isGM: true } };
+  const testGamemaster = { id: "test-gm", role: 4, active: true };
+  globalThis.game = { user: testGamemaster, users: { activeGM: testGamemaster, contents: [testGamemaster] } };
   try {
-    const imported = await new SceneBoardStore(settings).import(exported);
+    const store = new SceneBoardStore(settings);
+    await store.initialize();
+    const imported = await store.import(exported);
     assert.equal(imported.connections[0].connectionType, "bilateral deactivated");
     assert.equal(imported.connections[0].objectAssignments.length, 1);
     const legacy = structuredClone(exported);
     delete legacy.connections[0].description;
     delete legacy.connections[0].objectAssignments;
     legacy.connections[0].connectionType = "FLOW";
-    const normalizedLegacy = await new SceneBoardStore(settings).import(legacy);
+    const legacyStore = new SceneBoardStore(settings);
+    await legacyStore.initialize();
+    const normalizedLegacy = await legacyStore.import(legacy);
     assert.equal(normalizedLegacy.connections[0].connectionType, "unilateral");
     assert.equal(normalizedLegacy.connections[0].connectionStatus, CONNECTION_STATUS.NOT_USED);
     assert.equal(normalizedLegacy.connections[0].description, "");
     assert.deepEqual(normalizedLegacy.connections[0].objectAssignments, []);
-    await assert.rejects(() => new SceneBoardStore(settings).import({ schemaVersion: 999 }), /Unsupported scene board schema version/);
+    await assert.rejects(() => store.import({ schemaVersion: 999 }), /Unsupported scene board schema version/);
   } finally {
     if (previousGame === undefined) delete globalThis.game;
     else globalThis.game = previousGame;

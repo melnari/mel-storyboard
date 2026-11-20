@@ -8,7 +8,7 @@
       "OpenDesigner": {
         "Name": "Storyboard",
         "Label": "Scènebord openen",
-        "Hint": "Open het scènebord voor de GM."
+        "Hint": "Toon of verberg het scènebord van de GM met Alt+S."
       },
       "StatusColors": {
         "Name": "Kleuren op basis van status gebruiken",
@@ -17,6 +17,14 @@
       "ShowSceneIcons": {
         "Name": "Pictogrammen op scènes tonen",
         "Hint": "Toont het geselecteerde Foundry Map Notes-pictogram rechtsonder op Scene Cards en in grafische exports."
+      },
+      "SceneDisplayMode": {
+        "Name": "Scèneweergave",
+        "Hint": "Kies tussen scènekaarten met beschrijving en een compacte weergave.",
+        "Choices": {
+          "Detailed": "Gedetailleerde scènes",
+          "Compact": "Compacte scènes"
+        }
       },
       "ManageTemplates": {
         "Name": "Sjablonen beheren",

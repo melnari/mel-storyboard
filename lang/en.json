@@ -8,7 +8,7 @@
       "OpenDesigner": {
         "Name": "Storyboard",
         "Label": "Open Scene Board",
-        "Hint": "Open the GM scene board."
+        "Hint": "Toggle the GM scene board with Alt+S."
       },
       "StatusColors": {
         "Name": "Use status-based coloring",
@@ -17,6 +17,14 @@
       "ShowSceneIcons": {
         "Name": "Show Icons on Scene",
         "Hint": "Show the selected Foundry Map Notes icon in the lower-right corner of Scene Cards and graphic exports."
+      },
+      "SceneDisplayMode": {
+        "Name": "Scene display",
+        "Hint": "Choose whether Scene Cards include their descriptions or use a compact layout.",
+        "Choices": {
+          "Detailed": "Detailed scenes",
+          "Compact": "Compact scenes"
+        }
       },
       "ManageTemplates": {
         "Name": "Manage templates",

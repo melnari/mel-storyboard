@@ -8,7 +8,7 @@
       "OpenDesigner": {
         "Name": "Storyboard",
         "Label": "Ouvrir le tableau de scènes",
-        "Hint": "Ouvrir le tableau de scènes du MJ."
+        "Hint": "Afficher ou masquer le tableau de scènes du MJ avec Alt+S."
       },
       "StatusColors": {
         "Name": "Utiliser les couleurs selon le statut",
@@ -17,6 +17,14 @@
       "ShowSceneIcons": {
         "Name": "Afficher les icônes sur les scènes",
         "Hint": "Affiche l’icône Foundry Map Notes sélectionnée en bas à droite des cartes de scène et des exports graphiques."
+      },
+      "SceneDisplayMode": {
+        "Name": "Affichage des scènes",
+        "Hint": "Choisissez entre des cartes de scène avec description et un affichage compact.",
+        "Choices": {
+          "Detailed": "Scènes détaillées",
+          "Compact": "Scènes compactes"
+        }
       },
       "ManageTemplates": {
         "Name": "Gérer les modèles",

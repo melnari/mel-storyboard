@@ -8,7 +8,7 @@
       "OpenDesigner": {
         "Name": "Storyboard",
         "Label": "Szenenboard öffnen",
-        "Hint": "Das Szenenboard für die Spielleitung öffnen."
+        "Hint": "Das Szenenboard der Spielleitung mit Alt+S ein- und ausblenden."
       },
       "StatusColors": {
         "Name": "Färbung anhand des Status verwenden",
@@ -17,6 +17,14 @@
       "ShowSceneIcons": {
         "Name": "Symbole auf Szenen anzeigen",
         "Hint": "Zeigt das ausgewählte Foundry-Map-Notes-Symbol unten rechts auf Scene Cards und in grafischen Exporten an."
+      },
+      "SceneDisplayMode": {
+        "Name": "Szenendarstellung",
+        "Hint": "Wählt zwischen Szenenkarten mit Beschreibung und einer kompakten Darstellung.",
+        "Choices": {
+          "Detailed": "Detaillierte Szenen",
+          "Compact": "Kompakte Szenen"
+        }
       },
       "ManageTemplates": {
         "Name": "Templates verwalten",
