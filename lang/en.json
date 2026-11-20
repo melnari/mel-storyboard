@@ -59,6 +59,8 @@
       "RenameScene": "Rename scene",
       "DuplicateScene": "Duplicate scene",
       "ConnectScene": "Connect scene",
+      "ConnectToScene": "Connect to scene",
+      "ConnectFromScene": "Connect from scene",
       "DeleteScene": "Delete scene",
       "DeleteConnection": "Delete connection",
       "ZoomOut": "Zoom out",
@@ -86,7 +88,11 @@
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
       "Save": "Save",
-      "Close": "Close"
+      "Close": "Close",
+      "SaveChanges": "Save changes",
+      "DiscardChanges": "Discard changes",
+      "ContinueEditing": "Continue editing",
+      "KeepWindowOpen": "Keep window open"
     },
   "LABELS": {
     "Story": "Story",
@@ -170,15 +176,24 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Scene board saved.",
+      "ReadOnlyAssistant": "Read-only view. Assistant Game Masters can view the storyboard; only Foundry's designated active full Game Master can edit it.",
+      "OtherFullGamemasterActive": "Read-only view. Another active full Game Master currently has editing access.",
+      "EditorAccessChanged": "Editing access has changed. Unsaved changes remain open, but can only be saved when write access is available.",
+      "StorageNotInitialized": "Storyboard storage is not ready yet. Ask a Game Master to finish setup or check the module console for errors.",
       "NoChapterNodeTargets": "No compatible chapter node targets are available.",
       "LastChapter": "The last chapter cannot be deleted.",
       "ConfirmDeleteChapter": "Delete chapter \"{name}\" and all scenes and connections inside it?",
       "SelectConnectionTarget": "Select the target scene for this connection.",
+      "SelectConnectionSource": "Select the source scene for this connection.",
       "Copied": "Scene copied."
       ,"RemovedCrossChapterConnections": "{count} connection(s) removed because the scene moved to another chapter."
       ,"ActorUuidRequired": "Actor objects require a Foundry UUID."
       ,"FoundryObjectUnavailable": "The linked Foundry object is not available."
       ,"TemplateInUse": "This template is still used by a scene."
+    },
+    "DIALOGS": {
+      "UnsavedChanges": "Unsaved changes",
+      "UnsavedChangesPrompt": "Save your changes before leaving these details?"
     },
     "ERRORS": {
       "NoteEditor": "The note editor could not be opened."

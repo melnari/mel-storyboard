@@ -1,6 +1,6 @@
 <section class="mel-storyboard-workspace">
   <header class="mel-storyboard-toolbar">
-    <h1>{{labels.title}}{{#if activeChapter}} <span class="mel-storyboard-toolbar-chapter">– {{activeChapter.displayId}}: {{activeChapter.title}}</span>{{/if}}</h1>
+    <h1>{{#if activeChapter}}{{activeChapter.displayId}}: {{activeChapter.title}}{{else}}{{labels.story}}{{/if}}</h1>
     <div class="mel-storyboard-actions">
       <button type="button" class="icon-button" data-action="zoom-out" title="{{labels.zoomOut}}" aria-label="{{labels.zoomOut}}"><i class="fas fa-minus"></i></button>
       <button type="button" class="icon-button" data-action="zoom-in" title="{{labels.zoomIn}}" aria-label="{{labels.zoomIn}}"><i class="fas fa-plus"></i></button>
@@ -18,6 +18,12 @@
       </details>
     </div>
   </header>
+  {{#if readOnly}}
+    <div class="mel-storyboard-read-only-banner" role="status" aria-live="polite">
+      <i class="fas fa-eye" aria-hidden="true"></i>
+      <span>{{readOnlyMessage}}</span>
+    </div>
+  {{/if}}
   <input type="file" data-json-import accept="application/json,.json" hidden />
 
   <div class="mel-storyboard-layout">
@@ -148,26 +154,32 @@
       {{#if selectedConnection}}
         <header class="mel-storyboard-inspector-header">
           <div>
-            <h2>{{labels.connectionDetails}}</h2>
+            <h2 class="mel-storyboard-inspector-details-title"><span class="mel-storyboard-inspector-details-label">{{labels.details}}</span></h2>
             <p class="mel-storyboard-connection-endpoints">{{selectedConnection.sourceTitle}} <i class="fas fa-arrow-right" aria-hidden="true"></i> {{selectedConnection.targetTitle}}</p>
           </div>
           <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
         </header>
         <section class="mel-storyboard-inspector-section mel-storyboard-connection-details-section">
-          <label for="mel-storyboard-connection-label">{{labels.connectionLabel}}</label>
-          <input id="mel-storyboard-connection-label" type="text" value="{{selectedConnection.label}}" data-connection-field="label" />
-          <label for="mel-storyboard-connection-type">{{labels.connectionType}}</label>
-          <select id="mel-storyboard-connection-type" data-connection-field="connectionType">
-            {{#each connectionTypeOptions}}
-              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
-          </select>
-          <label for="mel-storyboard-connection-status">{{labels.connectionStatus}}</label>
-          <select id="mel-storyboard-connection-status" data-connection-field="connectionStatus">
-            {{#each connectionStatusOptions}}
-              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
-          </select>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-connection-label">{{labels.connectionLabel}}</label>
+            <input id="mel-storyboard-connection-label" type="text" value="{{selectedConnection.label}}" data-connection-field="label" />
+          </div>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-connection-type">{{labels.connectionType}}</label>
+            <select id="mel-storyboard-connection-type" data-connection-field="connectionType">
+              {{#each connectionTypeOptions}}
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-connection-status">{{labels.connectionStatus}}</label>
+            <select id="mel-storyboard-connection-status" data-connection-field="connectionStatus">
+              {{#each connectionStatusOptions}}
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+          </div>
           <label>{{labels.connectionDescription}}</label>
           <div class="mel-storyboard-connection-description-editor" data-connection-description-editor></div>
           <button type="button" data-action="save-connection"><i class="fas fa-save" aria-hidden="true"></i> {{labels.save}}</button>
@@ -201,34 +213,41 @@
       {{else if selectedScene}}
         <header class="mel-storyboard-inspector-header">
           <div>
-            <p class="mel-storyboard-display-id">{{selectedScene.displayId}}</p>
-            <h2>{{labels.sceneDetails}}</h2>
+            <h2 class="mel-storyboard-inspector-details-title"><span class="mel-storyboard-display-id">{{selectedScene.displayId}}</span><span class="mel-storyboard-inspector-details-label">{{labels.details}}</span></h2>
           </div>
           <span class="mel-storyboard-status-badge">{{selectedScene.statusLabel}}</span>
           <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
         </header>
         <section class="mel-storyboard-inspector-section">
-          <label for="mel-storyboard-scene-title">{{labels.titleField}}</label>
-          <input id="mel-storyboard-scene-title" type="text" value="{{selectedScene.title}}" data-scene-field="title" />
-          <label for="mel-storyboard-scene-status">{{labels.status}}</label>
-          <select id="mel-storyboard-scene-status" data-scene-field="status">
-            {{#each statuses}}
-              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
-          </select>
-          <label for="mel-storyboard-scene-shape">{{labels.sceneShape}}</label>
-          <select id="mel-storyboard-scene-shape" data-scene-field="sceneShape">
-            {{#each sceneShapeOptions}}
-              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
-          </select>
-          {{#if showSceneIconsEnabled}}
-            <label for="mel-storyboard-scene-icon-type">{{labels.sceneIconType}}</label>
-            <select id="mel-storyboard-scene-icon-type" data-scene-field="iconType">
-              {{#each sceneIconOptions}}
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-scene-title">{{labels.titleField}}</label>
+            <input id="mel-storyboard-scene-title" type="text" value="{{selectedScene.title}}" data-scene-field="title" />
+          </div>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-scene-status">{{labels.status}}</label>
+            <select id="mel-storyboard-scene-status" data-scene-field="status">
+              {{#each statuses}}
                 <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
               {{/each}}
             </select>
+          </div>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-scene-shape">{{labels.sceneShape}}</label>
+            <select id="mel-storyboard-scene-shape" data-scene-field="sceneShape">
+              {{#each sceneShapeOptions}}
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+          </div>
+          {{#if showSceneIconsEnabled}}
+            <div class="mel-storyboard-field-row">
+              <label for="mel-storyboard-scene-icon-type">{{labels.sceneIconType}}</label>
+              <select id="mel-storyboard-scene-icon-type" data-scene-field="iconType">
+                {{#each sceneIconOptions}}
+                  <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                {{/each}}
+              </select>
+            </div>
           {{/if}}
           <label for="mel-storyboard-scene-description">{{labels.description}}</label>
           <div id="mel-storyboard-scene-description" class="mel-storyboard-scene-description-editor" data-scene-description-editor></div>
@@ -270,21 +289,24 @@
       {{else if activeChapter}}
         <header class="mel-storyboard-inspector-header">
           <div>
-            <p class="mel-storyboard-display-id">{{activeChapter.displayId}}</p>
-            <h2>{{labels.chapterDetails}}</h2>
+            <h2 class="mel-storyboard-inspector-details-title"><span class="mel-storyboard-display-id">{{activeChapter.displayId}}</span><span class="mel-storyboard-inspector-details-label">{{labels.details}}</span></h2>
           </div>
           <span class="mel-storyboard-status-badge status-{{activeChapter.statusColorClass}}">{{activeChapter.statusLabel}}</span>
           <button type="button" class="icon-button" data-action="toggle-inspector" title="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}" aria-label="{{#if inspectorCollapsed}}{{labels.expandInspector}}{{else}}{{labels.collapseInspector}}{{/if}}"><i class="fas {{#if inspectorCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i></button>
         </header>
         <section class="mel-storyboard-inspector-section">
-          <label for="mel-storyboard-chapter-title">{{labels.titleField}}</label>
-          <input id="mel-storyboard-chapter-title" type="text" value="{{activeChapter.title}}" data-chapter-field="title" />
-          <label for="mel-storyboard-chapter-status">{{labels.status}}</label>
-          <select id="mel-storyboard-chapter-status" data-chapter-field="status">
-            {{#each statuses}}
-              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
-          </select>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-chapter-title">{{labels.titleField}}</label>
+            <input id="mel-storyboard-chapter-title" type="text" value="{{activeChapter.title}}" data-chapter-field="title" />
+          </div>
+          <div class="mel-storyboard-field-row">
+            <label for="mel-storyboard-chapter-status">{{labels.status}}</label>
+            <select id="mel-storyboard-chapter-status" data-chapter-field="status">
+              {{#each statuses}}
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+          </div>
           <label for="mel-storyboard-chapter-description">{{labels.description}}</label>
           <div id="mel-storyboard-chapter-description" class="mel-storyboard-chapter-description-editor" data-chapter-description-editor></div>
           <button type="button" data-action="save-chapter"><i class="fas fa-save" aria-hidden="true"></i> {{labels.save}}</button>

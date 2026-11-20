@@ -59,6 +59,8 @@
       "RenameScene": "Scène hernoemen",
       "DuplicateScene": "Scène dupliceren",
       "ConnectScene": "Scène verbinden",
+      "ConnectToScene": "Met scène verbinden",
+      "ConnectFromScene": "Verbinden vanaf scène",
       "DeleteScene": "Scène verwijderen",
       "DeleteConnection": "Verbinding verwijderen",
       "ZoomOut": "Uitzoomen",
@@ -86,7 +88,11 @@
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
       "Save": "Opslaan",
-      "Close": "Sluiten"
+      "Close": "Sluiten",
+      "SaveChanges": "Wijzigingen opslaan",
+      "DiscardChanges": "Wijzigingen verwerpen",
+      "ContinueEditing": "Verder bewerken",
+      "KeepWindowOpen": "Venster open houden"
     },
   "LABELS": {
     "Story": "Story",
@@ -170,15 +176,24 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Scènebord opgeslagen.",
+      "ReadOnlyAssistant": "Alleen-lezenweergave. Assistant GM’s kunnen het storyboard bekijken; alleen de door Foundry aangewezen actieve volledige GM kan het bewerken.",
+      "OtherFullGamemasterActive": "Alleen-lezenweergave. Een andere actieve volledige GM heeft momenteel bewerkingstoegang.",
+      "EditorAccessChanged": "De bewerkingstoegang is gewijzigd. Niet-opgeslagen wijzigingen blijven open, maar kunnen alleen worden opgeslagen wanneer schrijfrechten beschikbaar zijn.",
+      "StorageNotInitialized": "De storyboardopslag is nog niet gereed. Vraag een GM de installatie af te ronden of controleer de modulefouten in de console.",
       "NoChapterNodeTargets": "Geen compatibele doelknooppunten beschikbaar.",
       "LastChapter": "Het laatste hoofdstuk kan niet worden verwijderd.",
       "ConfirmDeleteChapter": "Hoofdstuk \"{name}\" en alle scènes en verbindingen daarin verwijderen?",
       "SelectConnectionTarget": "Selecteer de doel scène voor deze verbinding.",
+      "SelectConnectionSource": "Selecteer de bron scène voor deze verbinding.",
       "Copied": "Scène gekopieerd."
       ,"RemovedCrossChapterConnections": "{count} verbinding(en) verwijderd omdat de scène naar een ander hoofdstuk is verplaatst."
       ,"ActorUuidRequired": "Actor-objecten vereisen een Foundry-UUID."
       ,"FoundryObjectUnavailable": "Het gekoppelde Foundry-object is niet beschikbaar."
       ,"TemplateInUse": "Dit sjabloon wordt nog door een scène gebruikt."
+    },
+    "DIALOGS": {
+      "UnsavedChanges": "Niet-opgeslagen wijzigingen",
+      "UnsavedChangesPrompt": "Wil je de wijzigingen opslaan voordat je deze details verlaat?"
     },
     "ERRORS": {
       "NoteEditor": "De notitie-editor kon niet worden geopend."

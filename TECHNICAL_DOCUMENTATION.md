@@ -4,19 +4,31 @@
 
 Mel-Storyboard ist ein natives Foundry-VTT-Add-on-Modul für Game Master. Es stellt eine interaktive Szenenübersicht bereit, in der Szenen in Kapiteln angeordnet, beschrieben und über gerichtete oder bilaterale Verbindungen verknüpft werden können.
 
-Diese Dokumentation beschreibt den Stand `v0.2.0` und den für das Projekt festgelegten Zielstand:
+Diese Dokumentation beschreibt den Repository-Stand auf Basis des Releases `v0.2.1` sowie die vereinfachte aktive-GM-Berechtigung:
 
-- Foundry Virtual Tabletop 14.x, gegen `14.368` verifiziert;
+- Foundry Virtual Tabletop 14.x; `14.370` ist die Validierungszielversion. `module.json` nennt weiterhin `14.368` als letzte verifizierte Version, bis der aktuelle Quellstand manuell mit Foundry `14.370` geprüft wurde;
 - Foundry-nativ, ohne separate Anmeldung oder externen Dienst;
-- GM-zentrierte Bearbeitung innerhalb einer World;
+- Bearbeitung ausschließlich durch den von Foundry bestimmten aktiven Voll-GM; Assistant GMs und weitere Voll-GMs erhalten nur Lesezugriff;
+- keine modulinterne Lock-, Lease- oder Heartbeat-Verwaltung;
 - JavaScript/ES-Module für den Runtime-Code;
 - englische Basissprache mit Deutsch, Französisch, Spanisch und Niederländisch;
-- Speicherung als Foundry-World-Setting;
+- Speicherung im World-Setting `sceneBoard`; alte Journal-Daten werden nur als einmalige Kompatibilitätsmigration gelesen;
 - Import und Export als JSON, SVG, PNG und PDF.
 
 Die frühere Storyline-Ebene und die aktive Template-Verwaltung gehören nicht mehr zur sichtbaren Oberfläche. Template-Daten und zugehörige Domain-Funktionen bleiben im Datenmodell erhalten, damit bestehende Boards importiert und migriert werden können.
 
 ## 2. Aktueller Funktionsumfang
+
+### Rollen, Bearbeitungszugriff und Ansichtsstatus
+
+- Nur User mit `CONST.USER_ROLES.GAMEMASTER` dürfen Board-Daten bearbeiten. Assistant GM ist ausdrücklich nur leseberechtigt.
+- Assistant GMs (`ASSISTANT`) können das Fenster öffnen, aber nur lesen, Foundry-Links öffnen und exportieren. Sie können Board-Daten und ihre Fensteransicht nicht speichern.
+- Foundrys `game.users.activeGM` bestimmt den einen aktiven Gamemaster für dieses Modul. Bearbeitungszugriff erhält dieser User nur, wenn seine Rolle exakt `GAMEMASTER` ist; Assistant GMs bleiben leseberechtigt.
+- Bei Verbindungs- oder Rollenänderungen aktualisiert das Modul den Zugriff anhand der aktuellen Foundry-Auswahl. Wechselt der aktive GM während ungespeicherter Änderungen, werden Eingaben gesperrt und die Entwürfe bleiben sichtbar.
+- Das Hauptfenster bietet einen einheitlichen Speichern/Verwerfen/Weiterbearbeiten-Ablauf. Object Details behandeln Notizentwürfe ebenfalls, bevor das Fenster geschlossen wird.
+- Fensterposition und -größe, Zoom, aktives Kapitel sowie eingeklappte Seitenleisten werden nur für den bearbeitenden Voll-GM in einem benutzerspezifischen Setting gehalten.
+
+Die Oberfläche ist für Foundry Desktop ausgelegt. Sie verwendet ein konsistentes Baum-/Canvas-/Inspector-Layout, sichtbare Tastaturfokusse und gestylte Foundry-Content-Links. Assistant GMs sehen einen Nur-Lese-Hinweis und deaktivierte Bearbeitungsaktionen.
 
 ### Kapitel und Archiv
 
@@ -53,6 +65,8 @@ Scene-Verbindungen entstehen über:
 
 1. das Kontextmenü einer Szene mit anschließender Zielauswahl;
 2. Ziehen mit gedrückter mittlerer Maustaste von einem Endpunkt auf einen anderen.
+
+Zusätzlich bieten Entry- und Exit-Knoten im Kontextmenü einen eindeutigen Verbindungsmodus: Beim Entry-Knoten wird die Szene als Ziel ausgewählt, beim Exit-Knoten wird die Quellenszene ausgewählt. Der Scene-Kontext bietet weiterhin die Auswahl des Zielknotens.
 
 Erlaubte Scene-Connection-Endpunkte innerhalb eines Kapitels sind:
 
@@ -139,6 +153,7 @@ Die World-Einstellung `Show Icons on Scene` ist ebenfalls standardmäßig deakti
 | `scripts/domain/ids.js` | UUID-Erzeugung und fortlaufende Anzeige-IDs |
 | `scripts/domain/model.js` | Reine Operationen auf Board, Kapitel, Szenen, Knoten, Verbindungen und Objekten |
 | `scripts/domain/scene-board-store.js` | Normalisierung, Persistenz und GM-Prüfung |
+| `scripts/domain/permissions.js` | Prüfung der exakten Full-GM-Rolle und des von Foundry bestimmten aktiven GMs |
 | `scripts/domain/validation.js` | Konsistenz- und Endpunktprüfung vor dem Speichern/Importieren |
 | `scripts/domain/scene-card.js` | Textaufbereitung, Kartenlayout, automatische Größe und Status-/Icon-Daten |
 | `scripts/domain/geometry.js` | Geometrie von Linien und Pfeilspitzen |
@@ -165,6 +180,9 @@ Der zentrale Datenfluss ist:
 Foundry init
   └─ scripts/main.js
        ├─ World Settings und Keybinding registrieren
+       ├─ User-Ansichtspräferenzen bereitstellen
+       ├─ beim Ready den World-Speicher laden oder alte Journal-Daten migrieren
+       ├─ bei User-Verbindungs- und Rollenänderungen den Editorzugriff aktualisieren
        ├─ Scene-Control-Button registrieren
        └─ game.melStoryboard.store/application bereitstellen
 
@@ -180,11 +198,15 @@ StoryboardApplication
 
 In `Hooks.once("init")` werden registriert:
 
-- das interne World-Setting `sceneBoard`;
+- das interne World-Setting `sceneBoard` als laufenden Board-Speicher;
+- die alten Journal-Flags `privateBoardStorage` und `sceneBoard` ausschließlich als Kompatibilitätsquelle für eine einmalige Migration;
+- das interne User-Setting `uiState` für Fenster- und Ansichtspräferenzen;
 - die World-Einstellung `statusColors`;
 - die World-Einstellung `showSceneIcons`;
 - das GM-restricted Settings-Menü zum Öffnen des Storyboards;
 - das GM-restricted Keybinding `Ctrl+Alt+S`.
+
+`Hooks.once("ready")` lädt den World-Speicher. Wenn dort keine gültigen Board-Daten liegen, sucht der Store einmalig nach einem Journal aus einem Zwischenstand und kopiert gültige Daten zurück in das World-Setting. Nur Foundrys aktiver Full-GM darf diese Migration oder einen neuen leeren Speicher schreiben. Andere GM-Clients lesen den World-Speicher und bleiben schreibgeschützt. Der Store dedupliziert parallele Initialisierungsaufrufe.
 
 Der Hook `getSceneControlButtons` fügt den Storyboard-Button in Foundrys Token-Control ein. In Foundry 14 ist `control.tools` ein Objekt und kein Array; neue Tools werden deshalb über `control.tools["mel-storyboard"]` hinzugefügt.
 
@@ -203,6 +225,7 @@ Sie verwendet das Template `modules/mel-storyboard/templates/storyboard.hbs`. Da
 - `selectedElementIds` und `selectedConnectionId`;
 - `expandedChapterIds` und `archiveExpanded`;
 - `zoom`;
+- Fensterposition/-größe und eingeklappte Seitenleisten; diese werden nur für einen schreibberechtigten Voll-GM gespeichert;
 - temporäre Drag-, Resize-, Pan- und Editor-Zustände;
 - `HistoryStack` für Undo/Redo.
 
@@ -212,7 +235,7 @@ Nach einem vollständigen Render werden alle interaktiven DOM-Elemente neu gebun
 
 ### 5.1 Board-Wurzel
 
-Das Board wird als Object im Foundry-Setting `mel-storyboard.sceneBoard` gespeichert:
+Das Board wird als Object im World-Setting `mel-storyboard.sceneBoard` gespeichert:
 
 ```js
 {
@@ -229,6 +252,8 @@ Das Board wird als Object im Foundry-Setting `mel-storyboard.sceneBoard` gespeic
   objects: []
 }
 ```
+
+Ältere Entwicklungsstände können das gleiche Board zusätzlich unter `flags.mel-storyboard.sceneBoard` eines Journals mit `flags.mel-storyboard.privateBoardStorage = true` enthalten. Diese Flags werden nur gelesen, wenn das World-Setting leer ist oder keine Szenen enthält. Nach der Übernahme ist das World-Setting die einzige Laufzeitquelle; das alte Journal bleibt als Sicherung erhalten.
 
 Die Listen nutzen absichtlich getrennte Datensätze:
 
@@ -454,15 +479,17 @@ Akzeptierte gespeicherte Zwischenstände sind die Schema-Versionen `3`, `4` und 
 
 ### Persistenz
 
+`SceneBoardStore.initialize()` liest zuerst `game.settings.get("mel-storyboard", "sceneBoard")`. Ist dort kein gültiges Board vorhanden, prüft es Journal-Flags aus dem früheren Zwischenstand und schreibt gefundene Daten beim aktiven Full-GM zurück in das World-Setting. Gibt es keine Daten, legt nur der aktive Full-GM ein neues leeres Board im World-Setting an. Assistant GMs und andere Full-GMs lesen den gemeinsamen World-Speicher schreibgeschützt.
+
 `SceneBoardStore.save(board)`:
 
-1. prüft, ob `game.user.isGM` gesetzt ist;
+1. prüft, ob der aktuelle User Foundrys aktiver Full-GM ist;
 2. validiert das Board;
 3. setzt Schema-Version und `updatedAt`;
 4. schreibt eine Kopie über `game.settings.set`;
 5. liefert eine weitere Kopie zurück.
 
-Der Store verwendet Kopien (`structuredClone`), damit UI-Änderungen nicht unkontrolliert das Setting mutieren. Nicht-GM-Benutzer dürfen den gespeicherten Stand lesen, aber nicht speichern oder importieren.
+Der Store verwendet Kopien (`structuredClone`), damit UI-Änderungen nicht unkontrolliert den gespeicherten Datensatz mutieren. Assistant GMs dürfen den gespeicherten Stand lesen, aber weder speichern noch importieren. Der Store-Guard gilt auch für direkte Modulaufrufe, nicht nur für deaktivierte UI-Controls.
 
 ## 7. Import, Export und IDs
 
@@ -601,12 +628,21 @@ Die Anwendung ruft `capture` vor mutierenden Operationen auf. Während Pointer-M
 
 ## 12. Berechtigungen und Mehrbenutzerverhalten
 
-- Board-Schreibzugriffe sind ausschließlich GM-Benutzern erlaubt.
-- Settings-Menü, Keybinding und Scene-Control-Button sind GM-restricted bzw. GM-gefiltert.
-- Drag & Drop von Foundry-Dokumenten wird nur für GMs akzeptiert.
+- Ausschließlich `CONST.USER_ROLES.GAMEMASTER` darf Board-Daten ändern. `game.user.isGM` allein reicht nicht aus, weil es auch Assistant GMs umfasst.
+- `game.users.activeGM` wählt den aktiven Gamemaster, der modulweit Bearbeitungszugriff erhält. Das Modul verlangt zusätzlich die exakte Rolle `CONST.USER_ROLES.GAMEMASTER`, damit ein Assistant GM nicht versehentlich Schreibzugriff bekommt.
+- Das Modul speichert keine Bearbeitungssitzung und verwendet weder Browser-Locks noch World-Leases oder Heartbeats. Zwei Tabs desselben aktiven GM-Users teilen dieselbe Berechtigung; parallel geöffnete Tabs werden nicht gegeneinander gesperrt.
+- Assistant GMs können öffnen, lesen, zwischen Kapiteln navigieren, Foundry-Dokumente öffnen und exportieren. Alle Datenmutationen, Imports, Undo/Redo, Drag & Drop und Kontextmenüs sind deaktiviert.
+- Schreibgeschützte Benutzer speichern weder Fenster-/Ansichtsstatus noch Board-Inhalte. Nur Foundrys aktiver Full-GM liest und schreibt `uiState`.
+- Das Board liegt im World-Setting `sceneBoard`. Nur der aktive Full-GM darf über den Store speichern; Assistant GMs und andere Full-GMs bleiben lesend.
+- Alte Journal-Daten werden nur als Kompatibilitätsmigration gelesen. Das Journal wird nicht gelöscht und nicht als laufender Speicher verwendet.
+- Detailfelder und Rich-Text-Beschreibungen bleiben bis zum jeweiligen `Save`-Befehl unveröffentlicht. Beim Wechsel oder Schließen erscheint eine Auswahl für Speichern, Verwerfen oder Verbleiben. Verliert der User die aktive GM-Auswahl, werden Speichern und Datenmutationen gesperrt; Entwürfe bleiben sichtbar.
+- Settings-Menü, Keybinding und Scene-Control-Button sind für GM-Rollen erreichbar; Assistant GMs öffnen die Anwendung schreibgeschützt.
+- Drag & Drop von Foundry-Dokumenten wird nur beim aktiven Full-GM akzeptiert.
 - Foundry-Dokumente werden weiterhin nach den normalen Foundry-Berechtigungen aufgelöst.
 - Ein nicht verfügbares oder gelöschtes Foundry-Dokument kann aus dem Board nicht geöffnet werden.
-- Die Board-Daten liegen in der World und sind damit für Benutzer derselben World grundsätzlich gemeinsam gespeichert.
+- Die Board-Daten liegen gemeinsam in der World. Die Bearbeitung wird durch die exakte Foundry-Rolle und die Auswahl des aktiven Full-GM begrenzt; Spieler öffnen das GM-restricted Modul nicht.
+- Die Auswahl des aktiven GM folgt Foundrys `game.users.activeGM`. Foundry beschreibt diesen Zugriff als einen aktiven Gamemaster, wobei ein Full-GM bevorzugt wird, sofern einer verbunden ist. Das Modul prüft danach die exakte Rolle.
+- `uiState` ist ein User-Setting und enthält `position`, `sidebarCollapsed`, `inspectorCollapsed`, `activeChapterId` und `zoom`.
 - Objekte, Bilder und Dokument-Sheets werden nicht durch das Modul für andere Benutzer freigeschaltet; Foundrys eigene Sichtbarkeits- und Ownership-Regeln bleiben maßgeblich.
 
 ## 13. Wartung durch Junior Developer
@@ -689,15 +725,20 @@ git diff --check
 Nach einer Änderung sollte mindestens geprüft werden:
 
 1. Modul laden und Foundry-Konsole auf Fehler prüfen.
-2. Storyboard über Settings, Scene Controls und `Ctrl+Alt+S` öffnen.
-3. Kapitel, Szene, Entry-/Exit-Knoten und Verbindungen anlegen, verschieben und löschen.
-4. Szene in ein anderes Kapitel ziehen und die automatische Connection-Bereinigung prüfen.
-5. Scene Details, Chapter Details und Connection Details speichern.
-6. Objekte aller unterstützten Foundry-Typen per Drag & Drop verknüpfen.
-7. Playlist-Track-Link öffnen und sicherstellen, dass kein Track-Konfigurationsfenster erscheint.
-8. Statusfärbung und Scene-Icons jeweils aktiviert und deaktiviert prüfen.
-9. JSON importieren/exportieren sowie SVG, PNG und PDF mit mehreren Kapiteln prüfen.
-10. Deutsche und englische Anzeige einschließlich langer Titel und Labels prüfen.
+2. Mit einem älteren Board prüfen, dass der Voll-GM beim Weltstart gültige Journal-Daten einmalig in `sceneBoard` übernimmt und der bestehende World-Speicher danach weiter als Quelle verwendet wird.
+3. Mit einer Assistant-GM-Rolle prüfen, dass das Storyboard geöffnet und gelesen werden kann, aber Daten und Fensteransicht nicht gespeichert werden; mit einem Player prüfen, dass kein Board verfügbar ist.
+4. Zwei Full-GM-Clients nacheinander verbinden: Foundrys aktiver Full-GM muss bearbeiten können; weitere Full-GMs und Assistant GMs müssen schreibgeschützt bleiben. Beim Abmelden des aktiven GMs muss sich die Freigabe auf den von Foundry neu bestimmten aktiven Full-GM verlagern.
+5. Fenstergröße, Position, Zoom, Kapitel und Seitenleisten mit dem schreibberechtigten GM ändern, schließen und erneut öffnen; anschließend die gleiche Ansicht im Assistant-GM-Konto ändern und schließen, ohne dass dessen Änderungen erhalten bleiben.
+6. Ungespeicherte Details und Object-Notizen beim Kapitelwechsel und beim Schließen speichern, verwerfen und weiterbearbeiten.
+7. Storyboard über Settings, Scene Controls und `Ctrl+Alt+S` öffnen.
+8. Kapitel, Szene, Entry-/Exit-Knoten und Verbindungen anlegen, verschieben und löschen.
+9. Szene in ein anderes Kapitel ziehen und die automatische Connection-Bereinigung prüfen.
+10. Scene Details, Chapter Details und Connection Details speichern.
+11. Objekte aller unterstützten Foundry-Typen per Drag & Drop verknüpfen.
+12. Playlist-Track-Link öffnen und sicherstellen, dass kein Track-Konfigurationsfenster erscheint.
+13. Statusfärbung und Scene-Icons jeweils aktiviert und deaktiviert prüfen.
+14. JSON importieren/exportieren sowie SVG, PNG und PDF mit mehreren Kapiteln prüfen.
+15. Deutsche und englische Anzeige einschließlich langer Titel und Labels prüfen.
 
 ## 15. Bekannte Grenzen
 

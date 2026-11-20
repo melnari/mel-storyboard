@@ -1,5 +1,6 @@
-import { MODULE_ID, SCENE_ICON_NONE, SCENE_SHAPES, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
+import { MODULE_ID, PRIVATE_BOARD_DATA_FLAG, PRIVATE_BOARD_FLAG, SCENE_ICON_NONE, SCENE_SHAPES, STORE_KEY, STORE_SCHEMA_VERSION } from "./constants.js";
 import { clone, createChapter, createDefaultTemplate, createSceneBoard, normalizeConnectionStatus, normalizeConnectionType } from "./model.js";
+import { isDesignatedGamemaster } from "./permissions.js";
 import { validateSceneBoard } from "./validation.js";
 
 export function normalizeSceneBoard(stored, { resetInvalid = true } = {}) {
@@ -116,22 +117,129 @@ export function registerSceneBoardSetting() {
     scope: "world",
     config: false,
     type: Object,
-    default: createSceneBoard()
+    default: {}
   });
 }
 
 export class SceneBoardStore {
   constructor(settings = game.settings) {
     this.settings = settings;
+    this.cachedBoard = createSceneBoard();
+    this.initializationPromise = null;
+    this.storageError = null;
+    this.storageAvailable = false;
+  }
+
+  get hasStorage() {
+    return this.storageAvailable;
+  }
+
+  get canWrite() {
+    return this.isReadyForEditing && isDesignatedGamemaster();
+  }
+
+  get hasBoardData() {
+    return Boolean(this.cachedBoard && typeof this.cachedBoard === "object"
+      && Array.isArray(this.cachedBoard.scenes) && Array.isArray(this.cachedBoard.elements));
+  }
+
+  get isReadyForEditing() {
+    return this.hasStorage && this.hasBoardData;
+  }
+
+  async initialize() {
+    if (this.isReadyForEditing) return true;
+    if (this.initializationPromise) return this.initializationPromise;
+    this.initializationPromise = (async () => {
+      this.storageError = null;
+      const storedBoard = this.#readWorldBoard();
+      // Compatibility path for worlds which were already migrated to the
+      // private Journal by an earlier development build. The Journal is read
+      // once and then the normal world setting becomes the single source of
+      // truth again.
+      const journalBoard = this.#readJournalBoard();
+      const useJournal = journalBoard && (!storedBoard
+        || (storedBoard.scenes.length === 0 && journalBoard.scenes.length > 0));
+      if (storedBoard && !useJournal) {
+        this.cachedBoard = normalizeSceneBoard(storedBoard);
+        this.storageAvailable = true;
+        return true;
+      }
+      if (journalBoard) {
+        this.cachedBoard = normalizeSceneBoard(journalBoard);
+        if (!isDesignatedGamemaster()) {
+          this.storageAvailable = true;
+          return true;
+        }
+        if (await this.#writeWorldBoard(this.cachedBoard)) return true;
+        return false;
+      }
+
+      if (!isDesignatedGamemaster()) {
+        this.cachedBoard = createSceneBoard();
+        return false;
+      }
+
+      this.cachedBoard = createSceneBoard();
+      return this.#writeWorldBoard(this.cachedBoard);
+    })();
+
+    try {
+      return await this.initializationPromise;
+    } finally {
+      this.initializationPromise = null;
+    }
+  }
+
+  #readWorldBoard() {
+    try {
+      const stored = this.settings.get(MODULE_ID, STORE_KEY);
+      return stored && typeof stored === "object" && Array.isArray(stored.scenes) && Array.isArray(stored.elements)
+        ? stored
+        : null;
+    } catch (error) {
+      this.storageError = error;
+      return null;
+    }
+  }
+
+  #readJournalBoard() {
+    const entries = game.journal?.contents ?? [...(game.journal ?? [])];
+    const entry = entries.find(candidate => {
+      const flags = candidate?.flags?.[MODULE_ID] ?? {};
+      const marker = candidate?.getFlag?.(MODULE_ID, PRIVATE_BOARD_FLAG) ?? flags[PRIVATE_BOARD_FLAG];
+      const data = candidate?.getFlag?.(MODULE_ID, PRIVATE_BOARD_DATA_FLAG) ?? flags[PRIVATE_BOARD_DATA_FLAG];
+      return marker === true || (data && typeof data === "object" && Array.isArray(data.scenes) && Array.isArray(data.elements));
+    });
+    if (!entry) return null;
+    const flags = entry.flags?.[MODULE_ID] ?? {};
+    const stored = entry.getFlag?.(MODULE_ID, PRIVATE_BOARD_DATA_FLAG) ?? flags[PRIVATE_BOARD_DATA_FLAG];
+    return stored && typeof stored === "object" && Array.isArray(stored.scenes) && Array.isArray(stored.elements)
+      ? stored
+      : null;
+  }
+
+  async #writeWorldBoard(board) {
+    try {
+      await this.settings.set(MODULE_ID, STORE_KEY, board);
+      this.storageAvailable = true;
+      this.storageError = null;
+      return true;
+    } catch (error) {
+      this.storageError = error;
+      console.error(`[${MODULE_ID}] Could not write storyboard data to the world setting`, error);
+      return false;
+    }
   }
 
   #assertGM() {
-    if (!game.user?.isGM) throw new Error("Only a GM may change the scene board.");
+    if (!isDesignatedGamemaster() || !this.canWrite) {
+      throw new Error("Only Foundry's designated active full Game Master may change the scene board.");
+    }
   }
 
   read() {
-    const stored = this.settings.get(MODULE_ID, STORE_KEY);
-    return clone(normalizeSceneBoard(stored));
+    return clone(normalizeSceneBoard(this.cachedBoard));
   }
 
   async save(board) {
@@ -142,6 +250,8 @@ export class SceneBoardStore {
     saved.schemaVersion = STORE_SCHEMA_VERSION;
     saved.updatedAt = new Date().toISOString();
     await this.settings.set(MODULE_ID, STORE_KEY, saved);
+    this.cachedBoard = clone(saved);
+    this.storageAvailable = true;
     return clone(saved);
   }
 

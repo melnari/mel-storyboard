@@ -10,8 +10,8 @@ The current release organizes the Scene board into Chapters. Storyline and separ
 
 ## Requirements
 
-- Foundry Virtual Tabletop 14.x. The module is verified against Foundry `14.368`.
-- A Game Master user for editing the board.
+- Foundry Virtual Tabletop 14.x. Foundry `14.370` is the project validation target. The manifest currently records `14.368` as the last verified build; do not raise that value until the current source has been manually checked in Foundry `14.370`.
+- A Game Master user. Assistant Game Masters can open the board in read-only mode.
 - No additional runtime modules or external services are required.
 
 Mel-Storyboard is system-independent. It uses Foundry users, world settings, document permissions, and native Foundry document links. It does not require a separate account, login, server, or external application.
@@ -25,6 +25,20 @@ The Storyboard can be opened through:
 - the `Ctrl+Alt+S` keybinding.
 
 The application is a Foundry-native window and cannot be detached into a separate window.
+
+## Roles and editing access
+
+Only a full Game Master can edit the shared Storyboard. The first active full Game Master selected by Foundry receives editing access. Assistant Game Masters and other full Game Master clients can inspect Chapters, Scenes, Connections, linked Foundry documents, and exports, but cannot change board data or save their view preferences. Players do not have access to the Storyboard.
+
+The module does not use browser locks, heartbeats, or a module-owned edit lease. The active full Game Master is the single editor; additional GM clients remain read-only. Multiple tabs of the same active GM share that user's Foundry permission, so the GM should use one editing tab at a time. The UI shows a read-only banner and disables editing controls while access is unavailable.
+
+Scene, Chapter, Connection, and Object note editors keep edits as drafts until their editor Save action is used. Leaving edited details or closing the window prompts the GM to save, discard, or continue editing. If editing access is lost, the current draft stays visible and can be saved only after access returns.
+
+The full GM's window size and position, zoom, active Chapter, and collapsed navigation/inspector state are saved per user and restored on the next open. Read-only users may adjust their view while the window is open, but those temporary view changes are not persisted.
+
+## Interface and links
+
+The Storyboard uses a desktop-first Foundry application window with a consistent navigation tree, canvas, inspector, native controls, and keyboard-visible focus. Linked Actors, Items, Journals, Scenes, Playlists, and Playlist tracks appear as readable Foundry links by title; their UUIDs remain available in Object Details. Clicking a link uses the appropriate Foundry view, journal page/heading, or expanded Playlist sidebar.
 
 ## Scene board
 
@@ -73,8 +87,9 @@ Player Characters assigned to a Scene are shown as small artwork tokens at the b
 
 Connections can be created in two ways:
 
-1. Choose the connection action from a Scene context menu and select the target Scene.
-2. Press and hold the middle mouse button on a Scene Card, drag to another Scene Card, and release.
+1. Choose the connection action from a Scene context menu and select the target Scene or Exit node.
+2. Use the Entry-node context menu to start an Entry → Scene connection, or the Exit-node context menu to select the source Scene for a Scene → Exit connection.
+3. Press and hold the middle mouse button on a Scene Card or Entry node, drag to the target endpoint, and release.
 
 The same middle-button drag interaction creates an Entry → Scene or Scene → Exit connection. Invalid endpoint directions and cross-Chapter connections are rejected. Moving a Scene to another Chapter automatically removes affected Connections so the board remains valid.
 
@@ -137,7 +152,11 @@ Imported boards are validated and normalized. Older Connections without the curr
 
 ## Storage and permissions
 
-The board is stored in a Foundry world setting. Editing is restricted to the GM. Foundry document access remains subject to Foundry's own permissions and document availability.
+The board is stored in the module's world setting `sceneBoard`. Foundry replicates this setting to world clients, while the module enforces editing in its Store and UI: only the first active full Game Master selected by Foundry can save board data. Assistant Game Masters and other full Game Master clients receive a read-only view. No browser lock, heartbeat, Journal ACL, or module-owned session lease is used.
+
+For worlds that were previously migrated by an intermediate development build, the module can read the old private Journal flags `privateBoardStorage` and `sceneBoard` once. The active full Game Master copies valid Journal data back into the world setting; the Journal is not used as the runtime store and is not deleted automatically. This compatibility path prevents existing Chapters and Scenes from being lost while removing the Journal dependency from normal startup.
+
+View preferences are kept in a user-scoped setting and are written only by the editing full Game Master; read-only users can change their temporary view but those changes are discarded when they close the window. Access to linked Foundry documents continues to follow Foundry's own permissions and document availability.
 
 The module adds two world settings under `Mel-Storyboard`:
 

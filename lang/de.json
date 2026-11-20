@@ -59,6 +59,8 @@
       "RenameScene": "Szene umbenennen",
       "DuplicateScene": "Szene duplizieren",
     "ConnectScene": "Szene verknüpfen",
+    "ConnectToScene": "Mit Szene verknüpfen",
+    "ConnectFromScene": "Von Szene verknüpfen",
     "DeleteScene": "Szene löschen",
       "DeleteConnection": "Verbindung löschen",
       "ZoomOut": "Verkleinern",
@@ -86,7 +88,11 @@
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
       "Save": "Speichern",
-      "Close": "Schließen"
+      "Close": "Schließen",
+      "SaveChanges": "Änderungen speichern",
+      "DiscardChanges": "Änderungen verwerfen",
+      "ContinueEditing": "Weiter bearbeiten",
+      "KeepWindowOpen": "Fenster geöffnet lassen"
     },
   "LABELS": {
     "Story": "Story",
@@ -170,15 +176,24 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Szenenboard gespeichert.",
+      "ReadOnlyAssistant": "Schreibgeschützte Ansicht. Assistant GMs können das Storyboard ansehen; bearbeiten kann es nur der von Foundry bestimmte aktive Voll-GM.",
+      "OtherFullGamemasterActive": "Schreibgeschützte Ansicht. Ein anderer aktiver Voll-GM hat derzeit Bearbeitungszugriff.",
+      "EditorAccessChanged": "Der Bearbeitungszugriff hat sich geändert. Ungespeicherte Änderungen bleiben geöffnet, können aber erst mit Schreibberechtigung gespeichert werden.",
+      "StorageNotInitialized": "Der Storyboard-Datenspeicher ist noch nicht bereit. Bitte einen GM um die Einrichtung oder prüfe die Modulmeldungen in der Konsole.",
       "NoChapterNodeTargets": "Keine passenden Zielknoten verfügbar.",
       "LastChapter": "Das letzte Kapitel kann nicht gelöscht werden.",
       "ConfirmDeleteChapter": "Kapitel \"{name}\" mit allen enthaltenen Szenen und Verbindungen löschen?",
       "SelectConnectionTarget": "Wähle die Zielszene für diese Verbindung.",
+      "SelectConnectionSource": "Wähle die Quellenszene für diese Verbindung.",
       "Copied": "Szene kopiert."
       ,"RemovedCrossChapterConnections": "{count} Verbindung(en) wurden entfernt, weil die Szene in ein anderes Kapitel verschoben wurde."
       ,"ActorUuidRequired": "Für Actor-Objekte ist eine Foundry-UUID erforderlich."
       ,"FoundryObjectUnavailable": "Das verknüpfte Foundry-Objekt ist nicht verfügbar."
       ,"TemplateInUse": "Diese Vorlage wird noch von einer Szene verwendet."
+    },
+    "DIALOGS": {
+      "UnsavedChanges": "Ungespeicherte Änderungen",
+      "UnsavedChangesPrompt": "Sollen die Änderungen gespeichert werden, bevor diese Details verlassen werden?"
     },
     "ERRORS": {
       "NoteEditor": "Der Notizeditor konnte nicht geöffnet werden."

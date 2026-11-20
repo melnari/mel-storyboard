@@ -59,6 +59,8 @@
       "RenameScene": "Renombrar escena",
       "DuplicateScene": "Duplicar escena",
       "ConnectScene": "Conectar escena",
+      "ConnectToScene": "Conectar a una escena",
+      "ConnectFromScene": "Conectar desde una escena",
       "DeleteScene": "Eliminar escena",
       "DeleteConnection": "Eliminar conexión",
       "ZoomOut": "Alejar",
@@ -86,7 +88,11 @@
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
       "Save": "Guardar",
-      "Close": "Cerrar"
+      "Close": "Cerrar",
+      "SaveChanges": "Guardar cambios",
+      "DiscardChanges": "Descartar cambios",
+      "ContinueEditing": "Seguir editando",
+      "KeepWindowOpen": "Mantener la ventana abierta"
     },
   "LABELS": {
     "Story": "Story",
@@ -170,15 +176,24 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Tablero de escenas guardado.",
+      "ReadOnlyAssistant": "Vista de solo lectura. Los Assistant GM pueden ver el storyboard; solo el GM completo activo designado por Foundry puede editarlo.",
+      "OtherFullGamemasterActive": "Vista de solo lectura. Otro GM activo con rol completo tiene actualmente acceso de edición.",
+      "EditorAccessChanged": "El acceso de edición ha cambiado. Los cambios sin guardar siguen abiertos, pero solo se pueden guardar cuando haya acceso de escritura.",
+      "StorageNotInitialized": "El almacenamiento del storyboard aún no está listo. Pide a un GM que complete la configuración o revisa los errores de la consola del módulo.",
       "NoChapterNodeTargets": "No hay destinos de nodo compatibles.",
       "LastChapter": "No se puede eliminar el último capítulo.",
       "ConfirmDeleteChapter": "¿Eliminar el capítulo \"{name}\" y todas sus escenas y conexiones?",
       "SelectConnectionTarget": "Selecciona la escena de destino para esta conexión.",
+      "SelectConnectionSource": "Selecciona la escena de origen para esta conexión.",
       "Copied": "Escena copiada."
       ,"RemovedCrossChapterConnections": "Se eliminaron {count} conexión(es) porque la escena se movió a otro capítulo."
       ,"ActorUuidRequired": "Los objetos Actor requieren un UUID de Foundry."
       ,"FoundryObjectUnavailable": "El objeto de Foundry vinculado no está disponible."
       ,"TemplateInUse": "Esta plantilla todavía está siendo utilizada por una escena."
+    },
+    "DIALOGS": {
+      "UnsavedChanges": "Cambios sin guardar",
+      "UnsavedChangesPrompt": "¿Quieres guardar los cambios antes de salir de estos detalles?"
     },
     "ERRORS": {
       "NoteEditor": "No se pudo abrir el editor de notas."

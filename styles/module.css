@@ -29,6 +29,16 @@
   margin: 0;
 }
 
+.mel-storyboard-toolbar h1 {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mel-storyboard-subtitle,
 .mel-storyboard-display-id,
 .mel-storyboard-empty {
@@ -44,9 +54,36 @@
 }
 
 .mel-storyboard-actions .icon-button,
-.mel-storyboard-sidebar-heading .icon-button {
-  min-width: 2.25rem;
-  min-height: 2.25rem;
+.mel-storyboard-sidebar-heading .icon-button,
+.mel-storyboard-inspector-header > .icon-button,
+.mel-storyboard-tree-toggle {
+  display: inline-grid;
+  width: 2rem;
+  min-width: 2rem !important;
+  height: 2rem;
+  min-height: 2rem !important;
+  padding: 0;
+  place-items: center;
+  line-height: 1;
+}
+
+.mel-storyboard-sidebar-heading .mel-storyboard-tree-root {
+  font-size: .95rem;
+}
+
+.mel-storyboard-sidebar-heading .mel-storyboard-tree-root > i,
+.mel-storyboard-tree-branch > i,
+.mel-storyboard-archive-chevron {
+  width: 1rem;
+  font-size: .9rem;
+  text-align: center;
+}
+
+.mel-storyboard-actions .icon-button > i,
+.mel-storyboard-sidebar-heading .icon-button > i,
+.mel-storyboard-inspector-header > .icon-button > i,
+.mel-storyboard-tree-toggle > i {
+  font-size: .9rem;
 }
 
 .mel-storyboard-sidebar-heading {
@@ -230,13 +267,13 @@
 
 .mel-storyboard-layout {
   display: grid;
-  grid-template-columns: 275px minmax(0, 1fr) 325px;
+  grid-template-columns: 275px minmax(0, 1fr) 380px;
   flex: 1;
   min-height: 0;
 }
 
 .mel-storyboard-workspace:has(.mel-storyboard-sidebar.is-collapsed) .mel-storyboard-layout {
-  grid-template-columns: 2.6rem minmax(0, 1fr) 325px;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 380px;
 }
 
 .mel-storyboard-workspace:has(.mel-storyboard-inspector.is-collapsed) .mel-storyboard-layout {
@@ -364,10 +401,13 @@
 }
 
 .mel-storyboard-tree-meta {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
   gap: .55rem;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .mel-storyboard-tree-hover-title {
@@ -403,8 +443,14 @@
 }
 
 .mel-storyboard-tree-id {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   color: #aeb8c5;
   font-size: .75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mel-storyboard-tree-title {
@@ -416,8 +462,13 @@
 }
 
 .mel-storyboard-tree-status {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   color: #aeb8c5;
   font-size: .7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mel-storyboard-chapter-tree-item {
@@ -611,6 +662,15 @@
   margin-bottom: 1rem;
 }
 
+.mel-storyboard-inspector-header > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.mel-storyboard-inspector-header > .icon-button {
+  flex: 0 0 2rem;
+}
+
 .mel-storyboard-inspector-header h2,
 .mel-storyboard-display-id {
   margin: 0;
@@ -638,6 +698,24 @@
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #3a4350;
+}
+
+.mel-storyboard-field-row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: .6rem;
+  margin: .1rem 0;
+}
+
+.mel-storyboard-inspector .mel-storyboard-field-row label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mel-storyboard-field-row select {
+  min-width: 0;
+  margin: 0;
 }
 
 .mel-storyboard-field-hint {
@@ -1505,4 +1583,770 @@
   border-radius: 4px;
   background: #3c2f12;
   color: #f6c453;
+}
+
+/* Consistent focus, permission, and Foundry-link treatment for the main UI. */
+.mel-storyboard :is(button, a, input, select, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--color-border-highlight, #f6c453);
+  outline-offset: 2px;
+}
+
+.mel-storyboard-read-only-banner {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .55rem .9rem;
+  border-bottom: 1px solid rgba(132, 168, 205, .4);
+  background: rgba(50, 83, 116, .28);
+  color: #d7e9fb;
+  font-size: .9rem;
+}
+
+.mel-storyboard-read-only-banner i {
+  flex: 0 0 auto;
+  color: #a9ccef;
+}
+
+.mel-storyboard.is-read-only [data-scene-field]:disabled,
+.mel-storyboard.is-read-only [data-chapter-field]:disabled,
+.mel-storyboard.is-read-only [data-connection-field]:disabled {
+  opacity: 1;
+  color: #d5dbe4;
+  cursor: not-allowed;
+}
+
+.mel-storyboard .content-link[data-storyboard-foundry-link] {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  max-width: 100%;
+  padding: .2rem .45rem;
+  overflow-wrap: anywhere;
+  border: 1px solid rgba(155, 173, 196, .35);
+  border-radius: 4px;
+  background: rgba(22, 25, 32, .48);
+  color: #f4c55f;
+  text-decoration: none;
+  transition: border-color .12s ease, background-color .12s ease, color .12s ease;
+}
+
+.mel-storyboard .content-link[data-storyboard-foundry-link]:hover {
+  border-color: rgba(246, 196, 83, .75);
+  background: rgba(246, 196, 83, .12);
+  color: #ffe09a;
+  text-decoration: none;
+}
+
+.mel-storyboard .mel-storyboard-inspector-section > button[data-action^="save-"] {
+  min-height: 2.6rem;
+  border-radius: 5px;
+  font-weight: 600;
+  transition: filter .12s ease, transform .12s ease;
+}
+
+.mel-storyboard .mel-storyboard-inspector-section > button[data-action^="save-"]:not(:disabled):hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.mel-storyboard-unsaved-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+  padding: 1.15rem;
+  border: 1px solid #59687a;
+  border-radius: 8px;
+  background: #20242c;
+  color: #edf2f7;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .58);
+}
+
+.mel-storyboard-unsaved-dialog::backdrop {
+  background: rgba(5, 7, 11, .7);
+  backdrop-filter: blur(2px);
+}
+
+.mel-storyboard-unsaved-dialog h2 {
+  margin: 0 0 .55rem;
+  font-size: 1.25rem;
+}
+
+.mel-storyboard-unsaved-dialog p {
+  margin: 0;
+  color: #c4ceda;
+  line-height: 1.5;
+}
+
+.mel-storyboard-unsaved-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+  margin-top: 1.1rem;
+}
+
+.mel-storyboard-unsaved-dialog-actions button {
+  min-height: 2.4rem;
+  padding: .4rem .75rem;
+  border: 1px solid #59687a;
+  border-radius: 5px;
+  background: #292e38;
+  color: #edf2f7;
+}
+
+.mel-storyboard-unsaved-dialog-actions button[data-choice="save"] {
+  border-color: #aa895c;
+  background: #42372a;
+  color: #ffe0a2;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Foundry theme integration                                                  */
+/*                                                                             */
+/* Foundry VTT exposes the active Light/Dark application theme through CSS     */
+/* variables inherited from the application and body theme classes. Keep the  */
+/* Storyboard's semantic status palette intact, but derive all neutral UI      */
+/* surfaces, typography, controls, borders and focus states from those values. */
+/* ------------------------------------------------------------------------- */
+.mel-storyboard,
+.mel-storyboard-template-management {
+  --mel-theme-bg: var(--color-data-background, var(--background, #17191f));
+  --mel-theme-app-bg: var(--background, var(--mel-theme-bg));
+  --mel-theme-canvas: color-mix(in srgb, var(--mel-theme-bg) 88%, var(--color-shadow-dark, #000));
+  --mel-theme-surface: var(--color-data-background, var(--mel-theme-bg));
+  --mel-theme-surface-raised: color-mix(in srgb, var(--mel-theme-surface) 88%, var(--color-text-emphatic, #fff) 12%);
+  --mel-theme-surface-muted: color-mix(in srgb, var(--mel-theme-surface) 72%, transparent);
+  --mel-theme-text: var(--color-text-primary, var(--color-text-light-primary, #edf2f7));
+  --mel-theme-text-strong: var(--color-text-emphatic, var(--color-text-light-highlight, #f0f3f7));
+  --mel-theme-text-muted: var(--color-text-subtle, var(--color-text-secondary, #aeb8c5));
+  --mel-theme-label: var(--color-form-label, var(--mel-theme-text-strong));
+  --mel-theme-border: var(--color-data-border, var(--color-border, #3a4350));
+  --mel-theme-border-strong: var(--color-border, var(--color-border-light-primary, #59687a));
+  --mel-theme-accent: var(--color-text-accent, var(--color-border-highlight, #f6c453));
+  --mel-theme-focus: var(--color-border-highlight, var(--mel-theme-accent));
+  --mel-theme-link: var(--color-text-hyperlink, var(--mel-theme-accent));
+  --mel-theme-input-bg: var(--input-background-color, var(--mel-theme-surface));
+  --mel-theme-input-text: var(--input-text-color, var(--mel-theme-text));
+  --mel-theme-input-border: var(--input-border-color, var(--mel-theme-border));
+  --mel-theme-button-bg: var(--button-background-color, transparent);
+  --mel-theme-button-text: var(--button-text-color, var(--mel-theme-text));
+  --mel-theme-button-border: var(--button-border-color, var(--mel-theme-border-strong));
+  --mel-theme-button-hover-bg: var(--button-hover-background-color, var(--mel-theme-surface-raised));
+  --mel-theme-button-hover-text: var(--button-hover-text-color, var(--mel-theme-text-strong));
+  --mel-theme-positive: var(--color-level-success, #6ed6a0);
+  --mel-theme-info: var(--color-level-info, #59a1f6);
+  --mel-theme-info-bg: var(--color-level-info-bg, color-mix(in srgb, var(--mel-theme-surface) 82%, #2f5090));
+  --mel-theme-info-border: var(--color-level-info-border, var(--mel-theme-border));
+  --mel-theme-grid: color-mix(in srgb, var(--mel-theme-text-muted) 18%, transparent);
+  --mel-theme-scrollbar: var(--color-scrollbar, var(--mel-theme-accent));
+  --mel-theme-scrollbar-track: var(--color-scrollbar-track, transparent);
+  color-scheme: var(--color-scheme, dark);
+  font-family: var(--font-body, var(--font-primary, sans-serif));
+  scrollbar-color: var(--mel-theme-scrollbar) var(--mel-theme-scrollbar-track);
+}
+
+.mel-storyboard-workspace,
+.mel-storyboard-template-management {
+  background: var(--mel-theme-app-bg);
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard :is(h1, h2, h3, h4, h5, h6),
+.mel-storyboard-template-management :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard :is(label, dt),
+.mel-storyboard-template-management :is(label, dt) {
+  color: var(--mel-theme-label);
+}
+
+.mel-storyboard :is(input, select, textarea)::placeholder,
+.mel-storyboard-template-management :is(input, select, textarea)::placeholder {
+  color: var(--input-placeholder-color, var(--mel-theme-text-muted));
+  opacity: 1;
+}
+
+.mel-storyboard h1,
+.mel-storyboard-template-management h1 {
+  font-family: var(--font-h1, var(--font-body, sans-serif));
+}
+
+.mel-storyboard h2,
+.mel-storyboard-template-management h2 {
+  font-family: var(--font-h2, var(--font-body, sans-serif));
+}
+
+.mel-storyboard h3,
+.mel-storyboard-template-management h3 {
+  font-family: var(--font-h3, var(--font-body, sans-serif));
+}
+
+.mel-storyboard :is(h4, h5, h6),
+.mel-storyboard-template-management :is(h4, h5, h6) {
+  font-family: var(--font-h3, var(--font-body, sans-serif));
+}
+
+.mel-storyboard *,
+.mel-storyboard-template-management * {
+  scrollbar-color: var(--mel-theme-scrollbar) var(--mel-theme-scrollbar-track);
+}
+
+.mel-storyboard ::-webkit-scrollbar,
+.mel-storyboard-template-management ::-webkit-scrollbar {
+  width: .65rem;
+  height: .65rem;
+}
+
+.mel-storyboard ::-webkit-scrollbar-track,
+.mel-storyboard-template-management ::-webkit-scrollbar-track {
+  background: var(--mel-theme-scrollbar-track);
+}
+
+.mel-storyboard ::-webkit-scrollbar-thumb,
+.mel-storyboard-template-management ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--mel-theme-scrollbar);
+  background-clip: padding-box;
+}
+
+.mel-storyboard-toolbar,
+.mel-storyboard-sidebar,
+.mel-storyboard-inspector,
+.mel-storyboard-template-card,
+.mel-storyboard-command-list,
+.mel-storyboard-context-menu,
+.mel-storyboard-unsaved-dialog {
+  background: var(--mel-theme-surface);
+  border-color: var(--mel-theme-border);
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard-toolbar,
+.mel-storyboard-sidebar,
+.mel-storyboard-inspector,
+.mel-storyboard-object-actions,
+.mel-storyboard-inspector-section,
+.mel-storyboard-object-details-list > div,
+.mel-storyboard-unsaved-dialog-actions {
+  border-color: var(--mel-theme-border);
+}
+
+.mel-storyboard :is(h1, h2, h3, label, .mel-storyboard-tree-root),
+.mel-storyboard-template-management :is(h1, h2, h3, label) {
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard :is(.mel-storyboard-subtitle, .mel-storyboard-display-id, .mel-storyboard-empty,
+  .mel-storyboard-tree-id, .mel-storyboard-tree-status, .mel-storyboard-chapter-node-row small,
+  .mel-storyboard-field-hint, .mel-storyboard-object-card span, .mel-storyboard-object-card small,
+  .mel-storyboard-connection-endpoints, .mel-storyboard-connection-counts),
+.mel-storyboard-template-card p {
+  color: var(--mel-theme-text-muted);
+}
+
+.mel-storyboard :is(input, select, textarea),
+.mel-storyboard-template-management :is(input, select, textarea) {
+  background: var(--input-background-color, var(--mel-theme-input-bg));
+  border-color: var(--input-border-color, var(--mel-theme-input-border));
+  color: var(--input-text-color, var(--mel-theme-input-text));
+}
+
+.mel-storyboard :is(button, a.button, kbd),
+.mel-storyboard-template-management :is(button, a.button, kbd) {
+  background: var(--button-background-color, var(--mel-theme-button-bg));
+  border-color: var(--button-border-color, var(--mel-theme-button-border));
+  color: var(--button-text-color, var(--mel-theme-button-text));
+}
+
+.mel-storyboard :is(button, a.button, kbd):hover,
+.mel-storyboard :is(button, a.button, kbd):focus-visible,
+.mel-storyboard-template-management :is(button, a.button, kbd):hover,
+.mel-storyboard-template-management :is(button, a.button, kbd):focus-visible {
+  background: var(--button-hover-background-color, var(--mel-theme-button-hover-bg));
+  border-color: var(--button-hover-border-color, var(--mel-theme-button-border));
+  color: var(--button-hover-text-color, var(--mel-theme-button-hover-text));
+}
+
+.mel-storyboard :is(.mel-storyboard-command-menu summary, .mel-storyboard-context-menu-item),
+.mel-storyboard .mel-storyboard-tree-node:hover,
+.mel-storyboard .mel-storyboard-tree-node:focus,
+.mel-storyboard .mel-storyboard-tree-node:active,
+.mel-storyboard .mel-storyboard-tree-label:hover,
+.mel-storyboard .mel-storyboard-tree-label:focus,
+.mel-storyboard .mel-storyboard-archive-root.is-expanded > .mel-storyboard-tree-label,
+.mel-storyboard .mel-storyboard-chapter-node-row:hover,
+.mel-storyboard .mel-storyboard-chapter-node-row:focus-visible {
+  background: var(--mel-theme-button-hover-bg);
+  color: var(--mel-theme-button-hover-text);
+}
+
+.mel-storyboard .mel-storyboard-command-list button,
+.mel-storyboard .mel-storyboard-context-menu-item {
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard .mel-storyboard-command-menu summary {
+  border-color: var(--mel-theme-button-border);
+  background: var(--mel-theme-surface-raised);
+  color: var(--mel-theme-button-text);
+}
+
+.mel-storyboard .mel-storyboard-command-menu summary:hover,
+.mel-storyboard .mel-storyboard-command-menu summary:focus-visible {
+  border-color: var(--button-hover-border-color, var(--mel-theme-button-border));
+  background: var(--mel-theme-button-hover-bg);
+  color: var(--mel-theme-button-hover-text);
+}
+
+.mel-storyboard .mel-storyboard-context-menu-item:hover,
+.mel-storyboard .mel-storyboard-context-menu-item:focus {
+  color: var(--mel-theme-button-hover-text);
+}
+
+.mel-storyboard .mel-storyboard-tree-root,
+.mel-storyboard .mel-storyboard-archive-root.is-expanded .mel-storyboard-tree-label {
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-branch,
+.mel-storyboard .mel-storyboard-archive-root .mel-storyboard-tree-label,
+.mel-storyboard .mel-storyboard-tree-label.status-waiting,
+.mel-storyboard .mel-storyboard-tree-node.status-waiting,
+.mel-storyboard .mel-storyboard-tree-label.status-active,
+.mel-storyboard .mel-storyboard-tree-node.status-active,
+.mel-storyboard .mel-storyboard-tree-label.status-success,
+.mel-storyboard .mel-storyboard-tree-node.status-success,
+.mel-storyboard .mel-storyboard-tree-label.status-partial-success,
+.mel-storyboard .mel-storyboard-tree-node.status-partial-success,
+.mel-storyboard .mel-storyboard-tree-label.status-failure,
+.mel-storyboard .mel-storyboard-tree-node.status-failure,
+.mel-storyboard .mel-storyboard-tree-label.status-skipped,
+.mel-storyboard .mel-storyboard-tree-node.status-skipped {
+  color: var(--mel-theme-text-muted);
+}
+
+.mel-storyboard .mel-storyboard-chapter-tree-item.is-active > .mel-storyboard-tree-node {
+  background: var(--mel-theme-button-hover-bg);
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-drop-target,
+.mel-storyboard .mel-storyboard-chapter-node-row:hover,
+.mel-storyboard .mel-storyboard-chapter-node-row:focus-visible {
+  outline-color: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-inspector-header .icon-button,
+.mel-storyboard .mel-storyboard-sidebar-heading .icon-button,
+.mel-storyboard .mel-storyboard-actions .icon-button {
+  color: var(--mel-theme-button-text);
+}
+
+.mel-storyboard .mel-storyboard-inspector-header .icon-button:hover,
+.mel-storyboard .mel-storyboard-sidebar-heading .icon-button:hover,
+.mel-storyboard .mel-storyboard-actions .icon-button:hover {
+  color: var(--mel-theme-button-hover-text);
+}
+
+.mel-storyboard .mel-storyboard-inspector .mel-storyboard-status-badge:not([class*="status-"]) {
+  color: var(--mel-theme-accent);
+  border-color: var(--mel-theme-border-strong);
+}
+
+.mel-storyboard .mel-storyboard-toggle {
+  border-color: var(--button-border-color, var(--mel-theme-button-border));
+  background: var(--button-background-color, var(--mel-theme-button-bg));
+  color: var(--button-text-color, var(--mel-theme-button-text));
+}
+
+.mel-storyboard .mel-storyboard-toggle:hover,
+.mel-storyboard .mel-storyboard-toggle:focus-visible {
+  border-color: var(--button-hover-border-color, var(--mel-theme-button-border));
+  background: var(--mel-theme-button-hover-bg);
+  color: var(--mel-theme-button-hover-text);
+}
+
+.mel-storyboard .mel-storyboard-chapter-node-circle {
+  fill: var(--mel-theme-surface-raised);
+  stroke: var(--mel-theme-accent);
+}
+
+.mel-storyboard .mel-storyboard-chapter-node-title {
+  fill: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-chapter-node-canvas.is-entry .mel-storyboard-chapter-node-circle,
+.mel-storyboard .mel-storyboard-chapter-node-canvas.is-connection-drag-source .mel-storyboard-chapter-node-circle,
+.mel-storyboard .mel-storyboard-chapter-node-canvas.is-connection-drop-target .mel-storyboard-chapter-node-circle {
+  stroke: var(--mel-theme-positive);
+}
+
+.mel-storyboard .mel-storyboard-object-card,
+.mel-storyboard .mel-storyboard-chapter-node-row,
+.mel-storyboard .mel-storyboard-template-fields li {
+  background: var(--mel-theme-surface-muted);
+  border-color: var(--mel-theme-border);
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard .mel-storyboard-object-main > i,
+.mel-storyboard .mel-storyboard-object-title-link,
+.mel-storyboard .mel-storyboard-connection-label {
+  color: var(--mel-theme-link);
+}
+
+.mel-storyboard .mel-storyboard-canvas-region,
+.mel-storyboard .mel-storyboard-canvas-scroll {
+  background: var(--mel-theme-canvas);
+}
+
+.mel-storyboard .mel-storyboard-canvas pattern path {
+  stroke: var(--mel-theme-grid) !important;
+}
+
+.mel-storyboard .mel-storyboard-canvas {
+  color: var(--mel-theme-text-muted);
+  font-family: var(--font-body, var(--font-primary, sans-serif));
+}
+
+.mel-storyboard .mel-storyboard-element .mel-storyboard-element-frame {
+  fill: var(--mel-theme-surface-raised);
+  stroke: var(--mel-theme-border-strong);
+}
+
+.mel-storyboard .mel-storyboard-element .mel-storyboard-element-frame-inner {
+  stroke: var(--mel-theme-border-strong);
+}
+
+.mel-storyboard .mel-storyboard-element:not([class*="status-"]) text,
+.mel-storyboard .mel-storyboard-element:not([class*="status-"]) .mel-storyboard-element-title {
+  fill: var(--mel-theme-text-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-element:not([class*="status-"]) .mel-storyboard-element-description,
+.mel-storyboard .mel-storyboard-element:not([class*="status-"]) .mel-storyboard-element-id {
+  fill: var(--mel-theme-text-muted) !important;
+}
+
+.mel-storyboard .mel-storyboard-element:not([class*="status-"]) .mel-storyboard-element-status-badge {
+  fill: color-mix(in srgb, var(--mel-theme-accent) 14%, transparent) !important;
+  stroke: var(--mel-theme-border-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-element:not([class*="status-"]) .mel-storyboard-element-status {
+  fill: var(--mel-theme-accent) !important;
+}
+
+.mel-storyboard .mel-storyboard-element.is-selected .mel-storyboard-element-frame,
+.mel-storyboard .mel-storyboard-element.is-selected .mel-storyboard-element-frame-inner,
+.mel-storyboard .mel-storyboard-element.is-drop-target .mel-storyboard-element-frame,
+.mel-storyboard .mel-storyboard-element.is-player-character-drop-target .mel-storyboard-element-frame,
+.mel-storyboard .mel-storyboard-element.is-connection-drag-source .mel-storyboard-element-frame {
+  stroke: var(--mel-theme-focus) !important;
+}
+
+.mel-storyboard .mel-storyboard-element.is-connection-drop-target .mel-storyboard-element-frame {
+  stroke: var(--mel-theme-positive) !important;
+}
+
+.mel-storyboard .mel-storyboard-player-token-frame {
+  fill: var(--mel-theme-surface) !important;
+  stroke: var(--mel-theme-border-strong) !important;
+}
+
+.mel-storyboard .mel-storyboard-player-token-label {
+  fill: var(--color-text-light-0, #fff) !important;
+  stroke: var(--mel-theme-canvas);
+}
+
+.mel-storyboard .mel-storyboard-connection-preview,
+.mel-storyboard .mel-storyboard-connection.is-selected,
+.mel-storyboard .mel-storyboard-connection-arrow.is-selected {
+  stroke: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-connection {
+  stroke: var(--mel-theme-border-strong);
+}
+
+.mel-storyboard .mel-storyboard-connection-arrow {
+  fill: var(--mel-theme-border-strong);
+}
+
+.mel-storyboard .mel-storyboard-connection.is-selected {
+  stroke: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-connection-arrow.is-selected {
+  fill: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-connection.is-status-used {
+  stroke: var(--color-level-success, var(--mel-theme-positive));
+}
+
+.mel-storyboard .mel-storyboard-connection.is-status-repeated-used {
+  stroke: var(--color-level-success-border, var(--mel-theme-positive));
+}
+
+.mel-storyboard .mel-storyboard-connection-arrow.is-status-used {
+  fill: var(--color-level-success, var(--mel-theme-positive));
+}
+
+.mel-storyboard .mel-storyboard-connection-arrow.is-status-repeated-used {
+  fill: var(--color-level-success-border, var(--mel-theme-positive));
+}
+
+.mel-storyboard .mel-storyboard-connection.is-selected {
+  stroke: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-connection-arrow.is-selected {
+  fill: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-connection-label,
+.mel-storyboard .mel-storyboard-chapter-connection-label {
+  fill: var(--mel-theme-link);
+  stroke: var(--mel-theme-canvas);
+}
+
+.mel-storyboard .mel-storyboard-chapter-connection,
+.mel-storyboard .mel-storyboard-chapter-connection-arrow {
+  stroke: var(--mel-theme-positive);
+  fill: var(--mel-theme-positive);
+}
+
+.mel-storyboard .mel-storyboard-connection-endpoints {
+  color: var(--mel-theme-text-muted);
+}
+
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) {
+  --menu-background: var(--mel-theme-surface-raised);
+  --dropdown-background: var(--mel-theme-surface);
+  --dropdown-border: var(--mel-theme-border);
+  --dialog-background: var(--mel-theme-bg);
+  --dialog-border: var(--mel-theme-border);
+  --button-text-color: var(--mel-theme-button-text);
+}
+
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-content,
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-container {
+  color: var(--mel-theme-input-text);
+}
+
+.mel-storyboard .mel-storyboard-connection-status {
+  background: var(--mel-theme-info-bg);
+  color: var(--mel-theme-text-strong);
+  border: 1px solid var(--mel-theme-info-border);
+}
+
+.mel-storyboard-read-only-banner {
+  border-bottom-color: var(--mel-theme-info-border);
+  background: var(--mel-theme-info-bg);
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard-read-only-banner i {
+  color: var(--mel-theme-info);
+}
+
+.mel-storyboard.is-read-only :is([data-scene-field]:disabled, [data-chapter-field]:disabled, [data-connection-field]:disabled) {
+  color: var(--mel-theme-input-text);
+}
+
+.mel-storyboard .content-link[data-storyboard-foundry-link] {
+  border-color: color-mix(in srgb, var(--mel-theme-border-strong) 65%, transparent);
+  background: color-mix(in srgb, var(--mel-theme-surface) 78%, transparent);
+  color: var(--mel-theme-link);
+}
+
+.mel-storyboard .content-link[data-storyboard-foundry-link]:hover {
+  border-color: var(--mel-theme-focus);
+  background: color-mix(in srgb, var(--mel-theme-accent) 14%, transparent);
+  color: var(--mel-theme-button-hover-text);
+}
+
+.mel-storyboard :is(.mel-storyboard-object-details-note-view, .mel-storyboard-object-details-notes .editor,
+  .mel-storyboard-template-editor) {
+  background: var(--mel-theme-bg);
+  border-color: var(--mel-theme-border-strong);
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard .mel-storyboard-object-details-note-content,
+.mel-storyboard .mel-storyboard-object-details-note-content :is(p, li, strong, em, h1, h2, h3) {
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard .mel-storyboard-object-details-no-note {
+  color: var(--mel-theme-text-muted);
+}
+
+.mel-storyboard-unsaved-dialog {
+  border-color: var(--mel-theme-border-strong);
+  background: var(--mel-theme-surface);
+  color: var(--mel-theme-text);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--color-shadow-dark, #000) 58%, transparent);
+}
+
+.mel-storyboard-unsaved-dialog p {
+  color: var(--mel-theme-text-muted);
+}
+
+.mel-storyboard-unsaved-dialog-actions button {
+  border-color: var(--button-border-color, var(--mel-theme-button-border));
+  background: var(--button-background-color, var(--mel-theme-button-bg));
+  color: var(--button-text-color, var(--mel-theme-button-text));
+}
+
+.mel-storyboard :is(button, a, input, select, [tabindex="0"]):focus-visible {
+  outline-color: var(--mel-theme-focus);
+}
+
+/* Keep tree selection tied to the state represented by the row. Foundry's
+   button focus colour is intentionally not used here: focus can remain on a
+   previously clicked button while the active chapter or selected scene has
+   already changed. */
+.mel-storyboard {
+  --mel-theme-selection-bg: color-mix(in srgb, var(--mel-theme-focus) 16%, var(--mel-theme-surface));
+  --mel-theme-selection-border: var(--mel-theme-focus);
+}
+
+.mel-storyboard .mel-storyboard-tree-node,
+.mel-storyboard .mel-storyboard-tree-label,
+.mel-storyboard .mel-storyboard-tree-toggle {
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.mel-storyboard .mel-storyboard-tree-node:hover,
+.mel-storyboard .mel-storyboard-tree-label:hover {
+  background: transparent;
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-node:focus,
+.mel-storyboard .mel-storyboard-tree-node:active,
+.mel-storyboard .mel-storyboard-tree-label:focus {
+  background: transparent;
+  box-shadow: none;
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active {
+  background: transparent;
+  box-shadow: none;
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node,
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node:hover,
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node:focus,
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node:active {
+  background: var(--mel-theme-selection-bg);
+  box-shadow: inset 3px 0 var(--mel-theme-selection-border);
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active .mel-storyboard-tree-label,
+.mel-storyboard .mel-storyboard-tree-item.is-active .mel-storyboard-tree-label:hover,
+.mel-storyboard .mel-storyboard-tree-item.is-active .mel-storyboard-tree-label:focus {
+  background: transparent;
+  box-shadow: none;
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node .mel-storyboard-tree-toggle {
+  background: transparent;
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node .mel-storyboard-tree-branch {
+  color: var(--mel-theme-selection-border);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node .mel-storyboard-tree-title {
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node .mel-storyboard-tree-id,
+.mel-storyboard .mel-storyboard-tree-item.is-active > .mel-storyboard-tree-node .mel-storyboard-tree-status {
+  color: var(--mel-theme-text);
+}
+
+.mel-storyboard .mel-storyboard-archive-root.is-expanded > .mel-storyboard-tree-label {
+  background: transparent;
+}
+
+.mel-storyboard .mel-storyboard-tree-hover-title {
+  background: var(--mel-theme-surface-raised);
+  border-color: var(--mel-theme-border-strong);
+  color: var(--mel-theme-text-strong);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--color-shadow-dark, #000) 35%, transparent);
+}
+
+.mel-storyboard .mel-storyboard-inspector-details-title {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: .5rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.mel-storyboard .mel-storyboard-inspector-details-title .mel-storyboard-display-id {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--mel-theme-text-muted);
+  font-size: .9rem;
+  font-weight: 600;
+}
+
+.mel-storyboard .mel-storyboard-inspector-details-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mel-theme-text-strong);
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mel-storyboard .mel-storyboard-inspector .mel-storyboard-status-badge:not([class*="status-"]) {
+  background: color-mix(in srgb, var(--mel-theme-accent) 12%, var(--mel-theme-surface));
+  color: var(--mel-theme-text-strong);
+  border-color: var(--mel-theme-border-strong);
+}
+
+.mel-storyboard .mel-storyboard-element .mel-storyboard-element-decision-marker {
+  fill: color-mix(in srgb, var(--mel-theme-accent) 16%, transparent);
+  stroke: var(--mel-theme-accent);
+}
+
+/* The default/open artwork is white on the dark Foundry theme and uses the
+   normal readable text colour on the light theme. Status-specific artwork
+   keeps its semantic tint because it is already chosen for contrast against
+   the corresponding pastel status card. */
+body.theme-light .mel-storyboard .mel-storyboard-scene-icon.icon-default,
+body.theme-light .mel-storyboard .mel-storyboard-scene-icon.icon-open,
+.mel-storyboard.theme-light .mel-storyboard-scene-icon.icon-default,
+.mel-storyboard.theme-light .mel-storyboard-scene-icon.icon-open {
+  filter: brightness(0) saturate(100%) invert(15%) sepia(14%) saturate(1324%) hue-rotate(173deg) brightness(92%) contrast(93%);
+}
+
+body.theme-dark .mel-storyboard .mel-storyboard-scene-icon.icon-default,
+body.theme-dark .mel-storyboard .mel-storyboard-scene-icon.icon-open,
+.mel-storyboard.theme-dark .mel-storyboard-scene-icon.icon-default,
+.mel-storyboard.theme-dark .mel-storyboard-scene-icon.icon-open {
+  filter: brightness(0) invert(1);
 }

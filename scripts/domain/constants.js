@@ -16,6 +16,9 @@ export const STATUS = Object.freeze({
 
 export const STATUS_COLOR_SETTING = "statusColors";
 export const SHOW_SCENE_ICONS_SETTING = "showSceneIcons";
+export const UI_STATE_SETTING = "uiState";
+export const PRIVATE_BOARD_FLAG = "privateBoardStorage";
+export const PRIVATE_BOARD_DATA_FLAG = "sceneBoard";
 export const SCENE_ICON_NONE = "NONE";
 
 export const SCENE_SHAPES = Object.freeze({

@@ -43,6 +43,57 @@ function absoluteAssetUrl(path) {
   return base ? new URL(path, base).href : path;
 }
 
+function safeCssValue(value, fallback) {
+  const normalized = String(value ?? "").trim();
+  return normalized && !/[{};]/.test(normalized) ? normalized : fallback;
+}
+
+function exportThemeTokens() {
+  const document = globalThis.document;
+  const scope = document?.querySelector?.(".mel-storyboard") ?? document?.body;
+  const computed = scope && globalThis.getComputedStyle ? globalThis.getComputedStyle(scope) : null;
+  const resolveColor = (variable, fallback) => {
+    if (!scope || !document || !globalThis.getComputedStyle) return fallback;
+    const probe = document.createElement("span");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.position = "absolute";
+    probe.style.width = "0";
+    probe.style.height = "0";
+    probe.style.pointerEvents = "none";
+    probe.style.setProperty("color", `var(${variable}, ${fallback})`);
+    scope.append(probe);
+    const value = globalThis.getComputedStyle(probe).color?.trim();
+    probe.remove();
+    return value || fallback;
+  };
+  const resolveBackground = (variable, fallback) => {
+    if (!scope || !document || !globalThis.getComputedStyle) return fallback;
+    const probe = document.createElement("span");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.position = "absolute";
+    probe.style.width = "0";
+    probe.style.height = "0";
+    probe.style.pointerEvents = "none";
+    probe.style.setProperty("background-color", `var(${variable}, ${fallback})`);
+    scope.append(probe);
+    const value = globalThis.getComputedStyle(probe).backgroundColor?.trim();
+    probe.remove();
+    return value || fallback;
+  };
+  const fontFamily = computed?.fontFamily?.trim() || computed?.getPropertyValue("--font-body")?.trim() || "Arial, sans-serif";
+  return {
+    canvas: safeCssValue(resolveBackground("--mel-theme-canvas", "#17191f"), "#17191f"),
+    surface: safeCssValue(resolveBackground("--mel-theme-surface-raised", "#313846"), "#313846"),
+    text: safeCssValue(resolveColor("--mel-theme-text-strong", "#f0f3f7"), "#f0f3f7"),
+    mutedText: safeCssValue(resolveColor("--mel-theme-text-muted", "#d3dae4"), "#d3dae4"),
+    border: safeCssValue(resolveColor("--mel-theme-border-strong", "#9aa4b2"), "#9aa4b2"),
+    accent: safeCssValue(resolveColor("--mel-theme-accent", "#f6c453"), "#f6c453"),
+    positive: safeCssValue(resolveColor("--mel-theme-positive", "#6ed6a0"), "#6ed6a0"),
+    positiveBorder: safeCssValue(resolveColor("--color-level-success-border", "#4f9d69"), "#4f9d69"),
+    fontFamily: safeCssValue(fontFamily, "Arial, sans-serif")
+  };
+}
+
 function assetMimeType(path, response) {
   const header = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
   if (header) return header;
@@ -82,6 +133,7 @@ async function embedSceneIcons(board, labels = {}) {
 }
 
 export function sceneBoardToSvg(board, labels = {}) {
+  const theme = exportThemeTokens();
   const sceneById = new Map(board.scenes.map(scene => [scene.id, scene]));
   const elements = board.elements.map(element => {
     const scene = sceneById.get(element.sceneId);
@@ -120,13 +172,13 @@ export function sceneBoardToSvg(board, labels = {}) {
     if (!source || !target) return "";
     const connectionType = normalizeConnectionType(connection.connectionType);
     const connectionStatusClass = CONNECTION_STATUS_CLASSES[normalizeConnectionStatus(connection.connectionStatus)];
-    const connectionColor = connectionStatusClass === "used" ? "#4f9d69" : connectionStatusClass === "repeated-used" ? "#176b3a" : "#f6c453";
+    const connectionColor = connectionStatusClass === "used" ? theme.positiveBorder : connectionStatusClass === "repeated-used" ? theme.positive : theme.border;
     const isBilateral = connectionType.startsWith("bilateral");
     const isDeactivated = connectionType.endsWith("deactivated");
     const geometry = connectionGeometry(source, target, { bilateral: isBilateral });
     const lineAttributes = isDeactivated ? ' stroke-dasharray="2 7"' : "";
     const label = connection.label?.trim()
-      ? `<text class="connection-label" fill="#f6c453" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
+      ? `<text class="connection-label" fill="${theme.accent}" x="${geometry.label.x}" y="${geometry.label.y}">${escapeXml(connection.label)}</text>`
       : "";
     const reverseArrow = geometry.reverseArrowPoints ? `<polygon class="connection-arrow is-status-${connectionStatusClass}" fill="${connectionColor}" points="${geometry.reverseArrowPoints}" />` : "";
     return `<line class="connection is-status-${connectionStatusClass}" stroke="${connectionColor}"${lineAttributes} x1="${geometry.source.x}" y1="${geometry.source.y}" x2="${geometry.target.x}" y2="${geometry.target.y}" /><polygon class="connection-arrow is-status-${connectionStatusClass}" fill="${connectionColor}" points="${geometry.arrowPoints}" />${reverseArrow}${label}`;
@@ -144,8 +196,8 @@ export function sceneBoardToSvg(board, labels = {}) {
     return `<g class="element${statusClass}" transform="translate(${element.position.x},${element.position.y})">${sceneFrameMarkup(element)}${title}${description}${displayId}${status}${icon}</g>`;
   }).join("");
   const chapterNodeMarkup = (board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => {
-    const color = node.nodeType === "ENTRY" ? "#6ed6a0" : "#f6c453";
-    return `<g class="chapter-node ${node.nodeType.toLowerCase()}" transform="translate(${node.position?.x ?? 0},${node.position?.y ?? 0})"><circle r="18" fill="#313846" stroke="${color}" stroke-width="2" /><text class="chapter-node-title" y="34" text-anchor="middle">${escapeXml(node.title)}</text></g>`;
+    const color = node.nodeType === "ENTRY" ? theme.positive : theme.accent;
+    return `<g class="chapter-node ${node.nodeType.toLowerCase()}" transform="translate(${node.position?.x ?? 0},${node.position?.y ?? 0})"><circle r="18" fill="${theme.surface}" stroke="${color}" stroke-width="2" /><text class="chapter-node-title" y="34" text-anchor="middle">${escapeXml(node.title)}</text></g>`;
   })).join("");
   const chapterNodeById = new Map((board.chapters ?? []).flatMap(chapter => (chapter.nodes ?? []).map(node => [node.id, node])));
   const chapterConnectionMarkup = (board.chapterConnections ?? []).map(connection => {
@@ -168,7 +220,7 @@ export function sceneBoardToSvg(board, labels = {}) {
   const statusColorStyles = labels.statusColors ? ".element.status-open .element-frame{fill:#313846;stroke:#9aa4b2}.element.status-open text{fill:#f0f3f7}.element.status-open .element-description,.element.status-open .element-id{fill:#d3dae4}.element.status-open .element-status-badge{fill:rgba(246,196,83,.12);stroke:#59687a}.element.status-open .element-status{fill:#f6c453}.element.status-waiting .element-frame{fill:#e2e5ea;stroke:#8a97a6}.element.status-waiting text{fill:#20252d}.element.status-waiting .element-description,.element.status-waiting .element-id{fill:#3f4a57}.element.status-waiting .element-status-badge{fill:rgba(72,84,99,.13);stroke:#6f7d8c}.element.status-waiting .element-status{fill:#485463}.element.status-active .element-frame{fill:#cfe1f4;stroke:#7899b8}.element.status-active text{fill:#1e3044}.element.status-active .element-description,.element.status-active .element-id{fill:#40566c}.element.status-active .element-status-badge{fill:rgba(36,95,157,.13);stroke:#7899b8}.element.status-active .element-status{fill:#245f9d}.element.status-success .element-frame{fill:#d2ead6;stroke:#82ad8b}.element.status-success text{fill:#1e3a25}.element.status-success .element-description,.element.status-success .element-id{fill:#46664d}.element.status-success .element-status-badge{fill:rgba(46,125,70,.13);stroke:#82ad8b}.element.status-success .element-status{fill:#2e7d46}.element.status-partial-success .element-frame{fill:#f6dfbd;stroke:#c69a62}.element.status-partial-success text{fill:#4a2d14}.element.status-partial-success .element-description,.element.status-partial-success .element-id{fill:#705333}.element.status-partial-success .element-status-badge{fill:rgba(164,96,25,.13);stroke:#c69a62}.element.status-partial-success .element-status{fill:#a46019}.element.status-failure .element-frame{fill:#f3cccc;stroke:#c9898e}.element.status-failure text{fill:#4a2023}.element.status-failure .element-description,.element.status-failure .element-id{fill:#71464a}.element.status-failure .element-status-badge{fill:rgba(163,58,66,.13);stroke:#c9898e}.element.status-failure .element-status{fill:#a33a42}.element.status-skipped .element-frame{fill:#e2d3f0;stroke:#aa91bf}.element.status-skipped text{fill:#352342}.element.status-skipped .element-description,.element.status-skipped .element-id{fill:#614c73}.element.status-skipped .element-status-badge{fill:rgba(116,73,162,.13);stroke:#aa91bf}.element.status-skipped .element-status{fill:#7449a2}" : "";
   const shapeStatusStyles = labels.statusColors ? ".element.status-open .element-frame-inner{stroke:#9aa4b2}.element.status-waiting .element-frame-inner{stroke:#8a97a6}.element.status-active .element-frame-inner{stroke:#7899b8}.element.status-success .element-frame-inner{stroke:#82ad8b}.element.status-partial-success .element-frame-inner{stroke:#c69a62}.element.status-failure .element-frame-inner{stroke:#c9898e}.element.status-skipped .element-frame-inner{stroke:#aa91bf}" : "";
   const sceneIconColorStyles = ".scene-icon.icon-default,.scene-icon.icon-open{filter:brightness(0) invert(1)}.scene-icon.icon-waiting{filter:brightness(0) saturate(100%) invert(31%) sepia(10%) saturate(819%) hue-rotate(174deg) brightness(92%) contrast(88%)}.scene-icon.icon-active{filter:brightness(0) saturate(100%) invert(15%) sepia(14%) saturate(1324%) hue-rotate(173deg) brightness(92%) contrast(93%)}.scene-icon.icon-success{filter:brightness(0) saturate(100%) invert(39%) sepia(17%) saturate(1014%) hue-rotate(86deg) brightness(90%) contrast(89%)}.scene-icon.icon-partial-success{filter:brightness(0) saturate(100%) invert(17%) sepia(22%) saturate(1133%) hue-rotate(349deg) brightness(95%) contrast(91%)}.scene-icon.icon-failure{filter:brightness(0) saturate(100%) invert(15%) sepia(23%) saturate(1046%) hue-rotate(313deg) brightness(89%) contrast(92%)}.scene-icon.icon-skipped{filter:brightness(0) saturate(100%) invert(15%) sepia(21%) saturate(1280%) hue-rotate(252deg) brightness(88%) contrast(94%)}";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:Arial,sans-serif;background:#17191f}.connection{stroke:#f6c453;stroke-width:3;fill:none;stroke-linecap:round}.connection-arrow{fill:#f6c453}.connection-label{fill:#f6c453;font-size:12px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:4px;text-anchor:middle}.chapter-connection{stroke:#6ed6a0;stroke-width:2;stroke-dasharray:6 5;fill:none}.chapter-connection-arrow{fill:#6ed6a0}.chapter-connection-label{fill:#6ed6a0;font-size:12px;font-weight:600;paint-order:stroke;stroke:#17191f;stroke-width:4px;text-anchor:middle}.element-frame{fill:#313846;stroke:#c7d2e0;stroke-width:2}.element-frame-inner{fill:none;stroke:#c7d2e0;stroke-width:2}.element-decision-marker{fill:rgba(246,196,83,.16);stroke:#f6c453;stroke-width:2}.element text{fill:#f0f0f0}.element-title{font-size:15px;font-weight:600}.element-description,.element-id{fill:#d3dae4;font-size:11px}.element-id{font-family:monospace}.element-status-badge{fill:rgba(246,196,83,.12);stroke:#59687a;stroke-width:1}.element-status{fill:#f6c453;font-size:11px;font-weight:600}.scene-icon{pointer-events:none}${sceneIconColorStyles}.chapter-node-title{fill:#edf2f7;font-size:12px}${statusColorStyles}${shapeStatusStyles}</style>${lines}${chapterConnectionMarkup}${chapterNodeMarkup}${elementMarkup}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>svg{font-family:${theme.fontFamily};background:${theme.canvas}}.connection{stroke:${theme.border};stroke-width:3;fill:none;stroke-linecap:round}.connection.is-status-used{stroke:${theme.positiveBorder}}.connection.is-status-repeated-used{stroke:${theme.positive}}.connection-arrow{fill:${theme.border}}.connection-arrow.is-status-used{fill:${theme.positiveBorder}}.connection-arrow.is-status-repeated-used{fill:${theme.positive}}.connection-label{fill:${theme.accent};font-size:12px;font-weight:600;paint-order:stroke;stroke:${theme.canvas};stroke-width:4px;text-anchor:middle}.chapter-connection{stroke:${theme.positive};stroke-width:2;stroke-dasharray:6 5;fill:none}.chapter-connection-arrow{fill:${theme.positive}}.chapter-connection-label{fill:${theme.positive};font-size:12px;font-weight:600;paint-order:stroke;stroke:${theme.canvas};stroke-width:4px;text-anchor:middle}.element-frame{fill:${theme.surface};stroke:${theme.border};stroke-width:2}.element-frame-inner{fill:none;stroke:${theme.border};stroke-width:2}.element-decision-marker{fill:${theme.accent};fill-opacity:.16;stroke:${theme.accent};stroke-width:2}.element text{fill:${theme.text}}.element-title{font-size:15px;font-weight:600}.element-description,.element-id{fill:${theme.mutedText};font-size:11px}.element-id{font-family:monospace}.element-status-badge{fill:${theme.accent};fill-opacity:.12;stroke:${theme.border};stroke-width:1}.element-status{fill:${theme.accent};font-size:11px;font-weight:600}.scene-icon{pointer-events:none}${sceneIconColorStyles}.chapter-node-title{fill:${theme.text};font-size:12px}${statusColorStyles}${shapeStatusStyles}</style>${lines}${chapterConnectionMarkup}${chapterNodeMarkup}${elementMarkup}</svg>`;
 }
 
 export function sceneBoardToJson(board) {
@@ -244,13 +296,14 @@ export async function downloadSceneBoardPng(board, labels, filename = "mel-story
 export async function printSceneBoardsAsPdf(entries) {
   const preview = window.open("", "mel-storyboard-pdf");
   if (!preview) throw new Error("The browser blocked the print preview window.");
+  const theme = exportThemeTokens();
   const graphics = await Promise.all(entries.map(async ({ board, labels }) => {
     const svgBlob = new Blob([sceneBoardToSvg(board, await embedSceneIcons(board, labels))], { type: "image/svg+xml" });
     return { labels, url: URL.createObjectURL(svgBlob) };
   }));
   const title = entries.length === 1 ? entries[0].labels.title : "Mel-Storyboard";
   const pages = graphics.map(({ labels, url }) => `<section class="chapter-page"><h1>${escapeXml(labels.title ?? "Scenes")}</h1><img src="${url}" alt="${escapeXml(labels.title ?? "Scenes")}" /></section>`).join("");
-  preview.document.write(`<title>${escapeXml(title ?? "Scenes")}</title><style>@page{size:auto;margin:1.2cm}body{font-family:Arial,sans-serif;margin:0}.chapter-page{break-after:page;min-height:95vh;display:flex;flex-direction:column;justify-content:flex-start}.chapter-page:last-child{break-after:auto}h1{font-size:20px;margin:0 0 1rem}img{max-width:100%;max-height:calc(95vh - 3rem);object-fit:contain;object-position:top left}</style>${pages}`);
+  preview.document.write(`<title>${escapeXml(title ?? "Scenes")}</title><style>@page{size:auto;margin:1.2cm}body{font-family:${theme.fontFamily};color:${theme.text};background:${theme.canvas};margin:0}.chapter-page{break-after:page;min-height:95vh;display:flex;flex-direction:column;justify-content:flex-start}.chapter-page:last-child{break-after:auto}h1{font-family:${theme.fontFamily};font-size:20px;margin:0 0 1rem}img{max-width:100%;max-height:calc(95vh - 3rem);object-fit:contain;object-position:top left}</style>${pages}`);
   preview.document.close();
   preview.addEventListener("load", () => preview.print(), { once: true });
 }

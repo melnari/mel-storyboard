@@ -59,6 +59,8 @@
       "RenameScene": "Renommer la scène",
       "DuplicateScene": "Dupliquer la scène",
       "ConnectScene": "Relier la scène",
+      "ConnectToScene": "Relier à une scène",
+      "ConnectFromScene": "Relier depuis une scène",
       "DeleteScene": "Supprimer la scène",
       "DeleteConnection": "Supprimer la relation",
       "ZoomOut": "Réduire",
@@ -86,7 +88,11 @@
       "ExportPng": "PNG",
       "ExportPdf": "PDF",
       "Save": "Enregistrer",
-      "Close": "Fermer"
+      "Close": "Fermer",
+      "SaveChanges": "Enregistrer les modifications",
+      "DiscardChanges": "Ignorer les modifications",
+      "ContinueEditing": "Continuer la modification",
+      "KeepWindowOpen": "Garder la fenêtre ouverte"
     },
   "LABELS": {
     "Story": "Story",
@@ -170,15 +176,24 @@
     },
     "NOTIFICATIONS": {
       "Saved": "Tableau de scènes enregistré.",
+      "ReadOnlyAssistant": "Vue en lecture seule. Les Assistant GM peuvent consulter le storyboard ; seul le GM complet actif désigné par Foundry peut le modifier.",
+      "OtherFullGamemasterActive": "Vue en lecture seule. Un autre GM actif avec le rôle complet dispose actuellement des droits de modification.",
+      "EditorAccessChanged": "Les droits de modification ont changé. Les modifications non enregistrées restent ouvertes, mais ne peuvent être enregistrées qu’avec les droits d’écriture.",
+      "StorageNotInitialized": "Le stockage du storyboard n’est pas encore prêt. Demandez à un GM de terminer la configuration ou consultez les erreurs du module dans la console.",
       "NoChapterNodeTargets": "Aucune cible compatible n'est disponible.",
       "LastChapter": "Le dernier chapitre ne peut pas être supprimé.",
       "ConfirmDeleteChapter": "Supprimer le chapitre \"{name}\" et toutes ses scènes et liaisons ?",
       "SelectConnectionTarget": "Sélectionnez la scène cible de cette relation.",
+      "SelectConnectionSource": "Sélectionnez la scène source de cette relation.",
       "Copied": "Scène copiée."
       ,"RemovedCrossChapterConnections": "{count} liaison(s) supprimée(s), car la scène a été déplacée vers un autre chapitre."
       ,"ActorUuidRequired": "Les objets Actor nécessitent un UUID Foundry."
       ,"FoundryObjectUnavailable": "L’objet Foundry lié n’est pas disponible."
       ,"TemplateInUse": "Ce modèle est encore utilisé par une scène."
+    },
+    "DIALOGS": {
+      "UnsavedChanges": "Modifications non enregistrées",
+      "UnsavedChangesPrompt": "Enregistrer les modifications avant de quitter ces détails ?"
     },
     "ERRORS": {
       "NoteEditor": "L’éditeur de notes n’a pas pu être ouvert."
