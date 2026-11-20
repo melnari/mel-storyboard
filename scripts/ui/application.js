@@ -224,6 +224,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.detailsDirty = false;
     this.pendingViewSave = null;
     this.positionObserver = null;
+    this.canvasViewport = null;
     this.selectedElementIds = [];
     this.history = new HistoryStack();
     this.drag = null;
@@ -264,6 +265,11 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   get canEdit() {
     return !this.readOnly && this.store.canWrite && isDesignatedGamemaster();
+  }
+
+  async render(options = {}) {
+    this.#captureCanvasViewport();
+    return super.render(options);
   }
 
   async _prepareContext() {
@@ -689,6 +695,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       this.documentDragDrop.bind(this.element);
     }
     this.#applyZoom();
+    this.#restoreCanvasViewport();
     this.element.querySelectorAll("[data-scene-field], [data-chapter-field], [data-connection-field]").forEach(field => {
       field.addEventListener("input", () => this.#markDetailsDirty());
       field.addEventListener("change", () => this.#markDetailsDirty());
@@ -1708,6 +1715,28 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const newHeight = svg.getBoundingClientRect().height;
     scroll.scrollLeft = anchorX * newWidth - pointerX;
     scroll.scrollTop = anchorY * newHeight - pointerY;
+  }
+
+  #captureCanvasViewport() {
+    const scroll = this.element?.querySelector(".mel-storyboard-canvas-scroll");
+    if (!scroll) return;
+    this.canvasViewport = {
+      left: scroll.scrollLeft,
+      top: scroll.scrollTop
+    };
+  }
+
+  #restoreCanvasViewport() {
+    const viewport = this.canvasViewport;
+    const scroll = this.element?.querySelector(".mel-storyboard-canvas-scroll");
+    if (!viewport || !scroll) return;
+    const apply = () => {
+      if (!scroll.isConnected) return;
+      scroll.scrollLeft = viewport.left;
+      scroll.scrollTop = viewport.top;
+    };
+    apply();
+    window.requestAnimationFrame?.(apply);
   }
 
   #applyZoom() {

@@ -87,17 +87,12 @@
     <main class="mel-storyboard-canvas-region">
       <div class="mel-storyboard-canvas-scroll">
         <svg class="mel-storyboard-canvas" data-storyboard-canvas data-canvas-width="{{canvas.width}}" data-canvas-height="{{canvas.height}}" width="{{canvas.width}}" height="{{canvas.height}}" viewBox="0 0 {{canvas.width}} {{canvas.height}}" role="application" aria-label="{{labels.sceneCanvas}}">
-          <defs>
-            <pattern id="mel-storyboard-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(160, 175, 195, .14)" stroke-width="1"/>
-            </pattern>
-          </defs>
-          <rect data-canvas-background width="100%" height="100%" fill="url(#mel-storyboard-grid)" />
+          <rect data-canvas-background width="100%" height="100%" fill="transparent" />
           {{#each board.connections}}
             <line class="mel-storyboard-connection {{#if isDeactivated}}is-deactivated{{/if}} is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" x1="{{source.x}}" y1="{{source.y}}" x2="{{target.x}}" y2="{{target.y}}" />
             <polygon class="mel-storyboard-connection-arrow is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{arrowPoints}}" />
             {{#if isBilateral}}<polygon class="mel-storyboard-connection-arrow mel-storyboard-connection-arrow-reverse is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" points="{{reverseArrowPoints}}" />{{/if}}
-            {{#if hasLabel}}<text class="mel-storyboard-connection-label" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
+            {{#if hasLabel}}<text class="mel-storyboard-connection-label is-status-{{connectionStatusClass}} {{#if isSelected}}is-selected{{/if}}" data-connection-id="{{id}}" x="{{labelPosition.x}}" y="{{labelPosition.y}}">{{label}}</text>{{/if}}
           {{/each}}
           {{#each chapterConnectionVisuals}}
             <line class="mel-storyboard-chapter-connection" data-chapter-connection-id="{{id}}" x1="{{x1}}" y1="{{y1}}" x2="{{x2}}" y2="{{y2}}" />
@@ -161,7 +156,7 @@
         </header>
         <section class="mel-storyboard-inspector-section mel-storyboard-connection-details-section">
           <div class="mel-storyboard-field-row">
-            <label for="mel-storyboard-connection-label">{{labels.connectionLabel}}</label>
+            <label for="mel-storyboard-connection-label">{{labels.titleField}}</label>
             <input id="mel-storyboard-connection-label" type="text" value="{{selectedConnection.label}}" data-connection-field="label" />
           </div>
           <div class="mel-storyboard-field-row">

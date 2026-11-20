@@ -1735,7 +1735,6 @@
   --mel-theme-info: var(--color-level-info, #59a1f6);
   --mel-theme-info-bg: var(--color-level-info-bg, color-mix(in srgb, var(--mel-theme-surface) 82%, #2f5090));
   --mel-theme-info-border: var(--color-level-info-border, var(--mel-theme-border));
-  --mel-theme-grid: color-mix(in srgb, var(--mel-theme-text-muted) 18%, transparent);
   --mel-theme-scrollbar: var(--color-scrollbar, var(--mel-theme-accent));
   --mel-theme-scrollbar-track: var(--color-scrollbar-track, transparent);
   color-scheme: var(--color-scheme, dark);
@@ -2000,10 +1999,6 @@
   background: var(--mel-theme-canvas);
 }
 
-.mel-storyboard .mel-storyboard-canvas pattern path {
-  stroke: var(--mel-theme-grid) !important;
-}
-
 .mel-storyboard .mel-storyboard-canvas {
   color: var(--mel-theme-text-muted);
   font-family: var(--font-body, var(--font-primary, sans-serif));
@@ -2066,11 +2061,11 @@
 }
 
 .mel-storyboard .mel-storyboard-connection {
-  stroke: var(--mel-theme-border-strong);
+  stroke: var(--mel-theme-text-muted);
 }
 
 .mel-storyboard .mel-storyboard-connection-arrow {
-  fill: var(--mel-theme-border-strong);
+  fill: var(--mel-theme-text-muted);
 }
 
 .mel-storyboard .mel-storyboard-connection.is-selected {
@@ -2107,8 +2102,20 @@
 
 .mel-storyboard .mel-storyboard-connection-label,
 .mel-storyboard .mel-storyboard-chapter-connection-label {
-  fill: var(--mel-theme-link);
+  fill: var(--mel-theme-text-strong);
   stroke: var(--mel-theme-canvas);
+}
+
+.mel-storyboard .mel-storyboard-connection-label.is-status-used {
+  fill: var(--color-level-success, var(--mel-theme-positive));
+}
+
+.mel-storyboard .mel-storyboard-connection-label.is-status-repeated-used {
+  fill: var(--color-level-success-border, var(--mel-theme-positive));
+}
+
+.mel-storyboard .mel-storyboard-connection-label.is-selected {
+  fill: var(--mel-theme-focus);
 }
 
 .mel-storyboard .mel-storyboard-chapter-connection,
@@ -2229,6 +2236,29 @@
   background: transparent;
 }
 
+.mel-storyboard .mel-storyboard-tree-item {
+  background: transparent;
+}
+
+.mel-storyboard .mel-storyboard-chapter-tree-item > .mel-storyboard-tree-node,
+.mel-storyboard .mel-storyboard-tree-children .mel-storyboard-tree-node,
+.mel-storyboard .mel-storyboard-chapter-tree-item > .mel-storyboard-tree-node .mel-storyboard-tree-label {
+  height: auto !important;
+  min-height: 3rem !important;
+  align-content: start;
+  line-height: 1.15;
+}
+
+.mel-storyboard .mel-storyboard-tree-node .mel-storyboard-tree-content,
+.mel-storyboard .mel-storyboard-tree-label .mel-storyboard-tree-content {
+  align-self: start;
+  min-height: 2.25rem;
+}
+
+.mel-storyboard .mel-storyboard-tree-node .mel-storyboard-tree-branch > i.fa-circle {
+  font-size: .45rem;
+}
+
 .mel-storyboard .mel-storyboard-tree-node:hover,
 .mel-storyboard .mel-storyboard-tree-label:hover {
   background: transparent;
@@ -2295,6 +2325,80 @@
   box-shadow: 0 5px 14px color-mix(in srgb, var(--color-shadow-dark, #000) 35%, transparent);
 }
 
+/* The chapter toggle belongs to the same row as the folder and title. Keep
+   it clickable, but remove the separate button panel so selected and
+   unselected chapters use the same visual language as scenes. */
+.mel-storyboard .mel-storyboard-chapter-node {
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+}
+
+.mel-storyboard .mel-storyboard-chapter-node > .mel-storyboard-tree-toggle {
+  width: 1.55rem;
+  min-width: 1.55rem !important;
+  min-height: 3rem !important;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mel-theme-text-muted);
+}
+
+.mel-storyboard .mel-storyboard-chapter-node > .mel-storyboard-tree-toggle:hover,
+.mel-storyboard .mel-storyboard-chapter-node > .mel-storyboard-tree-toggle:focus,
+.mel-storyboard .mel-storyboard-chapter-node > .mel-storyboard-tree-toggle:active {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard .mel-storyboard-chapter-tree-item.is-active > .mel-storyboard-tree-node > .mel-storyboard-tree-toggle {
+  color: var(--mel-theme-text-strong);
+}
+
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-container,
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-content {
+  background: var(--mel-theme-input-bg) !important;
+  color: var(--mel-theme-input-text) !important;
+}
+
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-content :is(p, li, blockquote, strong, em, h1, h2, h3, h4, h5, h6) {
+  color: var(--mel-theme-input-text) !important;
+}
+
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-content a {
+  color: var(--mel-theme-link) !important;
+}
+
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-menu,
+.mel-storyboard :is(.mel-storyboard-connection-description-editor-shell,
+  .mel-storyboard-scene-description-editor-shell,
+  .mel-storyboard-chapter-description-editor-shell,
+  .mel-storyboard-object-details-note-editor-shell) .editor-menu button {
+  background: var(--mel-theme-surface-raised);
+  border-color: var(--mel-theme-border);
+  color: var(--mel-theme-text-strong);
+}
+
 .mel-storyboard .mel-storyboard-inspector-details-title {
   display: flex;
   align-items: baseline;
@@ -2326,6 +2430,7 @@
   background: color-mix(in srgb, var(--mel-theme-accent) 12%, var(--mel-theme-surface));
   color: var(--mel-theme-text-strong);
   border-color: var(--mel-theme-border-strong);
+  font-weight: 600;
 }
 
 .mel-storyboard .mel-storyboard-element .mel-storyboard-element-decision-marker {
@@ -2349,4 +2454,19 @@ body.theme-dark .mel-storyboard .mel-storyboard-scene-icon.icon-open,
 .mel-storyboard.theme-dark .mel-storyboard-scene-icon.icon-default,
 .mel-storyboard.theme-dark .mel-storyboard-scene-icon.icon-open {
   filter: brightness(0) invert(1);
+}
+
+body.theme-light .mel-storyboard,
+.mel-storyboard.theme-light {
+  color-scheme: light;
+}
+
+body.theme-dark .mel-storyboard,
+.mel-storyboard.theme-dark {
+  color-scheme: dark;
+}
+
+.mel-storyboard .mel-storyboard-read-only-rich-text,
+.mel-storyboard .mel-storyboard-read-only-rich-text :is(p, li, blockquote, strong, em, h1, h2, h3, h4, h5, h6) {
+  color: var(--mel-theme-text) !important;
 }
