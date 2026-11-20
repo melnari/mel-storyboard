@@ -1,231 +1,295 @@
 # Mel-Storyboard
 
-Mel-Storyboard is a Foundry Virtual Tabletop 14.x module for Game Masters who plan branching adventures visually. It provides a Foundry-native scene board for arranging Scenes, documenting their content, and connecting them into a directed or bilateral flow.
+Mel-Storyboard is a Foundry Virtual Tabletop module for planning branching stories and adventures on a visual scene board. Scenes are arranged in chapters, connected on a canvas, enriched with Foundry document links, and tracked with statuses, notes, icons, and player-character assignments.
 
-## Current version
+## Release and compatibility
 
-`0.2.1`
+- Current version: `1.0.0`
+- Minimum Foundry VTT version: `14`
+- Verified Foundry VTT version: `14.370`
+- Supported languages: English, German, French, Spanish, and Dutch
+- License: Apache License 2.0
 
-The current release organizes the Scene board into Chapters. Storyline and separate template-management features are not part of the active user interface.
-
-## Requirements
-
-- Foundry Virtual Tabletop 14.x. Foundry `14.370` is the project validation target. The manifest currently records `14.368` as the last verified build; do not raise that value until the current source has been manually checked in Foundry `14.370`.
-- A Game Master user. Assistant Game Masters can open the board in read-only mode.
-- No additional runtime modules or external services are required.
-
-Mel-Storyboard is system-independent. It uses Foundry users, world settings, document permissions, and native Foundry document links. It does not require a separate account, login, server, or external application.
-
-## Opening the Storyboard
-
-The Storyboard can be opened through:
-
-- the module entry in Foundry Game Settings;
-- the Storyboard icon in the Foundry Scene Controls;
-- the `Alt+S` keybinding, which toggles the application open and closed.
-
-The application is a Foundry-native window and cannot be detached into a separate window.
-
-## Roles and editing access
-
-Only a full Game Master can edit the shared Storyboard. The first active full Game Master selected by Foundry receives editing access. Assistant Game Masters and other full Game Master clients can inspect Chapters, Scenes, Connections, linked Foundry documents, and exports, but cannot change board data or save their view preferences. Players do not have access to the Storyboard.
-
-The module does not use browser locks, heartbeats, or a module-owned edit lease. The active full Game Master is the single editor; additional GM clients remain read-only. Multiple tabs of the same active GM share that user's Foundry permission, so the GM should use one editing tab at a time. The UI shows a read-only banner and disables editing controls while access is unavailable.
-
-Scene, Chapter, Connection, and Object note editors keep edits as drafts until their editor Save action is used. Leaving edited details or closing the window prompts the GM to save, discard, or continue editing. If editing access is lost, the current draft stays visible and can be saved only after access returns.
-
-While the Foundry session remains active, the full GM's window size and position, zoom, active Chapter, selected element, and collapsed navigation/inspector state are retained when the application is closed and reopened. This view state is intentionally held only in memory and returns to the normal initial state after Foundry or the GM session is restarted. Read-only users may adjust their view while the window is open, but those temporary view changes are not persisted.
-
-## Interface and links
-
-The Storyboard uses a desktop-first Foundry application window with a consistent navigation tree, canvas, inspector, native controls, and keyboard-visible focus. Linked Actors, Items, Journals, Scenes, Playlists, and Playlist tracks appear as readable Foundry links by title; their UUIDs remain available in Object Details. Clicking a link uses the appropriate Foundry view, journal page/heading, or expanded Playlist sidebar.
-
-## Scene board
-
-The interface consists of three areas:
-
-- A collapsible navigation tree on the left. The active root is named `Story`; Chapters contain their Scenes with display IDs and titles. A second root named `Archive` contains archived Chapters only, with their Scenes nested below them.
-- A central canvas with the Scene Cards of the selected Chapter.
-- A collapsible inspector on the right for Chapter Details, Scene Details, or Connection Details.
-
-The expanded navigation and inspector columns are sized for comfortable editing. Both columns can be collapsed independently. Hover a Chapter or Scene entry for two seconds to display its complete title below the entry; long titles wrap without changing the normal tree layout.
-
-Chapters receive sequential names such as `Chapter 1`, `Chapter 2`, and so on. Active Chapters can be reordered by dragging them in the Story tree. Scenes can be reordered within a Chapter or dragged between active Chapters. Right-clicking the Story root creates a Chapter. Right-clicking an active Chapter opens Chapter Details, creates Entry or Exit nodes, archives the Chapter, or deletes the Chapter after confirmation. Archiving moves the complete Chapter, including its Scenes, Scene Cards, Scene Connections, Entry/Exit nodes, and Chapter-node links, to the end of the Archive. Right-clicking an archived Chapter offers Restore; restoring moves it to the end of the Story hierarchy. All Chapters may be archived. Deleting a Chapter removes its Scenes, Scene Cards, Scene Connections, and Chapter-node links.
-
-Each Chapter can contain multiple editable Entry and Exit nodes. Entry and Exit nodes can be moved on the canvas like Scene Cards. Chapter links are created through a node context menu and connect an Exit node in one Chapter to an Entry node in another Chapter. Scene Connections remain restricted to Scenes within the same Chapter, with the additional valid paths Entry → Scene and Scene → Exit.
-
-Scene Cards display the title, description, display ID, and status. Rich-text markup is removed from the compact description preview while readable line breaks are retained. The preview uses the full inner card width and is limited to ten rendered lines; longer text ends with `...` on the last visible line. Cards can be resized below the description's natural height; text that no longer fits is shortened with `...`, while the full description remains available in Scene Details. Titles and descriptions wrap to the available card width, including after manual resizing.
-
-The world setting `Scene display` selects between `Detailed scenes` (the default) and `Compact scenes`. Detailed cards use the full layout described above. Compact cards retain the title, display ID, status, Scene icon, Player Character tokens, and Connections but omit the description from the card; the full description remains available in Scene Details. Standard, Event, and Challenge shapes continue to work without the description. A compact Decision scene is rendered as a flat diamond containing its title, ID, status, and available icons/tokens; titles are limited to two lines and end with `...` when necessary. Compact card height is calculated from the remaining content unless the card was explicitly resized.
-
-Scene Details also provide a localized `Scene shape` selector. The default `Standard scene` uses the existing rounded card. `Decision` uses the same readable rectangular card with a diamond marker in the header, `Event` renders a parallelogram with wider side margins, and `Challenge` renders a double-framed card. The selected shape is stored with the Scene and is reflected in the live canvas and SVG, PNG, and PDF exports. Connections continue to follow the visible shape boundary.
-
-Scene Cards do not open a separate detail window on double-click. Select a Scene Card to use the right-side Scene Details inspector for editing.
-
-The optional world setting `Use status-based coloring` is disabled by default. When enabled, Scene Card backgrounds use readable pastel colors for Open, Waiting, Active, Success, Partial Success, Failure, Skipped, Completed, and Unfinished. Completed uses the Waiting color and Unfinished uses the Skipped color. The same coloring is included in SVG, PNG, and PDF exports. When disabled, the existing neutral card color scheme is retained.
-
-The optional world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details provides a localized `Type` selector containing Foundry's Map Notes entry icons plus `None` (without `Custom`). The selected icon is shown in the lower-right corner of the Scene Card and is included in SVG, PNG, and PDF exports. Changing the selector updates the Scene Card immediately; selecting `None` or disabling the setting hides the icon, while the selected type remains saved. The selector stores the original Foundry icon key, so changing the interface language does not change existing assignments.
-
-When `Use status-based coloring` is also enabled, Scene Icons use a status-specific high-contrast foreground color. Open uses white; Waiting, Active, Success, Partial Success, Failure, and Skipped use dark colors suited to their pastel card backgrounds. In the neutral card color scheme, Scene Icons are always white. Player Character names shown on hover remain white on every status color.
-
-Player Characters assigned to a Scene are shown as small artwork tokens at the bottom of the card. Hovering a token shows the Actor name. A Player Character token can be dragged to another Scene Card to move the assignment.
-
-## Scene actions
-
-- Create a Scene from the left navigation or the canvas context menu. New Scenes receive sequential names such as `Scene 1`, `Scene 2`, and so on.
-- Select a Scene to open its Scene Details in the right inspector.
-- Edit the title, status, and description in Scene Details and save the changes.
-- Right-click a Scene Card to connect or delete it.
-- Right-click an empty canvas area to create a Scene. Right-click a Chapter in the tree to append a new Scene to that Chapter.
-- Duplicate Scenes as independent Scene and Scene Card records.
-- Move Scene Cards by dragging with the left mouse button.
-- Drag a Scene to another Chapter in the navigation tree. Connections that would cross the Chapter boundary are removed automatically and a warning is shown.
-- Click the canvas background to clear the current selection.
-- Pan the canvas by dragging its background with the left mouse button.
-- Zoom with the `+` and `-` toolbar buttons or the mouse wheel.
-- Undo and redo changes from the toolbar or with the usual keyboard shortcuts.
-
-## Connections
-
-Connections can be created in two ways:
-
-1. Choose the connection action from a Scene context menu and select the target Scene or Exit node.
-2. Use the Entry-node context menu to start an Entry → Scene connection, or the Exit-node context menu to select the source Scene for a Scene → Exit connection.
-3. Press and hold the middle mouse button on a Scene Card or Entry node, drag to the target endpoint, and release.
-
-The same middle-button drag interaction creates an Entry → Scene or Scene → Exit connection. Invalid endpoint directions and cross-Chapter connections are rejected. Moving a Scene to another Chapter automatically removes affected Connections so the board remains valid.
-
-Click a Connection to open Connection Details in the right inspector. The following fields and actions are available:
-
-- Connection Label;
-- Connection Type;
-- Connection Status (`not used`, `used`, or `repeatedly used`); the line and arrows use the selected status color, while the label remains in the neutral standard color;
-- Rich Text Description using Foundry's editor;
-- Save button;
-- independent Object assignments through Drag & Drop.
-
-The available Connection Types are:
-
-- `unilateral` — one arrow in the source-to-target direction;
-- `unilateral deactivated` — one direction shown as a dotted connection;
-- `bilateral` — symmetrical arrows in both directions;
-- `bilateral deactivated` — symmetrical dotted connection with arrows in both directions.
-
-Scene statuses are `Open`, `Waiting`, `Active`, `Success`, `Partial Success`, `Failure`, `Skipped`, `Completed`, and `Unfinished`. A right-click on a Player Character token removes that assignment from the current Scene while leaving the shared Foundry Object available elsewhere.
-
-The Connection Details Object list supports the same Details, Note, and Delete actions as Scene Objects. Connection Objects are assigned directly to the Connection and do not need to be assigned to either Scene.
-
-Right-clicking a Connection provides the delete action. Connection Labels are edited in Connection Details rather than through the context menu.
-
-## Foundry Object links
-
-Foundry documents can be dragged onto a Scene Card or Connection. The module supports:
-
-- Actors, including Player Characters and NPCs;
-- Items;
-- Journals, Journal Pages, and links to headings within Journal Pages;
-- Scenes;
-- Rollable Tables;
-- Macros;
-- Playlists;
-- individual Playlist tracks (`PlaylistSound`).
-
-Assigned Objects show their title, artwork or icon, type, and optional note. The title links back to the corresponding Foundry document. Existing Foundry Journal links can be dragged onto a Scene, including direct Journal Page links and heading anchors such as `@UUID[JournalEntry...JournalEntryPage...#heading-id]{Heading}`. The complete UUID including the optional anchor is preserved in JSON and graphic-board data. Clicking such a link opens the native Journal view and focuses the selected page or heading when available. Foundry Scenes are opened with their native `View` behavior for the GM. Individual Playlist tracks retain their embedded `PlaylistSound` UUID and open the native Foundry Playlist sidebar with the parent Playlist expanded and the linked track brought into view; the separate track configuration is not opened.
-
-Object Details provide the document type, title, UUID, Foundry document type, and a Foundry-compatible Rich Text note editor. Notes are stored on the assignment, so a note can be maintained independently for each Scene or Connection assignment.
-
-## Import and export
-
-The `Import/Export` menu provides:
-
-- JSON import;
-- JSON export;
-- SVG export;
-- PNG export;
-- PDF export.
-
-Before exporting, choose the entire Storyboard, the current Chapter, or selected Chapters. JSON remains one editable board export. For graphic exports containing multiple Chapters, each Chapter is isolated to its own graphic: SVG and PNG create one file per Chapter, while PDF creates one Chapter per page. This prevents Chapter layouts from overlapping when different Chapters use the same canvas coordinates. During import, choose whether to replace the entire Storyboard, add the imported content as new Chapters, or add the first imported Chapter to an existing Chapter. Older JSON boards without Chapters are migrated automatically into `Chapter 1`.
-
-JSON preserves the editable board data, including Chapter order and archived state, Entry and Exit nodes, Scenes, Scene Card positions and sizes, statuses, descriptions, Connections, Chapter links, Connection Types, Connection Status, labels, descriptions, and linked Objects.
-
-SVG, PNG, and PDF exports contain the visual Scene board, including Scene Card text, statuses, optional Scene icons, Connection labels, arrows, bilateral Connections, Entry/Exit nodes, and dotted deactivated Connections. Scene icon assets are embedded into graphic exports so the downloaded SVG remains self-contained and the icons are retained when rendering PNG or PDF output. HTML formatting tags are not included in the Scene Card description text.
-
-Imported boards are validated and normalized. Older Connections without the current Connection fields default to `unilateral`. Unsupported schema versions are rejected with an error instead of replacing the board with empty data.
-
-## Storage and permissions
-
-The board is stored in the module's world setting `sceneBoard`. Foundry replicates this setting to world clients, while the module enforces editing in its Store and UI: only the first active full Game Master selected by Foundry can save board data. Assistant Game Masters and other full Game Master clients receive a read-only view. No browser lock, heartbeat, Journal ACL, or module-owned session lease is used.
-
-For worlds that were previously migrated by an intermediate development build, the module can read the old private Journal flags `privateBoardStorage` and `sceneBoard` once. The active full Game Master copies valid Journal data back into the world setting; the Journal is not used as the runtime store and is not deleted automatically. This compatibility path prevents existing Chapters and Scenes from being lost while removing the Journal dependency from normal startup.
-
-View preferences are kept in a user-scoped setting and are written only by the editing full Game Master; read-only users can change their temporary view but those changes are discarded when they close the window. Access to linked Foundry documents continues to follow Foundry's own permissions and document availability.
-
-The module adds two world settings under `Mel-Storyboard`:
-
-- `Use status-based coloring`, disabled by default;
-- `Show Icons on Scene`, disabled by default;
-- `Scene display`, set to `Detailed scenes` by default, with `Compact scenes` as the alternative.
-
-Both settings are GM-restricted. Disabling either setting hides its visual effect while retaining the saved Scene data.
-
-## Languages
-
-The module uses English (`en`) as its default and fallback language and includes:
-
-- German (`de`);
-- French (`fr`);
-- Spanish (`es`);
-- Dutch (`nl`).
-
-User-authored Scene, Connection, and Object content is not automatically translated.
-
-## Limitations and troubleshooting
-
-- Scene-to-Scene Connections are limited to a single Chapter. Moving a Scene between Chapters removes affected cross-Chapter Connections and displays a warning.
-- Chapter links are separate from Scene Connections and use Exit-to-Entry routing between different Chapters.
-- Graphic exports are generated per Chapter when more than one Chapter is selected, so identical Scene Card coordinates cannot cause overlap between Chapters.
-- Foundry document links require the referenced document to remain available to the current user. A deleted or inaccessible document cannot be opened from the board.
-- Individual Playlist tracks open in the native Playlist sidebar. The track configuration sheet is intentionally not opened.
-
-If the module does not appear after an update, reload the world after confirming that `Mel-Storyboard` is enabled in Module Management. For functional problems, reproduce the issue as a GM and report it with the Foundry version, module version, browser console error, and a minimal description at the [GitHub issue tracker](https://github.com/melnari/mel-storyboard/issues).
-
-## Support and asset credits
-
-For questions, bug reports, and feature requests, use the [GitHub repository](https://github.com/melnari/mel-storyboard) or its [issue tracker](https://github.com/melnari/mel-storyboard/issues).
-
-The module does not bundle third-party artwork or audio assets. Scene and Object artwork is read from the user's Foundry documents and remains subject to the permissions and licenses of those documents. The module source is distributed under the Apache License 2.0.
+The module is system-independent and has no external service or runtime package dependency.
 
 ## Installation
 
-The module can be installed from its manifest URL:
+Install from the module manifest:
 
 ```text
 https://raw.githubusercontent.com/melnari/mel-storyboard/main/module.json
 ```
 
-It can also be installed manually by placing the repository in:
+Alternatively, place the repository in:
 
 ```text
 Data/modules/mel-storyboard/
 ```
 
-Enable `Mel-Storyboard` in the Foundry module management screen and reload the world.
+Enable `Mel-Storyboard` in Foundry's Module Management and reload the world.
+
+## Access model
+
+Mel-Storyboard is a GM tool. Players do not receive access to the module.
+
+- The full Game Master designated by Foundry as `game.users.activeGM` can edit and save the shared Storyboard.
+- Assistant Game Masters can open the Storyboard in read-only mode.
+- Other full Game Masters are also read-only while another full Game Master is designated active.
+- Read-only users can navigate the board, open Foundry links, and export it, but cannot modify board data or save their window view.
+- The module does not use browser locks, edit leases, heartbeats, or a second login/session system.
+
+## Opening the Storyboard
+
+The application can be opened or toggled through:
+
+- the `Storyboard` entry in Foundry Game Settings;
+- the Storyboard button in the Foundry Scene Controls;
+- the default `Alt+S` keybinding.
+
+`Alt+S` opens the application when it is closed and closes it when it is open. The application is a resizable Foundry window and cannot be detached.
+
+While the active full GM's Foundry client remains open, the module remembers the Storyboard window position and size, zoom, active chapter, selected element, expanded tree entries, Archive state, and collapsed sidebars. This view state is held in memory only. After restarting Foundry or the GM session, the normal initial view is used. Read-only view changes are temporary.
+
+## User interface
+
+The application has three areas:
+
+1. The left navigation tree contains the active `Story` hierarchy and the `Archive`.
+2. The center canvas displays the selected chapter, its Scene Cards, Entry/Exit nodes, and connections.
+3. The right inspector displays `Details` for the selected scene, chapter, or connection.
+
+The sidebar and inspector can be collapsed independently. The desktop layout uses a 275 px navigation column and a 380 px inspector column when both are expanded. The application follows Foundry's active Light/Dark theme for backgrounds, typography, controls, links, status indicators, and exported graphics.
+
+The navigation tree shows every chapter and scene as a two-line entry: title on the first line and display ID plus status below it. The selected entry is highlighted as a complete row. Hold the pointer over a chapter or scene for two seconds to show its complete title.
+
+## Chapters and Archive
+
+`Story` is the root for active chapters. `Archive` is a second root containing archived chapters only. Chapters contain scenes, Scene Cards, Entry/Exit nodes, and chapter links.
+
+- New chapters are named `Chapter 1`, `Chapter 2`, and so on.
+- New scenes are named `Scene 1`, `Scene 2`, and so on.
+- Chapters can be expanded, collapsed, and reordered by drag and drop.
+- Scenes can be reordered within a chapter or dragged to another chapter.
+- Right-clicking the Story root creates a chapter.
+- Right-clicking a chapter opens Details, creates a scene, creates Entry/Exit nodes, archives the chapter, or deletes it.
+- Archiving moves the complete chapter to the end of the Archive. All chapters may be archived.
+- Right-clicking an archived chapter restores it to the end of the active Story hierarchy.
+- Deleting a chapter requires confirmation and removes its scenes, Scene Cards, local connections, Entry/Exit nodes, and chapter links.
+- The last remaining chapter cannot be deleted.
+
+Moving a scene to another chapter removes any Scene Connections that would cross the chapter boundary and displays a warning. The scene is then appended to the target chapter unless it is dropped on another scene, in which case it is inserted at that position.
+
+## Scenes and Scene Cards
+
+Select a scene in the tree or on the canvas to edit it in the right-side `Details` inspector. Double-clicking a Scene Card does not open a separate detail window.
+
+Scene Details contain:
+
+- Title;
+- Status;
+- Scene shape;
+- optional Scene icon type;
+- full rich-text Description;
+- assigned Foundry Objects and assignment notes.
+
+The Scene Card displays the title, display ID, status, optional icon, player-character tokens, and connections. In Detailed mode it also displays a plain-text description preview. Rich-text tags are removed from the preview, readable line breaks are retained, and the preview is limited to ten rendered lines. If the card is too small for the complete preview, the last visible line ends with `...`. The full Description in Scene Details is never changed by this preview rule.
+
+Titles wrap to the available card width, including after manual resizing. Scene Cards can be moved and resized with the mouse. Resizing stores a locked visual size; the card still wraps and truncates text to fit that size.
+
+### Scene shapes
+
+The Scene Details `Scene shape` selector offers:
+
+- `Standard scene`: rounded rectangular card;
+- `Decision`: detailed cards use a rectangular card with a diamond marker; compact cards use a flat diamond;
+- `Event`: parallelogram with slanted sides;
+- `Challenge`: rounded card with a double frame.
+
+The selected shape is stored with the scene. Connection endpoints are calculated against the visible shape boundary, including the parallelogram and compact diamond. All shapes are used consistently in the canvas and SVG, PNG, and PDF exports.
+
+### Detailed and Compact scenes
+
+The world setting `Scene display` is global and defaults to `Detailed scenes`.
+
+`Detailed scenes` display the description preview in addition to the title, ID, status, icons, player-character tokens, and connections.
+
+`Compact scenes` omit descriptions from Scene Cards but retain titles, IDs, statuses, icons, player-character tokens, and connections. Standard, Event, and Challenge shapes remain available. A compact Decision scene is a flat diamond with a centered title, a centered ID in the upper area, status, and available icons/tokens inside the shape. Compact decision titles are limited to two lines and use `...` when shortened; the Scene Details description remains complete.
+
+### Statuses and coloring
+
+Scenes and chapters support these statuses:
+
+| Status | Meaning |
+|---|---|
+| `Open` | `OFFEN` |
+| `Waiting` | `WAITING` |
+| `Active` | `AKTIV` |
+| `Success` | `ERFOLG` |
+| `Partial success` | `TEILERFOLG` |
+| `Failure` | `FEHLSCHLAG` |
+| `Skipped` | `UEBERSPRUNGEN` |
+| `Completed` | `ABGESCHLOSSEN` |
+| `Unfinished` | `UNERLEDIGT` |
+
+The world setting `Use status-based coloring` is disabled by default. When enabled, Scene Cards use readable pastel status colors. `Completed` uses the `Waiting` color and `Unfinished` uses the `Skipped` color. The navigation tree remains in the neutral theme; status coloring does not recolor the left tree. When the setting is disabled, the default card color scheme is retained.
+
+### Scene icons and player characters
+
+The world setting `Show Icons on Scene` is disabled by default. When enabled, Scene Details contains a localized `Type` dropdown based on Foundry's `CONFIG.JournalEntry.noteIcons`. It contains `None` plus the available Map Notes entry icons and no `Custom` entry. The stored icon key is language-independent. The selected icon is shown on the lower-right of normal cards and centered at the bottom of compact Decision diamonds. `None` hides the icon; disabling the setting hides it without deleting the saved selection.
+
+Scene icons are included in SVG, PNG, and PDF exports. With status coloring enabled, icons use a contrasting status-specific color; icons in the default neutral scheme are white.
+
+Objects of type `Player character` assigned to a scene are shown as small artwork tokens on the Scene Card. A token can be dragged to another Scene Card to move its assignment. Right-clicking a player-character token removes the assignment from the current scene without deleting the underlying Foundry Object.
+
+## Connections and chapter links
+
+### Scene Connections
+
+Scene Connections are restricted to a single chapter. Valid endpoint combinations are:
+
+- Scene → Scene;
+- Entry → Scene;
+- Scene → Exit.
+
+Connections can be created by:
+
+- right-clicking a Scene Card and choosing the connection action;
+- right-clicking an Entry or Exit node and choosing the compatible source/target action;
+- dragging with the middle mouse button from one endpoint to another.
+
+The domain validation rejects self-connections, invalid Entry/Exit directions, duplicate connections, and cross-chapter connections.
+
+Each Scene Connection has:
+
+- a title/label;
+- a connection type;
+- a connection status;
+- a rich-text description;
+- independent Foundry Object assignments.
+
+Connection types are:
+
+- `unilateral`;
+- `unilateral deactivated` (dotted);
+- `bilateral`;
+- `bilateral deactivated` (dotted in both directions).
+
+Connection statuses are:
+
+- `not used` (default neutral presentation);
+- `used` (green line and arrows);
+- `repeatedly used` (dark-green line and arrows).
+
+The connection status is independent of the connection type. Selecting a connection opens Connection Details in the right inspector. Connections can be deleted from their context menu.
+
+### Entry/Exit and chapter links
+
+Each chapter can contain multiple editable Entry and Exit nodes. Nodes are circles, can be renamed, and can be moved on the canvas like Scene Cards. A chapter context menu creates them; a node context menu renames or deletes them, starts a compatible Scene Connection, or links the node to another chapter node.
+
+Chapter links are separate from Scene Connections. They connect an Exit node in one chapter to an Entry node in another chapter. A node can be linked through the context menu. Double-clicking a linked Entry or Exit node switches to the other chapter, centers the target node in the view, and briefly highlights it. Chapter links can be selected and deleted independently.
+
+## Foundry Object links
+
+Foundry documents can be dragged onto a Scene Card or a Scene Connection. The live drag-and-drop handler accepts:
+
+- `Actor` – mapped to `Player character` for character actors, otherwise `NPC`;
+- `Item`;
+- `JournalEntry` and `JournalEntryPage`;
+- `Scene`;
+- `RollTable`;
+- `Macro`;
+- `Playlist`;
+- `PlaylistSound` (individual Playlist track).
+
+The board stores one shared Object record per Foundry UUID and an independent assignment per Scene or Connection. Assignments can hold a role and a rich-text note. The Object Details window shows the object type, title, UUID, Foundry document type, and assignment note. Notes belong to the assignment, not to the Foundry document.
+
+Foundry links retain their UUID and display title. Journal links can target a Journal Entry, a Journal Page, or a heading anchor on a page, for example:
+
+```text
+@UUID[JournalEntry.hS70xLgbM69RW99I.JournalEntryPage.ktQMVpgbM0KkB7JU#uberschrift-1]{Überschrift 1}
+```
+
+Opening a Journal Page renders the parent Journal and selects the page; a stored heading anchor is forwarded to Foundry's Journal sheet when supported. Scene links use the native `Scene.view()` behavior. Individual Playlist-track links activate the native Playlist sidebar, expand the parent Playlist, scroll to the track, and briefly highlight it. The Playlist track configuration sheet is not opened.
+
+## Import and export
+
+The `Import/Export` menu provides JSON import and JSON, SVG, PNG, and PDF export.
+
+Before an export, choose:
+
+- the entire Storyboard;
+- the current chapter;
+- selected chapters.
+
+JSON exports preserve editable board data. Graphic exports include Scene Cards, shapes, statuses, icons, player-character artwork, Entry/Exit nodes, connection lines, arrows, labels, bilateral arrows, and deactivated dotted lines. The export theme is read from the active Light/Dark theme. Scene and player-character artwork is embedded as data URLs when available so SVG, PNG, and PDF retain the images.
+
+When more than one chapter is selected, SVG and PNG create one file per chapter and PDF creates one page per chapter. Each chapter is rendered in its own board scope so equal Scene Card coordinates cannot overlap between chapters.
+
+JSON import offers:
+
+- replace the entire Storyboard;
+- add the imported chapters as new chapters;
+- add the first imported chapter to an existing target chapter.
+
+Merged imports receive new UUIDs and display IDs; internal scene, element, node, object, template, and connection references are remapped. Imported data is normalized and validated before it becomes the stored board. Older supported board data is normalized into the current chapter-based schema; a board without chapters receives `Chapter 1`.
+
+## Storage and compatibility
+
+The shared board is stored in the world setting:
+
+```text
+mel-storyboard.sceneBoard
+```
+
+The current board schema version is `5`. It contains chapters, scenes, visual Scene Elements, Scene Connections, chapter links, objects, and retained template records.
+
+For compatibility with worlds containing the module's private Journal storage flags, startup can read a valid board from a Journal and copy it into the world setting when the world setting is missing or empty. The world setting is then the runtime source of truth; the Journal is not used for normal reads and is not automatically deleted.
+
+The Store validates every save and import. Only the designated active full Game Master may write. The UI and Store both enforce read-only access.
+
+## Localization
+
+The default language is English. The following language files are shipped and kept with the same key set:
+
+- `lang/en.json`;
+- `lang/de.json`;
+- `lang/fr.json`;
+- `lang/es.json`;
+- `lang/nl.json`.
+
+Interface labels, statuses, connection types, scene shapes, scene icon names, object types, prompts, notifications, and settings are localized. User-authored titles, descriptions, and notes are not machine-translated.
 
 ## Development
 
-The repository has no runtime package dependencies. Run the automated checks from the project directory:
+The repository has no runtime package dependencies. Run the checks from the repository directory:
 
 ```text
 npm test
 npm run check
 ```
 
-The checks cover domain behavior, import/export data handling, Connection geometry, JavaScript syntax, manifest paths, JSON files, and localization keys.
+`npm test` runs the Node domain and export tests. `npm run check` validates JavaScript syntax, manifest paths, JSON files, and localization-key parity.
 
-For the architecture, data model, Foundry interfaces, event flows, maintenance guidance, and manual test matrix, see the [technical documentation](TECHNICAL_DOCUMENTATION.md).
+The architecture and data model are documented in [TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md).
 
-## License
+## Known boundaries
 
-Code and project material are distributed under the Apache License 2.0. See [LICENSE](LICENSE).
+- Only full-GM users can edit; Assistant GMs are read-only.
+- Scene Connections cannot cross chapter boundaries.
+- Chapter links are only Exit → Entry between different chapters.
+- Only chapters can be archived; scenes have no independent archive state.
+- Foundry document links require the document to remain available to the current user.
+- The application is desktop-oriented and cannot be detached.
+- Template records and domain functions remain part of the compatible board schema, but template management is not exposed in the active Storyboard interface.
 
-Parts of this module were created with AI assistance. The maintainer reviews, tests, maintains, develops, and supports the code and is responsible for its quality, compatibility, licensing, and continued development.
+## Support and license
+
+- Repository: <https://github.com/melnari/mel-storyboard>
+- Issues: <https://github.com/melnari/mel-storyboard/issues>
+- License: [Apache License 2.0](LICENSE)
+
+The module does not bundle third-party artwork or audio. Artwork and audio references come from the user's Foundry documents and remain subject to their permissions and licenses.
+
+## AI Usage Declaration
+
+Parts of this module were created with AI assistance. The maintainer reviews, tests, maintains, develops, and supports the code and is responsible for its quality, compatibility and continued development.

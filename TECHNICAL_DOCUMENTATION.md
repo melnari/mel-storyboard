@@ -1,247 +1,325 @@
-# Mel-Storyboard – technische Dokumentation
+# Mel-Storyboard – Technical Documentation
 
-## 1. Zweck und Geltungsbereich
+## 1. Purpose and current state
 
-Mel-Storyboard ist ein natives Foundry-VTT-Add-on-Modul für Game Master. Es stellt eine interaktive Szenenübersicht bereit, in der Szenen in Kapiteln angeordnet, beschrieben und über gerichtete oder bilaterale Verbindungen verknüpft werden können.
+Mel-Storyboard is a Foundry Virtual Tabletop module for Game Masters. It provides a shared visual storyboard in which scenes are organized into chapters, placed on a canvas, described, and connected into a branching flow.
 
-Diese Dokumentation beschreibt den Repository-Stand auf Basis des Releases `v0.2.1` sowie die vereinfachte aktive-GM-Berechtigung:
+This document describes the current implementation:
 
-- Foundry Virtual Tabletop 14.x; `14.370` ist die Validierungszielversion. `module.json` nennt weiterhin `14.368` als letzte verifizierte Version, bis der aktuelle Quellstand manuell mit Foundry `14.370` geprüft wurde;
-- Foundry-nativ, ohne separate Anmeldung oder externen Dienst;
-- Bearbeitung ausschließlich durch den von Foundry bestimmten aktiven Voll-GM; Assistant GMs und weitere Voll-GMs erhalten nur Lesezugriff;
-- keine modulinterne Lock-, Lease- oder Heartbeat-Verwaltung;
-- JavaScript/ES-Module für den Runtime-Code;
-- englische Basissprache mit Deutsch, Französisch, Spanisch und Niederländisch;
-- Speicherung im World-Setting `sceneBoard`; alte Journal-Daten werden nur als einmalige Kompatibilitätsmigration gelesen;
-- Import und Export als JSON, SVG, PNG und PDF.
+- module version: 1.0.0;
+- minimum Foundry VTT version: 14;
+- verified Foundry VTT version in module.json: 14.370;
+- English reference localization with German, French, Spanish, and Dutch translations;
+- shared board storage in the world setting mel-storyboard.sceneBoard;
+- current board schema: STORE_SCHEMA_VERSION = 5.
+- no external runtime packages and no external service.
 
-Die frühere Storyline-Ebene und die aktive Template-Verwaltung gehören nicht mehr zur sichtbaren Oberfläche. Template-Daten und zugehörige Domain-Funktionen bleiben im Datenmodell erhalten, damit bestehende Boards importiert und migriert werden können.
+The application is designed for Foundry Desktop and one active editing full Game Master. It is a GM preparation and play-support tool, not a player-facing interface, and it cannot be detached from its Foundry window.
 
-## 2. Aktueller Funktionsumfang
+## 2. Permissions and session model
 
-### Rollen, Bearbeitungszugriff und Ansichtsstatus
+### 2.1 Roles
 
-- Nur User mit `CONST.USER_ROLES.GAMEMASTER` dürfen Board-Daten bearbeiten. Assistant GM ist ausdrücklich nur leseberechtigt.
-- Assistant GMs (`ASSISTANT`) können das Fenster öffnen, aber nur lesen, Foundry-Links öffnen und exportieren. Sie können Board-Daten und ihre Fensteransicht nicht speichern.
-- Foundrys `game.users.activeGM` bestimmt den einen aktiven Gamemaster für dieses Modul. Bearbeitungszugriff erhält dieser User nur, wenn seine Rolle exakt `GAMEMASTER` ist; Assistant GMs bleiben leseberechtigt.
-- Bei Verbindungs- oder Rollenänderungen aktualisiert das Modul den Zugriff anhand der aktuellen Foundry-Auswahl. Wechselt der aktive GM während ungespeicherter Änderungen, werden Eingaben gesperrt und die Entwürfe bleiben sichtbar.
-- Das Hauptfenster bietet einen einheitlichen Speichern/Verwerfen/Weiterbearbeiten-Ablauf. Object Details behandeln Notizentwürfe ebenfalls, bevor das Fenster geschlossen wird.
-- Fensterposition und -größe, Zoom, aktives Kapitel sowie eingeklappte Seitenleisten werden nur für den bearbeitenden Voll-GM in einem benutzerspezifischen Setting gehalten.
+Permission checks are implemented in scripts/domain/permissions.js:
 
-Die Oberfläche ist für Foundry Desktop ausgelegt. Sie verwendet ein konsistentes Baum-/Canvas-/Inspector-Layout, sichtbare Tastaturfokusse und gestylte Foundry-Content-Links. Assistant GMs sehen einen Nur-Lese-Hinweis und deaktivierte Bearbeitungsaktionen.
+- isFullGamemaster(user) accepts only CONST.USER_ROLES.GAMEMASTER.
+- isDesignatedGamemaster(user) compares the user with game.users.activeGM and falls back to the first active full GM if necessary.
+- game.user.isGM alone is not sufficient for write access because Assistant GMs also satisfy the general GM check.
 
-### Kapitel und Archiv
+The resulting access model is:
 
-- Das Root-Element `Story` enthält aktive Kapitel.
-- Das Root-Element `Archive` enthält archivierte Kapitel.
-- Kapitel enthalten Szenen, Szenelemente, Entry-/Exit-Knoten und deren interne Verbindungen.
-- Kapitel können im Baum auf- und zugeklappt sowie per Drag & Drop sortiert werden.
-- Szenen können innerhalb eines Kapitels sortiert oder in ein anderes Kapitel verschoben werden.
-- Beim Verschieben einer Szene zwischen Kapiteln werden ungültige Cross-Chapter-Verbindungen automatisch entfernt und gemeldet.
-- Neue Kapitel heißen automatisch `Chapter 1`, `Chapter 2` usw.
-- Neue Szenen heißen automatisch `Scene 1`, `Scene 2` usw.
-- Kapitel können archiviert, wiederhergestellt oder nach Bestätigung gelöscht werden.
-- Beim Löschen eines Kapitels werden alle enthaltenen Szenen, Elemente, lokalen Verbindungen, Knoten und Kapitelverbindungen gelöscht.
+| User | Open storyboard | Change board data | Save board | Save view state |
+|---|---:|---:|---:|---:|
+| designated active full GM | yes | yes | yes | yes |
+| other full GM | yes | no | no | no |
+| Assistant GM | yes | no | no | no |
+| player | no | no | no | no |
 
-### Canvas und Scene Cards
+Read-only users may navigate, change the temporary zoom, open Foundry links, and start exports. Mutating actions, detail fields, drag and drop, import, undo/redo, and save actions are disabled. The application displays a read-only indication.
 
-- Das ausgewählte Kapitel wird als Canvas dargestellt.
-- Scene Cards sind mit der linken Maustaste verschiebbar.
-- Entry- und Exit-Knoten verhalten sich beim Verschieben wie Scene Cards.
-- Ein Linksklick auf den Canvas-Hintergrund hebt die Auswahl auf.
-- Ziehen mit gedrückter linker Maustaste auf dem Canvas verschiebt den sichtbaren Ausschnitt.
-- Mausrad sowie `+` und `-` in der Titelleiste ändern den Zoom.
-- Die Zoomstufe liegt zwischen `0.4` und `2.5` und wird in Schritten von `0.1` verändert.
-- Scene Cards zeigen Titel, Beschreibung als reinen Text, ID, Status, optionale Scene-Icons und Player-Character-Tokens.
-- Die Kartenbeschreibung nutzt die volle innere Breite, hat links und rechts denselben Rand und wird auf maximal zehn gerenderte Zeilen gekürzt. Wird eine Karte kleiner als der natürliche Beschreibungstext gezogen, wird zusätzlich auf die sichtbaren Zeilen gekürzt und die letzte sichtbare Zeile mit `...` abgeschlossen. Die Beschreibung in `Scene Details` bleibt vollständig.
-- Titel werden anhand der verfügbaren Kartenbreite in mehrere Zeilen umgebrochen. Das gilt auch nach dem manuellen Verkleinern; die Kartenhöhe berücksichtigt die zusätzliche Titelzeilen.
-- HTML-Tags werden in der kompakten Beschreibung entfernt; Zeilenumbrüche bleiben erhalten.
-- Karten passen ihre automatische Größe an den Inhalt an und können manuell vergrößert/verkleinert werden.
-- Manuell veränderte Kartengrößen werden über `visualConfig.sizeLocked` geschützt.
-- Die World-Einstellung `sceneDisplayMode` steuert das Kartenlayout. `DETAILED` ist der Default und behält die Beschreibungsvorschau; `COMPACT` entfernt Beschreibungen aus Scene Cards, behält aber Titel, ID, Status, Scene-Icons, Player-Character-Tokens und Connections. Die vollständige Beschreibung bleibt in Scene Details erhalten.
-- In `COMPACT` behalten Standard, Event und Challenge ihre Formen ohne Beschreibung. Eine kompakte Decision-Szene wird als flache Raute gezeichnet; Titel, ID, Status und verfügbare Icons/Tokens bleiben innerhalb der Form. Der Titel wird auf zwei Zeilen mit `...` begrenzt. Die automatische Höhe wird aus dem verbleibenden Inhalt berechnet; eine explizit per Resize gesperrte Karte behält ihre Höhe.
+The module does not use browser locks, heartbeats, a module-owned edit lease, or a second login/session system. The designated editor is determined solely by Foundry's game.users.activeGM.
 
-### Verbindungen
+### 2.2 Application view state
 
-Scene-Verbindungen entstehen über:
+game.melStoryboard.viewState is a transient client-side store for the current Foundry client session. It is updated only by the designated active full GM and contains:
 
-1. das Kontextmenü einer Szene mit anschließender Zielauswahl;
-2. Ziehen mit gedrückter mittlerer Maustaste von einem Endpunkt auf einen anderen.
+~~~js
+{
+  position: { left, top, width, height },
+  sidebarCollapsed: Boolean,
+  inspectorCollapsed: Boolean,
+  activeChapterId: String | null,
+  selectedElementIds: String[],
+  selectedConnectionId: String | null,
+  expandedChapterIds: String[],
+  archiveExpanded: Boolean,
+  zoom: Number
+}
+~~~
 
-Zusätzlich bieten Entry- und Exit-Knoten im Kontextmenü einen eindeutigen Verbindungsmodus: Beim Entry-Knoten wird die Szene als Ziel ausgewählt, beim Exit-Knoten wird die Quellenszene ausgewählt. Der Scene-Kontext bietet weiterhin die Auswahl des Zielknotens.
+The view is restored when the application is closed and reopened in the same client session. It is not stored in world settings and is not restored after a Foundry restart or a new GM session. Read-only users may temporarily change their view, but those changes are not persisted.
 
-Erlaubte Scene-Connection-Endpunkte innerhalb eines Kapitels sind:
+### 2.3 Local drafts
 
-- Szene → Szene;
-- Entry → Szene;
-- Szene → Exit.
+Scene, chapter, and connection details use local drafts until the corresponding Save button is used. Rich-text editors and assignment notes are checked before a selection change, rerender, or close. When unsaved changes exist, the user can save, discard, or continue editing. If the active GM loses write access, drafts remain visible but cannot be saved until write access returns.
 
-Eine Verbindung besitzt ein Label, eine Beschreibung und einen Darstellungstyp:
+## 3. User interface
 
-- `unilateral` – Pfeil von Quelle zu Ziel;
-- `unilateral deactivated` – gepunktete Linie mit Pfeil von Quelle zu Ziel;
-- `bilateral` – Pfeile in beide Richtungen;
-- `bilateral deactivated` – gepunktete Linie mit Pfeilen in beide Richtungen.
+The main application is StoryboardApplication in scripts/ui/application.js. It is based on Foundry's ApplicationV2 and HandlebarsApplicationMixin APIs.
 
-Zusätzlich besitzt jede Verbindung einen Verbindungsstatus:
+The main template is templates/storyboard.hbs. The application uses the ID mel-storyboard-application, has the window title Mel-Storyboard, is resizable, and returns false from _canDetach().
 
-- `not-used` – Standarddarstellung (Default);
-- `used` – grüne Linie, Pfeile und Beschriftung;
-- `repeated-used` – dunkelgrüne Linie, Pfeile und Beschriftung.
+### 3.1 Layout
 
-Der Verbindungsstatus ist unabhängig vom Verbindungstyp; bei deaktivierten Typen bleibt die Linie gepunktet.
-Das Connection-Label bleibt unabhängig vom Verbindungsstatus in der neutralen Standardfarbe.
+The workspace contains:
 
-Kapitelverbindungen sind davon getrennt. Sie verbinden ausschließlich Exit-Knoten eines Kapitels mit Entry-Knoten eines anderen Kapitels. Ein Doppelklick auf einen Knoten springt zum jeweils verknüpften Knoten im anderen Kapitel.
+1. left navigation with Story and Archive;
+2. center canvas;
+3. right inspector for Details.
 
-### Foundry-Objekte
+When both side areas are expanded, the current CSS layout uses:
 
-Foundry-Dokumente können per Drag & Drop auf eine Scene Card oder eine Connection gezogen werden. Unterstützt werden:
+~~~css
+grid-template-columns: 275px minmax(0, 1fr) 380px;
+~~~
 
-- Actors, einschließlich Player Characters und NPCs;
-- Items;
-- Journals, Journal Pages und Links auf Überschriften innerhalb von Journal Pages;
-- Scenes;
-- Rollable Tables;
-- Macros;
-- Playlists;
-- einzelne Playlist-Tracks als `PlaylistSound`.
+The two side areas can be collapsed independently. The workspace uses the available window height; Foundry window-content padding is removed for this application.
 
-Ein Objekt wird nur einmal je Szene bzw. Connection zugeordnet. Jede Zuordnung besitzt eigene Notizen, die nicht automatisch mit anderen Zuordnungen desselben Foundry-Dokuments geteilt werden.
+The module consumes the active Foundry theme variables for backgrounds, surfaces, text, inputs, borders, focus, links, and status indicators. The same theme selection is passed to graphic exports through exportThemeTokens().
 
-Der Objektname wird als Foundry-Link dargestellt. Für Journals können vorhandene Foundry-Content-Links per Drag & Drop übernommen werden. Die vollständige UUID inklusive optionalem Fragment hinter `#` wird gespeichert, beispielsweise `JournalEntry...JournalEntryPage...#heading-id`. Beim Öffnen wird die Dokument-UUID ohne Fragment aufgelöst; anschließend öffnet das Modul die native Journal-Ansicht und fokussiert die Seite beziehungsweise den Anker, sofern dieser im gerenderten Journal vorhanden ist. Für Foundry Scenes wird für den GM die native `Scene.view()`-Funktion verwendet. Bei einzelnen Playlist-Tracks wird die native Playlist-Seitenleiste geöffnet, die übergeordnete Playlist ausgeklappt und der Track sichtbar gemacht. Die separate Track-Konfiguration wird nicht geöffnet.
+### 3.2 Opening and controls
 
-Player Characters werden mit ihrem Artwork als kleine Tokens am unteren Rand einer Scene Card dargestellt. Ein Token kann mit gedrückter linker Maustaste auf eine andere Scene Card gezogen werden; dadurch wird die Zuordnung von der ursprünglichen Szene entfernt und der Zielszene zugeordnet.
+The application is exposed through three Foundry interfaces:
 
-### Details und Editor
+- the GM-restricted Settings menu openDesigner;
+- the mel-storyboard tool in Scene Controls;
+- the GM-restricted Alt+S keybinding.
 
-Der rechte Inspector zeigt je nach Auswahl:
+game.melStoryboard.toggle() opens the application when no connected application exists and closes it when it is open.
 
-- `Scene Details` mit Titel, Status, Scene-Form, optionalem Scene-Icon, Beschreibung, Objektzuordnungen und Verbindungsübersicht;
-- `Chapter Details` mit Titel, Status, Beschreibung und Entry-/Exit-Knoten;
-- `Connection Details` mit Label, Connection Type, Connection Status, Beschreibung und direkt zugeordneten Objekten.
+The toolbar contains:
 
-Beschreibungen und Objekt-Notizen verwenden Foundrys ProseMirror-/Rich-Text-Editor. Der Editor arbeitet für Board-Daten lokal und benötigt keine Foundry-Dokument-UUID. Speichern erfolgt über den jeweiligen `Save`-Button oder das Speichern im Editor-Menü.
+- zoom out and zoom in;
+- undo and redo;
+- Import/Export.
 
-Die Scene-Form wird als `sceneShape` auf der Scene gespeichert. Unterstützte Werte sind `STANDARD`, `DECISION`, `EVENT` und `CHALLENGE`. Fehlende oder unbekannte Werte werden bei der Normalisierung als `STANDARD` behandelt. Die gemeinsame Präsentationslogik in `scripts/domain/scene-card.js` liefert die Geometrie für Canvas und Exporte. `DECISION` verwendet eine rechteckige Scene Card mit Rautenmarkierung; `EVENT` verwendet ein Parallelogramm, dessen tatsächliche Formkante `scripts/domain/geometry.js` für Verbindungen berücksichtigt wird.
+Zoom is limited to 0.4 through 2.5 and changes in increments of 0.1. Zooming attempts to preserve the canvas position below the pointer. The canvas can be panned with the left mouse button on empty space.
 
-### Statusfärbung und Scene-Icons
+### 3.3 Navigation tree
 
-Die World-Einstellung `Use status-based coloring` ist standardmäßig deaktiviert. Bei Aktivierung werden Karten und der aktive Kapitelstatus pastellfarben dargestellt. Die Baumstruktur links behält unabhängig davon ihr neutrales Standardfarbschema.
+The left tree is prepared by buildChapterTree(). Each chapter or scene entry contains its title on the first line and display ID plus status on the second line. Selection is driven by the actual selected domain object: selecting a scene highlights the scene entry, while its parent chapter is not simultaneously marked as selected.
 
-Verwendete interne Statuswerte:
+Chapter and scene entries expose a mel-storyboard-tree-hover-title tooltip. CSS makes it visible after a two-second hover delay. The complete title does not change the normal tree row height.
 
-| Interner Wert | Bedeutung |
+Story contains non-archived chapters. Archive contains only chapters with archived === true; their scenes are displayed below the chapter. An empty Archive is visually muted.
+
+### 3.4 Context menus
+
+Context menus are built in the application context-menu handlers and are available only in edit mode.
+
+| Target | Actions |
 |---|---|
-| `OFFEN` | Open |
-| `WAITING` | Waiting |
-| `AKTIV` | Active |
-| `ERFOLG` | Success |
-| `TEILERFOLG` | Partial Success |
-| `FEHLSCHLAG` | Failure |
-| `UEBERSPRUNGEN` | Skipped |
-| `ABGESCHLOSSEN` | Completed; verwendet die Waiting-Farbe |
-| `UNERLEDIGT` | Unfinished; verwendet die Skipped-Farbe |
+| Story root | New Chapter |
+| active chapter | Details, New Scene, New Entry, New Exit, Archive Chapter, Delete Chapter |
+| archived chapter | Restore |
+| Entry node | Rename, start connection to scene, link chapter node, delete node |
+| Exit node | Rename, select scene as source, link chapter node, delete node |
+| scene | start connection, delete scene |
+| player-character token | remove character from scene |
+| Scene Connection | delete connection |
+| Chapter Connection | delete chapter connection |
+| empty canvas | New Scene |
 
-Die World-Einstellung `Show Icons on Scene` ist ebenfalls standardmäßig deaktiviert. Bei Aktivierung kann in `Scene Details` ein Foundry-Map-Notes-Icon ausgewählt werden. Die Liste stammt aus `CONFIG.JournalEntry.noteIcons` und enthält zusätzlich den Eintrag `None`, jedoch keinen Custom-Eintrag. Das gewählte Icon wird unten rechts auf der Scene Card angezeigt und in grafische Exporte eingebettet. Der gespeicherte Schlüssel bleibt sprachunabhängig; nur die Anzeige wird lokalisiert.
+Deleting a chapter requires confirmation. The final remaining chapter cannot be deleted.
 
-Die World-Einstellung `Scene display` (`sceneDisplayMode`) ist standardmäßig `DETAILED`; `COMPACT` ist die alternative globale Darstellung. Beide Modi verwenden dieselbe Präsentationsfunktion in `scripts/domain/scene-card.js`, damit Canvas und SVG/PNG/PDF dieselben Zeilenumbrüche, Größen, Formen und Sichtbarkeitsregeln verwenden.
+## 4. Board functions
 
-## 3. Projektstruktur
+### 4.1 Chapters
 
-| Datei/Bereich | Aufgabe |
-|---|---|
-| `module.json` | Foundry-Manifest, Version, Kompatibilität, Einstiegspunkt und Sprachen |
-| `scripts/main.js` | Foundry-Initialisierung, Settings, Keybinding und Scene-Control-Integration |
-| `scripts/domain/constants.js` | IDs, Schema-Version, Status, Objekt- und Verbindungstypen |
-| `scripts/domain/ids.js` | UUID-Erzeugung und fortlaufende Anzeige-IDs |
-| `scripts/domain/model.js` | Reine Operationen auf Board, Kapitel, Szenen, Knoten, Verbindungen und Objekten |
-| `scripts/domain/scene-board-store.js` | Normalisierung, Persistenz und GM-Prüfung |
-| `scripts/domain/permissions.js` | Prüfung der exakten Full-GM-Rolle und des von Foundry bestimmten aktiven GMs |
-| `scripts/domain/validation.js` | Konsistenz- und Endpunktprüfung vor dem Speichern/Importieren |
-| `scripts/domain/scene-card.js` | Textaufbereitung, Kartenlayout, automatische Größe und Status-/Icon-Daten |
-| `scripts/domain/geometry.js` | Geometrie von Linien und Pfeilspitzen |
-| `scripts/domain/export.js` | JSON, SVG, PNG, PDF und kapitelweise Export-Schranken |
-| `scripts/domain/history.js` | Undo-/Redo-Snapshot-Stack |
-| `scripts/ui/application.js` | Hauptfenster, Interaktion, Kontextmenüs, Drag & Drop und Inspector |
-| `scripts/ui/object-details.js` | Objekt-Details und lokaler Rich-Text-Editor für Zuordnungsnotizen |
-| `scripts/ui/template-management.js` | Erhaltene, aktuell nicht verknüpfte Template-Verwaltung |
-| `templates/storyboard.hbs` | Hauptlayout und Inspector-Markup |
-| `templates/object-details.hbs` | Objekt-Details-Markup |
-| `templates/template-management.hbs` | Markup der nicht aktiven Template-Verwaltung |
-| `styles/module.css` | Layout, Farben, Canvas, Baum und Inspector |
-| `lang/*.json` | Lokalisierte Benutzeroberfläche |
-| `tests/domain.test.mjs` | Automatisierte Domain- und Exporttests |
-| `tools/check.mjs` | Syntax-, Manifest-, JSON- und Localization-Key-Prüfung |
+New chapters use sequential generated titles such as Chapter 1 and Chapter 2. The title number is determined from already used generated titles. The technical display ID is independent and is assigned by nextDisplayId(), for example C-001 and C-002.
 
-Der Runtime-Code enthält keine Perl- oder Shell-Komponente. Shell-Befehle existieren nur als optionale Entwicklungsaufrufe über `npm` und sind keine Modul-Schnittstelle.
+Chapters can be reordered by drag and drop in the active Story area. Archiving moves a chapter to the end of the board list and sets archived to true. Restoring moves it back to the end of the active Story hierarchy. The chapter, its scenes, elements, local connections, and nodes remain intact while archived.
 
-## 4. Architektur und Lebenszyklus
+removeChapter() removes:
 
-Der zentrale Datenfluss ist:
+- all scenes in the chapter;
+- all Scene Elements belonging to those scenes;
+- Scene Connections with a scene or node endpoint in the chapter;
+- the chapter nodes;
+- Chapter Connections referencing those nodes.
 
-```text
-Foundry init
-  └─ scripts/main.js
-       ├─ World Settings und Keybinding registrieren
-       ├─ User-Ansichtspräferenzen bereitstellen
-       ├─ beim Ready den World-Speicher laden oder alte Journal-Daten migrieren
-       ├─ bei User-Verbindungs- und Rollenänderungen den Editorzugriff aktualisieren
-       ├─ Scene-Control-Button registrieren
-       └─ game.melStoryboard.store/application bereitstellen
+### 4.2 Scenes
 
-StoryboardApplication
-  ├─ liest Board über SceneBoardStore
-  ├─ bereitet View-Model für Handlebars vor
-  ├─ bindet Pointer-, Maus-, Tastatur- und Drag-&-Drop-Ereignisse
-  ├─ ändert Board über Domain-Funktionen
-  └─ validiert und speichert über SceneBoardStore
-```
+New scenes are created in the active chapter, receive a title such as Scene 1, and use two records:
 
-### `scripts/main.js`
+- the domain Scene record in board.scenes;
+- the visual Scene Element record in board.elements.
 
-In `Hooks.once("init")` werden registriert:
+Scene Cards can be:
 
-- das interne World-Setting `sceneBoard` als laufenden Board-Speicher;
-- die alten Journal-Flags `privateBoardStorage` und `sceneBoard` ausschließlich als Kompatibilitätsquelle für eine einmalige Migration;
-- die World-Einstellung `statusColors`;
-- die World-Einstellung `showSceneIcons`;
-- die World-Einstellung `sceneDisplayMode` mit `DETAILED` als Default und `COMPACT` als Alternative;
-- das GM-restricted Settings-Menü zum Öffnen des Storyboards;
-- das GM-restricted Keybinding `Alt+S` zum Öffnen und Schließen des Storyboards.
+- selected;
+- moved with the left mouse button;
+- resized through the resize handle;
+- copied, pasted, or duplicated;
+- deleted;
+- reordered within a chapter;
+- moved to another chapter.
 
-`Hooks.once("ready")` lädt den World-Speicher. Wenn dort keine gültigen Board-Daten liegen, sucht der Store einmalig nach einem Journal aus einem Zwischenstand und kopiert gültige Daten zurück in das World-Setting. Nur Foundrys aktiver Full-GM darf diese Migration oder einen neuen leeren Speicher schreiben. Andere GM-Clients lesen den World-Speicher und bleiben schreibgeschützt. Der Store dedupliziert parallele Initialisierungsaufrufe.
+Moving a scene to another chapter removes any board.connections that would become invalid across the chapter boundary. The UI reports the number and reason for removed connections.
 
-Der Hook `getSceneControlButtons` fügt den Storyboard-Button in Foundrys Token-Control ein. In Foundry 14 ist `control.tools` ein Objekt und kein Array; neue Tools werden deshalb über `control.tools["mel-storyboard"]` hinzugefügt.
+Scene Details are edited in the right inspector. Double-clicking a Scene Card does not open a separate Scene Details window.
 
-### `StoryboardApplication`
+### 4.3 Entry and Exit nodes
 
-Die Hauptanwendung basiert auf:
+Each chapter may contain multiple Entry and Exit nodes. Nodes are stored in chapter.nodes and rendered as circles on the canvas. Like Scene Cards, nodes have a canvas position and can be moved with the left mouse button.
 
-```js
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-```
+Entry and Exit nodes can be renamed and deleted. removeChapterNode() also removes all Scene Connections and Chapter Connections that reference the node. Display IDs use IN-### for Entry and OUT-### for Exit.
 
-Sie verwendet das Template `modules/mel-storyboard/templates/storyboard.hbs`. Das Fenster ist resizable und `_canDetach()` liefert `false`. Der Zustand der Anwendung enthält unter anderem:
+### 4.4 Undo, redo, copy, and delete
 
-- `board` – aktuell bearbeitete Board-Kopie;
-- `activeChapterId`;
-- `selectedElementIds` und `selectedConnectionId`;
-- `expandedChapterIds` und `archiveExpanded`;
-- `zoom`;
-- Fensterposition/-größe und eingeklappte Seitenleisten; diese werden nur für einen schreibberechtigten Voll-GM gespeichert;
-- temporäre Drag-, Resize-, Pan- und Editor-Zustände;
-- `HistoryStack` für Undo/Redo.
+HistoryStack stores up to 100 complete board snapshots. Before a mutating operation, the application calls history.capture(this.board). undo() and redo() move snapshots between the past and future stacks and save the resulting board through the Store.
 
-Nach einem vollständigen Render werden alle interaktiven DOM-Elemente neu gebunden. Bewegungen von Scene Cards, Knoten und Canvas werden während des Pointer-Move über `requestAnimationFrame` aktualisiert; die persistente Speicherung erfolgt erst beim Loslassen.
+Keyboard commands inside the application include:
 
-## 5. Datenmodell
+- Ctrl/Cmd+C: copy selected Scene Elements;
+- Ctrl/Cmd+V: paste copied Scene Elements;
+- Ctrl/Cmd+D: duplicate the selection;
+- Ctrl/Cmd+Z: undo;
+- Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y: redo;
+- Delete: delete the selection.
 
-### 5.1 Board-Wurzel
+Input, Select, Textarea, and contenteditable elements are excluded from these canvas commands.
+## 5. Scene presentation
 
-Das Board wird als Object im World-Setting `mel-storyboard.sceneBoard` gespeichert:
+### 5.1 Shared presentation model
 
-```js
+sceneElementPresentation() in scripts/domain/scene-card.js is the central layout function for both the live canvas and graphic exports. It calculates:
+
+- normalized title and description text;
+- line wrapping and truncation;
+- card width and height;
+- status badge;
+- Scene Icon and Player Character token positions;
+- scene shape and frame paths;
+- ID and text anchors;
+- resize-handle position.
+
+normalizeSceneElementSize() is the public entry point used by the application. Legacy element sizes are updated using the calculated size; manually resized cards set visualConfig.sizeLocked.
+
+### 5.2 Description and title
+
+plainTextFromHtml() removes HTML tags from the Scene Card preview and converts block endings and br elements into readable line breaks. The complete rich-text description remains unchanged in the Scene record and inspector.
+
+Detailed mode displays at most ten visible description lines. Excess text is shortened with ... at the end of the last visible line. A manually reduced card also respects its actually available height. Titles wrap to the available width and the card height is adjusted for multiple title lines.
+
+Compact mode has no descriptionLines. Titles, IDs, statuses, Scene Icons, Player Character tokens, and connections remain visible.
+
+### 5.3 Shapes
+
+The values come from SCENE_SHAPES:
+
+~~~js
+{
+  STANDARD: "STANDARD",
+  DECISION: "DECISION",
+  EVENT: "EVENT",
+  CHALLENGE: "CHALLENGE"
+}
+~~~
+
+| Value | Detailed mode | Compact mode |
+|---|---|---|
+| STANDARD | rounded rectangular card | rounded rectangular card without description |
+| DECISION | rectangular card with a diamond marker | flat diamond with centered ID and centered title |
+| EVENT | parallelogram with slanted sides | parallelogram without description |
+| CHALLENGE | rounded card with a double frame | double frame without description |
+
+Compact Decision uses at most two title lines. The ID is horizontally centered with text-anchor="middle". The Scene Icon is centered along the bottom; Player Character tokens are placed in a separate row above it when needed.
+
+### 5.4 Status and icons
+
+STATUS_COLOR_CLASSES maps internal status values to CSS classes:
+
+~~~js
+ABGESCHLOSSEN -> waiting
+UNERLEDIGT    -> skipped
+~~~
+
+The remaining statuses have their own classes. The statusColors setting determines whether these classes are applied to cards and chapter status indicators. The left navigation remains neutral regardless of this setting.
+
+showSceneIcons controls display only. The scene record keeps iconType when display is disabled. #sceneIconOptions() builds its list from CONFIG.JournalEntry.noteIcons, adds NONE, and sorts visible labels using the active language. Stored icon keys remain language-independent.
+
+## 6. Connections and geometry
+
+### 6.1 Scene Connections
+
+board.connections stores connections within a single chapter. Endpoints are distinguished by sourceType and targetType:
+
+- SCENE references a Scene Element through sourceElementId or targetElementId;
+- CHAPTER_NODE references an Entry or Exit node through sourceNodeId or targetNodeId.
+
+createConnection() accepts only:
+
+~~~text
+SCENE -> SCENE
+ENTRY -> SCENE
+SCENE -> EXIT
+~~~
+
+The function rejects missing endpoints, self-connections, duplicates, cross-chapter connections, and invalid Entry/Exit directions. validateSceneBoard() repeats these checks before saving.
+
+Connection display types are:
+
+~~~text
+unilateral
+unilateral deactivated
+bilateral
+bilateral deactivated
+~~~
+
+The deactivated suffix produces a dotted line. bilateral adds a reverse arrowhead.
+
+Connection statuses are:
+
+~~~js
+NOT_USED: "not-used"
+USED: "used"
+REPEATED_USED: "repeated-used"
+~~~
+
+not-used is the default. used and repeated-used color lines and arrows green and dark green respectively. Labels use a readable theme-aware label treatment and receive the focus color when selected. Connection status is independent of connection type.
+
+Scene Connections can be created through context menus or by dragging with the middle mouse button. The right inspector edits the title/label, connection type, connection status, description, and object assignments.
+
+### 6.2 Chapter Connections
+
+board.chapterConnections is separate from board.connections. A Chapter Connection may connect only an Exit node in one chapter to an Entry node in a different chapter:
+
+~~~text
+EXIT(chapter A) -> ENTRY(chapter B)
+~~~
+
+createChapterConnection() validates node types and chapter identity. Context menus create the link. Double-clicking a linked node calls #jumpToLinkedNode(), switches to the other chapter, centers the target node, and briefly highlights it.
+
+### 6.3 Edge geometry
+
+connectionGeometry() in scripts/domain/geometry.js calculates:
+
+- source point;
+- target point;
+- main arrow;
+- optional reverse arrow;
+- label midpoint.
+
+edgeDistance() accounts for rectangles, Event parallelograms, and Compact Decision diamonds. Connections therefore end at the visible shape boundary rather than at the bounding box.
+
+## 7. Data model
+
+### 7.1 Board root
+
+The World setting contains an object with this structure:
+
+~~~js
 {
   schemaVersion: 5,
   id: "uuid",
@@ -255,21 +333,19 @@ Das Board wird als Object im World-Setting `mel-storyboard.sceneBoard` gespeiche
   chapterConnections: [],
   objects: []
 }
-```
+~~~
 
-Ältere Entwicklungsstände können das gleiche Board zusätzlich unter `flags.mel-storyboard.sceneBoard` eines Journals mit `flags.mel-storyboard.privateBoardStorage = true` enthalten. Diese Flags werden nur gelesen, wenn das World-Setting leer ist oder keine Szenen enthält. Nach der Übernahme ist das World-Setting die einzige Laufzeitquelle; das alte Journal bleibt als Sicherung erhalten.
+Domain and visual data are intentionally separate:
 
-Die Listen nutzen absichtlich getrennte Datensätze:
+- scenes contains content and domain status;
+- elements contains position, size, and visual settings;
+- connections references elements or chapter nodes;
+- objects contains each Foundry reference once;
+- objectAssignments connect objects to a scene or connection.
 
-- `scenes` enthält fachliche Szenendaten;
-- `elements` enthält die visuelle Darstellung und Position einer Szene;
-- `connections` referenziert Scene Elements oder Chapter Nodes;
-- `objects` enthält Foundry-Dokumente genau einmal;
-- Zuordnungen in Szenen und Connections referenzieren Objekte über eine Assignment-ID.
+### 7.2 Chapter
 
-### 5.2 Kapitel
-
-```js
+~~~js
 {
   id: "uuid",
   displayId: "C-001",
@@ -281,29 +357,25 @@ Die Listen nutzen absichtlich getrennte Datensätze:
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-Aktive Kapitel stehen in der Kapitelreihenfolge vor archivierten Kapiteln. `archiveChapter` verschiebt ein Kapitel an das Ende und setzt `archived` auf `true`. `restoreChapter` setzt den Wert zurück und fügt das Kapitel vor dem ersten archivierten Kapitel ein.
+### 7.3 Chapter Node
 
-### 5.3 Entry- und Exit-Knoten
-
-```js
+~~~js
 {
   id: "uuid",
   displayId: "IN-001" | "OUT-001",
   nodeType: "ENTRY" | "EXIT",
   title: "Entry" | "Exit",
-  position: { x: 80, y: 80 },
+  position: { x: Number, y: Number },
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-Knoten liegen im Array `chapter.nodes`. Ihre Position ist eine Canvas-Position in der Board-Koordinate. Entry- und Exit-Knoten werden als Kreise gerendert.
+### 7.4 Scene
 
-### 5.4 Szene
-
-```js
+~~~js
 {
   id: "uuid",
   displayId: "S-001",
@@ -311,6 +383,7 @@ Knoten liegen im Array `chapter.nodes`. Ihre Position ist eine Canvas-Position i
   parentId: null,
   title: "Scene 1",
   description: "Foundry rich-text HTML",
+  sceneShape: "STANDARD",
   iconType: "NONE",
   notes: "",
   status: "OFFEN",
@@ -322,88 +395,76 @@ Knoten liegen im Array `chapter.nodes`. Ihre Position ist eine Canvas-Position i
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-`description` ist die aktuell sichtbare Beschreibung. `notes`, `templateId`, `templateVersion`, `fieldValues` und `actorAssignments` bleiben für Datenkompatibilität erhalten. Neue UI-Funktionen sollten für Foundry-Verknüpfungen `objectAssignments` verwenden.
+sceneShape is normalized to a value from SCENE_SHAPES. iconType contains the language-independent key from Foundry's note-icon configuration or NONE.
 
-### 5.5 Scene Element
+### 7.5 Scene Element
 
-```js
+~~~js
 {
   id: "uuid",
   sceneId: "scene uuid",
   elementType: "SCENE",
   title: "Scene 1",
-  position: { x: 120, y: 120 },
-  size: { width: 180, height: 80 },
-  zIndex: 0,
+  position: { x: Number, y: Number },
+  size: { width: Number, height: Number },
+  zIndex: Number,
   visualConfig: {
-    sizeLocked: false
+    sizeLocked: Boolean
   },
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-`sceneId` verbindet das visuelle Element mit der fachlichen Szene. Scene Connections referenzieren die `id` des Elements, nicht direkt die Scene-ID.
+Position and size use board coordinates. visualConfig.sizeLocked marks a manually resized card.
 
-Die fachliche Scene enthält zusätzlich:
+### 7.6 Board Object and assignment
 
-```js
-sceneShape: "STANDARD" // STANDARD | DECISION | EVENT | CHALLENGE
-```
-
-### 5.6 Board Object
-
-```js
+~~~js
 {
   id: "uuid",
   displayId: "O-001",
-  objectType: "NPC",
-  title: "Name from Foundry",
+  objectType: "JOURNAL",
+  title: "Journal title",
   description: "",
-  foundryUuid: "Actor.xxxxx",
-  foundryDocumentType: "Actor",
-  visualConfig: {
-    image: "path or URL"
-  },
+  foundryUuid: "JournalEntry...#anchor",
+  foundryDocumentType: "JournalEntryPage",
+  visualConfig: { image: "path-or-data-url" },
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-`foundryUuid` may contain a Journal-Fragment hinter `#`. Für die Auflösung wird nur der Dokumentteil verwendet; das Fragment bleibt für den Foundry-Link und den Ziel-Sprung erhalten.
+An assignment in a scene or connection has this structure:
 
-Unterstützte interne `objectType`-Werte sind:
-
-```text
-PLAYER_CHARACTER, NPC, GROUP, FACTION, PLACE, ITEM,
-INFORMATION, EVENT, JOURNAL, FOUNDRY_SCENE, ROLLABLE_TABLE,
-MACRO, PLAYLIST, PLAYLIST_SOUND
-```
-
-Für Actors mit `PLAYER_CHARACTER`, `NPC`, `GROUP` oder `FACTION` verlangt `createBoardObject` eine Foundry-UUID. Bei Player Characters wird das Artwork bevorzugt dynamisch aus dem aufgelösten Actor gelesen.
-
-### 5.7 Objektzuordnung
-
-Szenen und Connections besitzen jeweils ein eigenes Assignment-Array:
-
-```js
+~~~js
 {
-  id: "uuid",
-  objectId: "board object uuid",
+  id: "assignment uuid",
+  objectId: "object uuid",
   role: "",
   notes: "Foundry rich-text HTML",
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-Die Assignment-Notiz ist bewusst nicht Bestandteil des globalen Board Objects. Dadurch kann dasselbe Foundry-Dokument an verschiedenen Stellen unterschiedliche Notizen haben.
+The same Board Object can be assigned to multiple owners; each assignment note remains independent. An object is not assigned twice to the same owner.
 
-### 5.8 Scene Connections
+The OBJECT_TYPES constant contains:
 
-```js
+~~~text
+PLAYER_CHARACTER, NPC, GROUP, FACTION, PLACE, ITEM, INFORMATION,
+EVENT, JOURNAL, FOUNDRY_SCENE, ROLLABLE_TABLE, MACRO, PLAYLIST,
+PLAYLIST_SOUND
+~~~
+
+The current Foundry drop mapping creates PLAYER_CHARACTER or NPC for Actors, ITEM for Items, FOUNDRY_SCENE for Scenes, JOURNAL for Journals and Journal Pages, and the specific types for RollTables, Macros, Playlists, and PlaylistSounds.
+
+### 7.7 Scene Connection
+
+~~~js
 {
   id: "uuid",
   sourceElementId: "element uuid | null",
@@ -421,13 +482,13 @@ Die Assignment-Notiz ist bewusst nicht Bestandteil des globalen Board Objects. D
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-Die Seite mit `sourceType: "CHAPTER_NODE"` darf nur ein Entry sein, wenn das Ziel eine Szene ist. Die Seite mit `targetType: "CHAPTER_NODE"` darf nur ein Exit sein, wenn die Quelle eine Szene ist. Beide Endpunkte müssen zum selben Kapitel gehören.
+When sourceType is SCENE, sourceElementId must be set; when it is CHAPTER_NODE, sourceNodeId must be set. The same rule applies to the target.
 
-### 5.9 Kapitelverbindungen
+### 7.8 Chapter Connection
 
-```js
+~~~js
 {
   id: "uuid",
   sourceNodeId: "exit node uuid",
@@ -437,15 +498,15 @@ Die Seite mit `sourceType: "CHAPTER_NODE"` darf nur ein Entry sein, wenn das Zie
   createdAt: "ISO timestamp",
   updatedAt: "ISO timestamp"
 }
-```
+~~~
 
-Kapitelverbindungen dürfen nur `EXIT → ENTRY` zwischen unterschiedlichen Kapiteln abbilden. Sie liegen in `board.chapterConnections` und nicht in `board.connections`.
+Chapter Connections currently have no Object Assignments and no Connection Status. They are allowed only between different chapters and only from Exit to Entry.
 
-### 5.10 Templates als erhaltene Kompatibilitätsstruktur
+### 7.9 Templates
 
-Ein Template enthält unter anderem:
+The board contains a default template structure and may contain additional template records:
 
-```js
+~~~js
 {
   id: "uuid",
   nameKey: "MEL_STORYBOARD.TEMPLATES.GENERAL.Name",
@@ -457,321 +518,361 @@ Ein Template enthält unter anderem:
   active: true,
   fields: []
 }
-```
+~~~
 
-Die Funktionen `createBoardTemplate`, `createTemplateVersion`, `previewTemplateMigration` und `migrateSceneTemplate` sind weiterhin im Domain-Modul vorhanden. Die Template-Verwaltung wird im aktuellen Hauptfenster jedoch nicht angeboten. Eine Reaktivierung müsste zuerst mit den aktuellen Produktanforderungen abgestimmt werden.
+createBoardTemplate(), createTemplateVersion(), previewTemplateMigration(), and migrateSceneTemplate() are available in the domain module. A template-management application and template are present in the repository, but are not registered as an active Settings menu or main Storyboard workflow by scripts/main.js. The structure remains available for board compatibility and existing template data.
+## 8. Normalization, validation, and persistence
 
-## 6. Konsistenzregeln und Speicherung
+### 8.1 Normalization
 
-### Normalisierung
+normalizeSceneBoard(stored, options) in scene-board-store.js:
 
-`normalizeSceneBoard` ergänzt fehlende Default-Werte, migriert ältere Formen und setzt `schemaVersion` auf die aktuelle Version. Alte Boards ohne Kapitel erhalten automatisch `Chapter 1`. Fehlende Scene- oder Connection-Felder werden mit sicheren Defaults ergänzt.
+1. clones the input;
+2. migrates schema version 2 and its former status names to the current internal values;
+3. accepts versions 3, 4, and 5 as normalizable board versions;
+4. adds default templates, chapters, nodes, scenes, elements, connections, and assignments;
+5. normalizes positions and sizes to numbers;
+6. replaces unknown Scene Shapes with STANDARD;
+7. replaces unknown Connection Types with unilateral;
+8. replaces unknown Connection Status values with not-used;
+9. removes invalid Scene Connections that cross chapter boundaries or violate endpoint rules;
+10. sets the resulting schemaVersion to 5.
 
-Akzeptierte gespeicherte Zwischenstände sind die Schema-Versionen `3`, `4` und `5`. Schema-Version `2` wird zunächst in die neue Statusdarstellung überführt. Andere Versionen werden beim normalen Lesen zurückgesetzt bzw. beim Import mit Fehler abgelehnt (`resetInvalid: false`).
+If no chapter exists, Chapter 1 is created automatically. During normal loading (resetInvalid: true), an unsupported board is replaced by an empty default board. During import (resetInvalid: false), an unsupported board is reported as an error.
 
-### Validierung
+### 8.2 Validation
 
-`validateSceneBoard` prüft unter anderem:
+validateSceneBoard(board) runs before every save. It checks:
 
-- Schema-Version und Board-ID;
-- eindeutige IDs für Templates, Objekte, Kapitel, Knoten, Szenen und Elemente;
-- gültige Referenzen zwischen Szenen, Elementen, Kapiteln und Objekten;
-- gültige Connection-Endpunkte;
-- keine Scene Connections über Kapitelgrenzen;
-- gültige `EXIT → ENTRY`-Kapitelverbindungen;
-- gültige Objekttypen und Template-Referenzen.
+- schemaVersion === 5 and a valid board ID;
+- unique IDs for templates, objects, chapters, nodes, scenes, and elements;
+- allowed Object Types and Chapter Node Types;
+- existing chapter, scene, element, node, template, and object references;
+- valid Connection Status and Connection Type values;
+- no Scene Connection crossing a chapter boundary;
+- only SCENE -> SCENE, ENTRY -> SCENE, and SCENE -> EXIT;
+- only EXIT -> ENTRY between different chapters;
+- existing Object Assignments.
 
-### Persistenz
+Validation prevents an invalid board from being written to the World setting.
 
-`SceneBoardStore.initialize()` liest zuerst `game.settings.get("mel-storyboard", "sceneBoard")`. Ist dort kein gültiges Board vorhanden, prüft es Journal-Flags aus dem früheren Zwischenstand und schreibt gefundene Daten beim aktiven Full-GM zurück in das World-Setting. Gibt es keine Daten, legt nur der aktive Full-GM ein neues leeres Board im World-Setting an. Assistant GMs und andere Full-GMs lesen den gemeinsamen World-Speicher schreibgeschützt.
+### 8.3 SceneBoardStore
 
-`SceneBoardStore.save(board)`:
+SceneBoardStore is the normal persistence layer for board data:
 
-1. prüft, ob der aktuelle User Foundrys aktiver Full-GM ist;
-2. validiert das Board;
-3. setzt Schema-Version und `updatedAt`;
-4. schreibt eine Kopie über `game.settings.set`;
-5. liefert eine weitere Kopie zurück.
+~~~js
+game.melStoryboard.store
+~~~
 
-Der Store verwendet Kopien (`structuredClone`), damit UI-Änderungen nicht unkontrolliert den gespeicherten Datensatz mutieren. Assistant GMs dürfen den gespeicherten Stand lesen, aber weder speichern noch importieren. Der Store-Guard gilt auch für direkte Modulaufrufe, nicht nur für deaktivierte UI-Controls.
+Important properties include:
 
-## 7. Import, Export und IDs
+- hasStorage: World storage was read or initialized successfully;
+- hasBoardData: the cached value contains the expected board arrays;
+- isReadyForEditing: storage and board are ready;
+- canWrite: the board is ready and the user is the designated active full GM;
+- storageError: the last read/write error.
 
-### JSON
+initialize() first reads game.settings.get(MODULE_ID, "sceneBoard"). For compatibility with worlds containing the module's private Journal storage, it also searches for a Journal record with:
 
-`sceneBoardToJson` serialisiert das komplette Board einschließlich Kapitelreihenfolge, Archivstatus, Kartenpositionen, Knoten, Verbindungen, Objekten und Notizen. `sceneBoardFromJson` parst nur das JSON; Normalisierung und Validierung erfolgen anschließend durch den Store bzw. die Anwendung.
+~~~text
+flags.mel-storyboard.privateBoardStorage === true
+flags.mel-storyboard.sceneBoard
+~~~
 
-Beim Import kann gewählt werden:
+A valid Journal board is normalized by the designated active full GM and copied into the World setting. The World setting then remains the runtime source. If no board exists, only the designated active full GM may write an empty default board.
 
-- gesamtes Storyboard ersetzen;
-- importierte Kapitel als neue Kapitel hinzufügen;
-- das erste importierte Kapitel in ein bestehendes Kapitel einfügen.
+read() returns a copy of the normalized cache. save(board) checks write access, validates, updates the schema version and updatedAt, writes with game.settings.set(), and updates the cache. import(board) normalizes with strict error handling, validates, and delegates to save().
 
-Beim Zusammenführen werden neue UUIDs für Kapitel, Szenen, Elemente, Knoten, Objekte und Templates erzeugt. Anschließend werden alle internen Referenzen über Maps auf die neuen IDs umgeschrieben. Anzeige-IDs werden fortlaufend neu vergeben.
+## 9. Import and export
 
-### Grafische Exporte
+### 9.1 JSON
 
-`sceneBoardToSvg` ist die zentrale Renderquelle für SVG, PNG und PDF. Das ist wichtig: Layout, Beschreibungstext, Statusfarben, Pfeile, Icons und Kapitelknoten sollen nicht in drei unabhängigen Renderern auseinanderlaufen.
+sceneBoardToJson(board) serializes the complete board. sceneBoardFromJson(json) parses JSON; normalization and validation are then performed by the application and Store.
 
-- SVG wird direkt aus dem erzeugten Markup heruntergeladen.
-- PNG rendert das SVG in ein Canvas und erstellt daraus ein PNG.
-- PDF erzeugt ein Druckvorschaufenster mit einem Kapitel pro Seite.
-- Werden mehrere Kapitel exportiert, erzeugen SVG und PNG eine Datei pro Kapitel; PDF erzeugt eine Seite pro Kapitel.
-- `scopeSceneBoard` filtert Kapitel, Szenen, Elemente, Scene Connections und Kapitelverbindungen auf den Exportumfang.
-- Scene-Icons werden vor dem Grafikexport nach Möglichkeit als Data-URL eingebettet, damit das SVG selbstständig bleibt und PNG/PDF die Icons übernehmen.
+The import dialog offers:
 
-### Anzeige-IDs
+1. Replace entire storyboard: save the imported board as the new shared board;
+2. Add as new chapter: append all imported chapters as new chapters;
+3. Add to existing chapter: merge the first imported chapter into a selected target chapter.
 
-`nextDisplayId(items, prefix)` sucht die kleinste freie Nummer. Aktuelle Prefixe sind:
+During a merge, #mergeImportedChapters() and #mergeImportedChapterInto() create new UUIDs for chapters, scenes, elements, nodes, objects, and templates. Maps then rewrite internal references in Scene Connections, Chapter Connections, and assignments. Display IDs are assigned again in sequence.
 
-- `C-###` für Kapitel;
-- `S-###` für Szenen;
-- `O-###` für Objekte;
-- `IN-###` für Entry-Knoten;
-- `OUT-###` für Exit-Knoten.
+### 9.2 Scope selection
 
-Die UUID ist die technische Identität. Anzeige-IDs und Titel sind nicht als stabile Referenz zu verwenden.
+Before every export, the user selects:
 
-## 8. Rendering und Koordinaten
+- entire Storyboard;
+- current chapter;
+- selected chapters.
 
-### Scene Cards
+scopeSceneBoard(board, chapterIds) filters chapters, scenes, elements, Scene Connections, and Chapter Connections. A connection remains only if both endpoints are inside the selected scope.
 
-`sceneElementPresentation` berechnet aus Szene, Element und Anzeigeoptionen:
+### 9.3 SVG, PNG, and PDF
 
-- bereinigten Titel;
-- HTML-freie Beschreibung;
-- Beschreibungslinien und Zeilenumbruch;
-- maximal zehn Beschreibungslinien für die Scene Card mit `...` als Kürzungszeichen;
-- Statuslabel und Status-Badge-Breite;
-- Mindest- und Inhaltsbreite;
-- Player-Character-Token-Größe und -Position;
-- Scene-Icon-Größe und -Position;
-- Resize-Handle-Position.
+sceneBoardToSvg() is the central graphic renderer. It uses the same Scene Card presentation as the live canvas, so shapes, text wrapping, status, icons, Player Character tokens, connections, and nodes are rendered consistently.
 
-Die Funktion wird vom Live-UI und vom SVG-Export gemeinsam verwendet. Änderungen am Layout sollten deshalb zuerst dort umgesetzt werden.
+- downloadSceneBoardSvg() downloads SVG directly;
+- downloadSceneBoardPng() renders the SVG to a canvas and downloads PNG;
+- printSceneBoardAsPdf() and printSceneBoardsAsPdf() open the Foundry/browser print preview;
+- multiple chapters are exported as separate SVG and PNG files;
+- multiple chapters are exported as separate PDF pages.
 
-### Verbindungsgeometrie
+embedSceneIcons() embeds Scene Icon files and Player Character artwork as data URLs where possible. This keeps images available in SVG, PNG, and PDF. The export theme is derived from the CSS variables of the current mel-storyboard element.
 
-`connectionGeometry(sourceElement, targetElement, { bilateral })` arbeitet mit den Mittelpunkt- und Randkoordinaten der Endpunkte. Die Linie beginnt und endet am Rand der Scene Card. Bei bilateralen Verbindungen wird auch am Quellende Platz für eine rückwärts gerichtete Pfeilspitze gelassen.
+## 10. Foundry interfaces
 
-Beim Verschieben werden die SVG-Attribute von Linie, Pfeilspitzen und Label direkt aktualisiert. Ein vollständiger Render und eine Speicherung erfolgen erst nach Ende des Drags.
-
-### Pan und Zoom
-
-Der sichtbare Ausschnitt wird über den Scroll-Container verschoben. Der Zoom verändert die SVG-Breite und -Höhe gleichmäßig. Beim Zoom über dem Mauszeiger wird ein Ankerpunkt berechnet, damit der Inhalt unter dem Mauszeiger möglichst an derselben Stelle bleibt.
-
-## 9. Foundry-Schnittstellen
-
-Die wichtigsten genutzten Foundry-Schnittstellen sind:
-
-| Schnittstelle | Verwendung |
+| Foundry interface | Use |
 |---|---|
-| `Hooks.once("init")` | Einstellungen, Menüs und Keybinding registrieren |
-| `Hooks.on("getSceneControlButtons")` | Storyboard-Button in den Token-Controls |
-| `game.settings.register` | World-Daten und World-Optionen |
-| `game.settings.registerMenu` | Öffnen über die Foundry-Settings |
-| `game.keybindings.register` | `Alt+S` toggles the Storyboard open or closed |
-| `foundry.applications.api.ApplicationV2` | native Application-Basis |
-| `HandlebarsApplicationMixin` | Handlebars-Part-Rendering |
-| `fromUuid` | Foundry-Dokumente aus Links und Drops auflösen |
-| `Scene.view()` | native Scene-Anzeige für GM-Scene-Links |
-| `document.sheet.render()` | native Dokument-Sheets für Standarddokumente |
-| `ui.playlists` | native Playlist-Seitenleiste für `PlaylistSound` |
-| `foundry.applications.ux.ProseMirrorEditor` | lokale Rich-Text-Editoren |
-| `foundry.applications.ux.DragDrop` | Foundry-Dokument-Drag-&-Drop |
-| `foundry.applications.ux.TextEditor` | HTML-Anreicherung und Vorschauen |
-| `CONFIG.JournalEntry.noteIcons` | Map-Notes-Icon-Liste und Pfade |
+| Hooks.once("init") | register settings, Settings menu, keybinding, and game.melStoryboard |
+| Hooks.once("ready") | initialize board storage |
+| Hooks.on("getSceneControlButtons") | add Storyboard tool to Scene Controls |
+| Hooks.on("updateUser") | refresh editor access after role/user changes |
+| Hooks.on("userConnected") | refresh editor access after connection changes |
+| Hooks.on("updateSetting") | reread the read-only board after a World setting change |
+| game.settings.register() | register World board and global module options |
+| game.settings.registerMenu() | open Storyboard through Foundry Settings |
+| game.keybindings.register() | register Alt+S toggle |
+| ApplicationV2 | native Foundry application base |
+| HandlebarsApplicationMixin | Handlebars part rendering |
+| fromUuid() | resolve Foundry documents from UUIDs |
+| Scene.view() | open a Foundry Scene link |
+| document.sheet.render() | open Journal, Item, Actor, and other standard sheets |
+| ui.playlists | show Playlist and PlaylistSound in the native sidebar |
+| CONFIG.JournalEntry.noteIcons | Scene Icon keys and paths |
+| foundry.applications.ux.ProseMirrorEditor | description and assignment-note editors |
+| foundry.applications.ux.DragDrop | drag Foundry documents onto Scenes and Connections |
+| foundry.applications.ux.TextEditor | create links, enrich content, and create text previews |
 
-Foundry-Dokumente dürfen nur über ihre native API angesprochen werden. Das Modul kopiert für persistente Board-Objekte nur Metadaten wie UUID, Titel, Typ und Artwork-Pfad; es übernimmt keine Foundry-Dokumente.
+### PlaylistSound links
 
-### PlaylistSound-Link
+#openFoundryDocument() handles PlaylistSound before the general sheet fallback:
 
-Der Sonderfall liegt in `StoryboardApplication.#openFoundryDocument` vor dem allgemeinen Sheet-Fallback:
+1. fromUuid() resolves the track.
+2. The parent Playlist is determined.
+3. ui.playlists is activated.
+4. The parent Playlist is added to _expanded.
+5. The native PlaylistDirectory is rendered.
+6. The element with data-sound-id is found, scrolled into view, and briefly highlighted.
 
-1. `fromUuid` löst den `PlaylistSound` auf.
-2. Der Parent `Playlist` wird gelesen.
-3. `ui.playlists` wird aktiviert.
-4. Die Playlist-ID wird in `ui.playlists._expanded` ergänzt.
-5. Die native PlaylistDirectory-Ansicht wird gerendert.
-6. Das Element `[data-sound-id="..."]` wird gesucht, in den sichtbaren Bereich gescrollt und kurz hervorgehoben.
+The track configuration sheet is not opened.
 
-Der Zugriff auf `_expanded` ist ein gezielter Foundry-14-Kompatibilitätszugriff auf den dokumentierten Zustand der nativen PlaylistDirectory. Es darf dort nicht wieder das `PlaylistSound`-Sheet geöffnet werden.
+### Journal links with pages and headings
 
-## 10. Lokalisierung
+parseFoundryLinkValue() and parseFoundryDropData() preserve the complete UUID, including #anchor. splitFoundryUuid() separates the document UUID and fragment. For JournalEntryPage, the parent Journal sheet is rendered with pageId; an existing anchor is forwarded as anchor.
 
-Die Basissprache ist `en`. Die Sprachdateien liegen in `lang/` und werden über `module.json` geladen:
+A stored value can look like:
 
-```json
-{
-  "lang": "en",
-  "name": "English",
-  "path": "lang/en.json"
-}
-```
+~~~text
+JournalEntry.hS70xLgbM69RW99I.JournalEntryPage.ktQMVpgbM0KkB7JU#uberschrift-1
+~~~
 
-Benutzertexte werden über Schlüssel unter `MEL_STORYBOARD` lokalisiert. Neue sichtbare Texte müssen in `en.json` und in allen derzeit unterstützten Dateien ergänzt werden:
+The module does not change Foundry documents and does not extend document permissions. It stores board metadata, UUIDs, titles, types, and artwork paths.
+## 11. Settings and localization
 
-- `lang/en.json`;
-- `lang/de.json`;
-- `lang/fr.json`;
-- `lang/es.json`;
-- `lang/nl.json`.
+### 11.1 Registered settings
 
-Für Scene-Icon-Typen wird der gespeicherte Foundry-Schlüssel nicht übersetzt. Die Anzeige versucht zuerst einen Modulschlüssel unter `MEL_STORYBOARD.SCENE_ICON_TYPES` und fällt anschließend auf den Foundry-Schlüssel zurück. Das verhindert, dass ein Sprachwechsel die gespeicherte Bedeutung ändert.
+| Key | Scope | Visible | Default | Function |
+|---|---|---:|---|---|
+| sceneBoard | world | no | {} | shared board storage |
+| statusColors | world | yes, GM-restricted | false | status colors for cards and status displays |
+| showSceneIcons | world | yes, GM-restricted | false | Scene Icons on cards and exports |
+| sceneDisplayMode | world | yes, GM-restricted | DETAILED | Detailed or Compact Scene Cards |
 
-## 11. Undo und Redo
+openDesigner is also registered as a GM-restricted Settings menu. Visible text is stored below MEL_STORYBOARD.SETTINGS.
 
-`HistoryStack` speichert vollständige Board-Kopien:
+Each setting has an onChange handler that rerenders a connected Storyboard application. sceneBoard is not shown in the normal Foundry settings UI (config: false).
 
-- `capture(state)` legt den aktuellen Stand auf den Past-Stack und leert Future;
-- `undo(currentState)` verschiebt den aktuellen Stand nach Future und liefert den letzten Past-Stand;
-- `redo(currentState)` verschiebt den aktuellen Stand nach Past und liefert den nächsten Future-Stand;
-- Standardlimit: 100 Snapshots.
+### 11.2 Language files
 
-Die Anwendung ruft `capture` vor mutierenden Operationen auf. Während Pointer-Move werden keine Snapshots pro Pixel erzeugt. Nach Undo/Redo wird der resultierende Stand erneut über den Store gespeichert und gerendert.
+module.json loads:
 
-## 12. Berechtigungen und Mehrbenutzerverhalten
+~~~text
+lang/en.json
+lang/de.json
+lang/fr.json
+lang/es.json
+lang/nl.json
+~~~
 
-- Ausschließlich `CONST.USER_ROLES.GAMEMASTER` darf Board-Daten ändern. `game.user.isGM` allein reicht nicht aus, weil es auch Assistant GMs umfasst.
-- `game.users.activeGM` wählt den aktiven Gamemaster, der modulweit Bearbeitungszugriff erhält. Das Modul verlangt zusätzlich die exakte Rolle `CONST.USER_ROLES.GAMEMASTER`, damit ein Assistant GM nicht versehentlich Schreibzugriff bekommt.
-- Das Modul speichert keine Bearbeitungssitzung und verwendet weder Browser-Locks noch World-Leases oder Heartbeats. Zwei Tabs desselben aktiven GM-Users teilen dieselbe Berechtigung; parallel geöffnete Tabs werden nicht gegeneinander gesperrt.
-- Assistant GMs können öffnen, lesen, zwischen Kapiteln navigieren, Foundry-Dokumente öffnen und exportieren. Alle Datenmutationen, Imports, Undo/Redo, Drag & Drop und Kontextmenüs sind deaktiviert.
-- Schreibgeschützte Benutzer speichern weder Fenster-/Ansichtsstatus noch Board-Inhalte. Der aktive Full-GM hält Fensterposition, Fenstergröße, Zoom, aktive Kapitelansicht, Auswahl sowie eingeklappte Seitenleisten ausschließlich im laufenden Client-Speicher `game.melStoryboard.viewState`.
-- Das Board liegt im World-Setting `sceneBoard`. Nur der aktive Full-GM darf über den Store speichern; Assistant GMs und andere Full-GMs bleiben lesend.
-- Alte Journal-Daten werden nur als Kompatibilitätsmigration gelesen. Das Journal wird nicht gelöscht und nicht als laufender Speicher verwendet.
-- Detailfelder und Rich-Text-Beschreibungen bleiben bis zum jeweiligen `Save`-Befehl unveröffentlicht. Beim Wechsel oder Schließen erscheint eine Auswahl für Speichern, Verwerfen oder Verbleiben. Verliert der User die aktive GM-Auswahl, werden Speichern und Datenmutationen gesperrt; Entwürfe bleiben sichtbar.
-- Settings-Menü, Keybinding und Scene-Control-Button sind für GM-Rollen erreichbar; Assistant GMs öffnen die Anwendung schreibgeschützt.
-- Drag & Drop von Foundry-Dokumenten wird nur beim aktiven Full-GM akzeptiert.
-- Foundry-Dokumente werden weiterhin nach den normalen Foundry-Berechtigungen aufgelöst.
-- Ein nicht verfügbares oder gelöschtes Foundry-Dokument kann aus dem Board nicht geöffnet werden.
-- Die Board-Daten liegen gemeinsam in der World. Die Bearbeitung wird durch die exakte Foundry-Rolle und die Auswahl des aktiven Full-GM begrenzt; Spieler öffnen das GM-restricted Modul nicht.
-- Die Auswahl des aktiven GM folgt Foundrys `game.users.activeGM`. Foundry beschreibt diesen Zugriff als einen aktiven Gamemaster, wobei ein Full-GM bevorzugt wird, sofern einer verbunden ist. Das Modul prüft danach die exakte Rolle.
-- `game.melStoryboard.viewState` wird beim Schließen und erneuten Öffnen derselben laufenden Foundry-Sitzung verwendet. Es wird nicht in den Foundry-Settings gespeichert und ist nach einem Foundry- oder GM-Sitzungsneustart nicht mehr vorhanden; dann greifen die normalen Initialwerte.
-- Objekte, Bilder und Dokument-Sheets werden nicht durch das Modul für andere Benutzer freigeschaltet; Foundrys eigene Sichtbarkeits- und Ownership-Regeln bleiben maßgeblich.
+English is the reference key set used by tools/check.mjs. Every visible key must exist in all language files. Translated content includes:
 
-## 13. Wartung durch Junior Developer
+- settings and keybindings;
+- actions and context menus;
+- statuses, connection types, and connection statuses;
+- scene shapes and Scene Icon types;
+- object types;
+- dialogs, save/import/export text, and error messages.
 
-### Eine neue Einstellung hinzufügen
+User-authored titles, descriptions, and notes are not translated automatically. Scene Icon keys remain stored as Foundry keys; only the visible label is localized.
 
-1. Konstante in `scripts/domain/constants.js` ergänzen.
-2. Einstellung in `scripts/main.js` über `game.settings.register` registrieren.
-3. Schlüssel für Name und Hint in allen Sprachdateien ergänzen.
-4. Einstellung in `_prepareContext` lesen.
-5. View-Model und Template/CSS anpassen.
-6. Bei sichtbarer Änderung README ergänzen.
-7. `npm test`, `npm run check` und manuelle Foundry-Prüfung durchführen.
+## 12. Project structure
 
-### Einen neuen Objekt-Typ hinzufügen
+| File | Responsibility |
+|---|---|
+| module.json | manifest, version, compatibility, entry point, styles, and languages |
+| scripts/main.js | Foundry hooks, settings, keybinding, Scene Control tool, global API |
+| scripts/domain/constants.js | module ID, storage key, schema, statuses, shapes, object/connection types |
+| scripts/domain/ids.js | UUIDs and sequential display IDs |
+| scripts/domain/model.js | pure board operations and domain rules |
+| scripts/domain/permissions.js | full-GM and designated active-GM checks |
+| scripts/domain/scene-board-store.js | normalization, compatibility migration, validation integration, and persistence |
+| scripts/domain/validation.js | board consistency and connection rules |
+| scripts/domain/history.js | undo/redo snapshots |
+| scripts/domain/scene-card.js | text processing, card layout, sizes, shapes, and icon/token positions |
+| scripts/domain/geometry.js | connection edge geometry and arrow points |
+| scripts/domain/export.js | JSON, SVG, PNG, and PDF functions |
+| scripts/ui/application.js | main window, interactions, Details, drag and drop, import/export |
+| scripts/ui/object-details.js | Object Details and assignment notes |
+| scripts/ui/template-management.js | existing, unregistered template management |
+| templates/storyboard.hbs | main layout, tree, canvas, and inspector |
+| templates/object-details.hbs | Object Details markup |
+| templates/template-management.hbs | template-management markup |
+| styles/module.css | layout, theme, tree, canvas, inspector, and export-related styles |
+| lang/*.json | localization |
+| tests/domain.test.mjs | automated domain and export tests |
+| tools/check.mjs | syntax, manifest, JSON, and localization-key checks |
 
-1. Internen Wert in `OBJECT_TYPES` ergänzen.
-2. Mapping von Foundry `documentName` in `#onFoundryDrop` ergänzen.
-3. Drag-&-Drop-Unterstützung in `supportedTypes` ergänzen.
-4. Icon in `OBJECT_ICONS` ergänzen.
-5. Typ in allen Sprachdateien ergänzen.
-6. Öffnungslogik in `#openFoundryDocument` prüfen. Sonderfälle müssen vor dem allgemeinen Sheet-Fallback behandelt werden.
-7. README, Tests und manuelle Testmatrix aktualisieren.
+The runtime contains no shell or server component. npm scripts are used only for development and verification.
 
-### Einen Status hinzufügen
+## 13. Important domain functions
 
-1. Wert in `STATUS` ergänzen.
-2. Lokalisierung in allen Sprachdateien ergänzen.
-3. Klasse in `STATUS_COLOR_CLASSES` ergänzen.
-4. CSS-Farben in `styles/module.css` ergänzen.
-5. SVG-Statusregeln in `sceneBoardToSvg` ergänzen.
-6. Icon-Kontrast für den neuen Status prüfen.
-7. Scene Card, Inspector, Export und Übersetzungen manuell prüfen.
+The central domain API in scripts/domain/model.js includes:
 
-### Schema ändern
+| Function | Responsibility |
+|---|---|
+| createSceneBoard() | create an empty board with the default template and Chapter 1 |
+| createChapter() | create and insert a chapter before archived chapters |
+| archiveChapter() / restoreChapter() | change archive state and ordering |
+| createScene() | create a domain scene with status, shape, and defaults |
+| createSceneElement() | create a visual Scene Element |
+| createBoardObject() | create a Foundry object reference |
+| assignObjectToScene() / assignObjectToConnection() | create an Object Assignment |
+| removeObjectAssignment() / removeObjectFromConnection() | remove an assignment |
+| moveObjectAssignment() | move a Player Character between scenes |
+| createConnection() | create a validated Scene Connection |
+| updateConnection() / removeConnection() | modify or delete a Scene Connection |
+| createChapterNode() / updateChapterNode() / removeChapterNode() | manage Entry and Exit nodes |
+| createChapterConnection() / removeChapterConnection() | manage Exit-to-Entry Chapter Connections |
+| moveSceneToChapter() | move a scene and remove invalid connections |
+| reorderScenes() / reorderChapters() | change order |
+| removeChapter() | delete a chapter and dependent data |
+| duplicateSceneElements() | duplicate scenes and internal Scene Connections |
+| copySceneElements() / pasteSceneElements() | copy and paste Scene Elements in the current application |
+| removeSceneElements() | delete selected scenes, elements, and local connections |
+| normalizeConnectionType() / normalizeConnectionStatus() | apply safe defaults |
 
-1. `STORE_SCHEMA_VERSION` erhöhen.
-2. `normalizeSceneBoard` um eine explizite Migration erweitern.
-3. `validateSceneBoard` anpassen.
-4. Neue und alte Daten mit Tests abdecken.
-5. Import, Merge, Export und Undo/Redo prüfen.
-6. Abwärtskompatibilität und Migrationsverhalten in README und Release Notes dokumentieren.
+The UI invokes these functions against a board copy and saves only after a successful domain operation through SceneBoardStore.
 
-### Lebenszyklus- und Event-Regeln
+## 14. Maintenance and extension
 
-- Keine teuren Vollrenders in `pointermove`-Handlern.
-- Temporäre globale Listener bei `pointerup`, `pointercancel` und beim Schließen entfernen.
-- Rich-Text-Editoren vor jedem Render und beim Schließen zerstören.
-- Für DOM-Änderungen `data-*`-Attribute als stabile Bindungspunkte verwenden.
-- Keine direkte Mutation von Foundry-Dokumenten, wenn nur Board-Metadaten geändert werden sollen.
-- Bei einem neuen Foundry-API-Zugriff zuerst prüfen, ob es sich um eine öffentliche API oder einen bewusst dokumentierten Kompatibilitätszugriff handelt.
+### Adding a setting
 
-## 14. Tests und Qualitätssicherung
+1. Add the constant in constants.js.
+2. Register the setting in main.js.
+3. Add name, hint, and choice labels to every language file.
+4. Read the setting in _prepareContext().
+5. Update the template, CSS, and export labels where necessary.
+6. Verify the default, read-only behavior, and onChange handling.
+7. Update tests and README.
 
-Automatisierte Prüfungen:
+### Adding a status
 
-```text
+1. Add the value to STATUS.
+2. Add localization entries to en, de, fr, es, and nl.
+3. Define the mapping in STATUS_COLOR_CLASSES.
+4. Add live CSS and SVG export colors.
+5. Check icon contrast in neutral and status-based rendering.
+6. Test the tree, inspector, Scene Card, PDF, PNG, and SVG.
+
+### Adding a Scene Shape
+
+1. Add the value to SCENE_SHAPES.
+2. Add the option in application.js and every language file.
+3. Define the frame in sceneShapeFrame().
+4. Add edge calculation in geometry.js.
+5. Connect live template, DOM update, and export through the shared presentation.
+6. Manually verify status colors, resize, icons, tokens, and connection endpoints.
+
+### Adding an Object Type
+
+1. Add the value to OBJECT_TYPES.
+2. Add Foundry drop mapping in #onFoundryDrop().
+3. Add icon/label mapping and localization entries.
+4. Check whether #openFoundryDocument() needs a special case.
+5. Test assignment, Object Details, notes, delete, and export.
+
+### Changing the schema
+
+1. Increase STORE_SCHEMA_VERSION.
+2. Add explicit normalization/migration in normalizeSceneBoard().
+3. Update validateSceneBoard().
+4. Test JSON replace, merge, undo/redo, archive, and connection references.
+5. Test import data from the previous and new versions.
+6. Update README and this document.
+
+New rendering behavior should preferably be added to sceneElementPresentation(). Live DOM rendering and export must not introduce separate layout rules for the same Scene Card.
+
+## 15. Quality assurance
+
+Automated repository checks are:
+
+~~~text
 npm test
 npm run check
 git diff --check
-```
+~~~
 
-`npm test` führt die Node-Test-Suite in `tests/domain.test.mjs` aus. Sie deckt unter anderem ab:
+npm test runs tests/domain.test.mjs and covers, among other things:
 
-- Board-Erzeugung und Defaultwerte;
-- Kapitel-, Szenen- und Knotenoperationen;
-- Archivieren und Wiederherstellen;
-- Sortieren und Verschieben zwischen Kapiteln;
-- Entfernen ungültiger Cross-Chapter-Verbindungen;
-- Player-Character- und PlaylistSound-Objekte;
-- Connection-Endpunktregeln;
-- bilaterale und deaktivierte Darstellung;
-- JSON-/SVG-Daten und Scene-Icon-Export;
-- kapitelweise Export-Schranken.
+- board, chapter, scene, and node creation;
+- archive, restore, ordering, and chapter changes;
+- Scene and Chapter Connection endpoints;
+- cross-chapter cleanup;
+- status, shape, compact, and Scene Icon presentation;
+- Player Character and PlaylistSound objects;
+- JSON, SVG, and chapter-scoped export.
 
-`npm run check` prüft JavaScript-Syntax, Manifest-Pfade, JSON-Dateien und die Vollständigkeit der Lokalisierungsschlüssel.
+npm run check runs node --check for JavaScript files and verifies manifest paths, JSON files, and localization completeness against lang/en.json.
 
-### Manuelle Foundry-Prüfung
+### Manual Foundry test matrix
 
-Nach einer Änderung sollte mindestens geprüft werden:
+After a behavior change, at least verify:
 
-1. Modul laden und Foundry-Konsole auf Fehler prüfen.
-2. Mit einem älteren Board prüfen, dass der Voll-GM beim Weltstart gültige Journal-Daten einmalig in `sceneBoard` übernimmt und der bestehende World-Speicher danach weiter als Quelle verwendet wird.
-3. Mit einer Assistant-GM-Rolle prüfen, dass das Storyboard geöffnet und gelesen werden kann, aber Daten und Fensteransicht nicht gespeichert werden; mit einem Player prüfen, dass kein Board verfügbar ist.
-4. Zwei Full-GM-Clients nacheinander verbinden: Foundrys aktiver Full-GM muss bearbeiten können; weitere Full-GMs und Assistant GMs müssen schreibgeschützt bleiben. Beim Abmelden des aktiven GMs muss sich die Freigabe auf den von Foundry neu bestimmten aktiven Full-GM verlagern.
-5. Fenstergröße, Position, Zoom, Kapitel, Auswahl und Seitenleisten mit dem schreibberechtigten GM ändern, schließen und erneut öffnen; anschließend Foundry neu starten und prüfen, dass die normalen Initialwerte greifen.
-6. Ungespeicherte Details und Object-Notizen beim Kapitelwechsel und beim Schließen speichern, verwerfen und weiterbearbeiten.
-7. Storyboard über Settings, Scene Controls und `Alt+S` öffnen und mit `Alt+S` wieder schließen.
-8. Kapitel, Szene, Entry-/Exit-Knoten und Verbindungen anlegen, verschieben und löschen.
-9. Szene in ein anderes Kapitel ziehen und die automatische Connection-Bereinigung prüfen.
-10. Scene Details, Chapter Details und Connection Details speichern.
-11. Objekte aller unterstützten Foundry-Typen per Drag & Drop verknüpfen.
-12. Playlist-Track-Link öffnen und sicherstellen, dass kein Track-Konfigurationsfenster erscheint.
-13. Statusfärbung und Scene-Icons jeweils aktiviert und deaktiviert prüfen.
-14. JSON importieren/exportieren sowie SVG, PNG und PDF mit mehreren Kapiteln prüfen.
-15. Deutsche und englische Anzeige einschließlich langer Titel und Labels prüfen.
+1. Load the module and inspect game.melStoryboard in the console.
+2. Test with the designated active full GM, another full GM, an Assistant GM, and a player.
+3. Test Settings, Scene Controls, and Alt+S for opening and closing.
+4. Close and reopen the window with position, size, zoom, active chapter, selection, and sidebars changed; then restart Foundry.
+5. Create, reorder, archive, restore, and delete chapters.
+6. Create, reorder, move, resize, duplicate, copy/paste, and delete scenes.
+7. Create, move, rename, delete, and connect Entry/Exit nodes to scenes.
+8. Test all three valid Scene Connection endpoint combinations and bilateral/deactivated types.
+9. Create Chapter Connections between different chapters and jump with a double-click.
+10. Move a scene to another chapter and verify the warning and connection cleanup.
+11. Save and discard Scene Details, Chapter Details, Connection Details, and assignment notes.
+12. Link a Journal Entry, Journal Page with a heading, Actor, Item, Scene, RollTable, Macro, Playlist, and PlaylistSound.
+13. Open a PlaylistSound link and verify that the Playlist expands without opening the track configuration.
+14. Test status coloring, neutral mode, Scene Icons, and both Scene Display modes.
+15. Test every Scene Shape on the canvas, during resize, in connections, and in SVG/PNG/PDF.
+16. Test JSON replace, add as new chapters, and merge into an existing chapter.
+17. Check statuses, shapes, icons, settings, and context menus in all five language files.
 
-## 15. Bekannte Grenzen
+## 16. Current boundaries
 
-- Scene Connections bleiben auf ein Kapitel beschränkt.
-- Kapitelverbindungen sind ausschließlich Exit → Entry zwischen unterschiedlichen Kapiteln.
-- Nur Kapitel können archiviert werden; einzelne Szenen besitzen keinen Archivstatus.
-- Das Modul enthält keine eigene Benutzer- oder Anmeldeverwaltung.
-- Das Modul bundelt keine Drittanbieter-Artworks oder Audio-Dateien.
-- Nicht erreichbare Foundry-Dokumente können nicht aus dem Board geöffnet werden.
-- Template-Management ist im aktuellen UI nicht aktiv, obwohl die Datenstruktur und Domain-Funktionen aus Kompatibilitätsgründen vorhanden sind.
-- Die Anwendung ist nicht detachbar.
+- Only Foundry's designated active full GM can write.
+- Scene Connections cannot cross chapter boundaries.
+- Chapter Connections are only Exit-to-Entry between different chapters.
+- Only chapters can be archived; scenes have no independent archive state.
+- Foundry document links require the document to remain available to the current user.
+- The application cannot be detached.
+- Template management is not registered as an active main workflow.
+- The module does not manage users, roles, sessions, or document permissions.
+- No external media is bundled; artwork and audio come from Foundry documents.
 
-## 16. Release- und Änderungsregeln
-
-Bei einer user-sichtbaren Änderung müssen mindestens angepasst werden:
-
-- Code und Tests;
-- relevante Sprachdateien;
-- `README.md`;
-- Versionsnummer in `module.json` nach der festgelegten Release-Entscheidung;
-- englische Release Notes.
-
-Das Manifest verwendet SemVer ohne führendes `v`, beispielsweise `0.1.1`. Das `v` wird nur für Git-Tags und Release-URLs verwendet. Die `compatibility.verified`-Angabe darf nur geändert werden, wenn die betreffende Foundry-Version tatsächlich getestet wurde.
-
-## 17. Support und Quellen
+## 17. Sources and license
 
 - Repository: <https://github.com/melnari/mel-storyboard>
 - Issues: <https://github.com/melnari/mel-storyboard/issues>
-- Foundry API: <https://foundryvtt.com/api/v14/>
-- Lizenz: [Apache License 2.0](LICENSE)
+- Foundry API v14: <https://foundryvtt.com/api/v14/>
+- License: [Apache License 2.0](LICENSE)
 
-Die technische Dokumentation beschreibt den aktuellen Repository-Stand. Bei Abweichungen zwischen Dokumentation und Code ist zunächst der Code zu prüfen und anschließend diese Datei zusammen mit README und Release Notes zu aktualisieren.
+If this document differs from the source code, the source code is authoritative. Update this document together with the tests and README when the current implementation changes.
