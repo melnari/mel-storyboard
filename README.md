@@ -46,7 +46,9 @@ The application can be opened or toggled through:
 - the Storyboard button in the Foundry Scene Controls;
 - the default `Alt+S` keybinding.
 
-`Alt+S` opens the application when it is closed and closes it when it is open. The application is a resizable Foundry window and cannot be detached.
+`Alt+S` opens the application when it is closed and closes it when it is open. The application is a resizable Foundry window.
+
+The native ApplicationV2 window controls can detach the Storyboard into a separate browser window and attach it again later. Detaching and reattaching keeps the same application instance, board state, selection, sidebars, unsaved detail context, canvas interactions, and Foundry links. The separate window must be allowed by the browser; closing that window follows Foundry's normal application close behavior.
 
 While the active full GM's Foundry client remains open, the module remembers the Storyboard window position and size, zoom, active chapter, selected element, expanded tree entries, Archive state, and collapsed sidebars. This view state is held in memory only. After restarting Foundry or the GM session, the normal initial view is used. Read-only view changes are temporary.
 
@@ -279,7 +281,7 @@ The architecture and data model are documented in [TECHNICAL_DOCUMENTATION.md](T
 - Chapter links are only Exit → Entry between different chapters.
 - Only chapters can be archived; scenes have no independent archive state.
 - Foundry document links require the document to remain available to the current user.
-- The application is desktop-oriented and cannot be detached.
+- The application is desktop-oriented. Detached mode depends on the browser allowing Foundry to open and control a separate application window.
 - Template records and domain functions remain part of the compatible board schema, but template management is not exposed in the active Storyboard interface.
 
 ## Support and license

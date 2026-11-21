@@ -202,7 +202,36 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   static PARTS = { body: { template: "modules/mel-storyboard/templates/storyboard.hbs" } };
 
   _canDetach() {
-    return false;
+    return true;
+  }
+
+  _onDetach(from, to) {
+    super._onDetach?.(from, to);
+    this.#rebindWindowObservers();
+    this.#rebindContextMenuListeners();
+  }
+
+  _onAttach(from, to) {
+    super._onAttach?.(from, to);
+    this.#rebindWindowObservers();
+    this.#rebindContextMenuListeners();
+  }
+
+  #getDocument() {
+    return this.element?.ownerDocument ?? globalThis.document;
+  }
+
+  #getWindow() {
+    return this.#getDocument()?.defaultView ?? globalThis.window;
+  }
+
+  #windowForEvent(event) {
+    return event?.view ?? this.#getWindow();
+  }
+
+  #isElement(value) {
+    const ElementClass = this.#getWindow()?.Element ?? globalThis.Element;
+    return typeof ElementClass === "function" && value instanceof ElementClass;
   }
 
   constructor(options = {}) {
@@ -279,6 +308,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.chapterDescriptionEditorGeneration = 0;
     this.contextMenuElement = null;
     this.contextMenuHost = null;
+    this.contextMenuDocument = null;
+    this.pendingViewSaveWindow = null;
     this.contextMenuHandler = null;
     this.contextMenuOutsideHandler = null;
     this.contextMenuKeyHandler = null;
@@ -612,7 +643,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     this.#destroySceneDescriptionEditor();
     this.#destroyChapterDescriptionEditor();
     await super._onRender(context, options);
-    this.element.querySelector(".window-title")?.replaceChildren(document.createTextNode(localize("MEL_STORYBOARD.UI.Title")));
+    this.element.querySelector(".window-title")?.replaceChildren(this.#getDocument().createTextNode(localize("MEL_STORYBOARD.UI.Title")));
     this.#closeContextMenu();
     if (this.contextMenuHost !== this.element) {
       this.contextMenuHost?.removeEventListener("contextmenu", this.contextMenuHandler, true);
@@ -918,7 +949,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       return;
     }
     if (!banner) {
-      banner = document.createElement("div");
+      banner = this.#getDocument().createElement("div");
       banner.className = "mel-storyboard-read-only-banner";
       banner.setAttribute("role", "status");
       banner.setAttribute("aria-live", "polite");
@@ -950,24 +981,35 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #scheduleViewStateSave() {
     if (this.readOnly || !this.store.canWrite || !this.canEdit) return;
-    if (this.pendingViewSave) window.clearTimeout(this.pendingViewSave);
-    this.pendingViewSave = window.setTimeout(() => {
+    const appWindow = this.#getWindow();
+    if (this.pendingViewSave) (this.pendingViewSaveWindow ?? appWindow)?.clearTimeout(this.pendingViewSave);
+    this.pendingViewSaveWindow = appWindow;
+    this.pendingViewSave = appWindow?.setTimeout(() => {
       this.pendingViewSave = null;
+      this.pendingViewSaveWindow = null;
       void this.#saveViewState();
     }, 350);
   }
 
   #observeWindowPosition() {
-    if (this.positionObserver || !this.element || typeof MutationObserver === "undefined") return;
-    this.positionObserver = new MutationObserver(() => this.#scheduleViewStateSave());
+    const MutationObserverClass = this.#getWindow()?.MutationObserver ?? globalThis.MutationObserver;
+    if (this.positionObserver || !this.element || typeof MutationObserverClass !== "function") return;
+    this.positionObserver = new MutationObserverClass(() => this.#scheduleViewStateSave());
     this.positionObserver.observe(this.element, { attributes: true, attributeFilter: ["style"] });
+  }
+
+  #rebindWindowObservers() {
+    this.positionObserver?.disconnect();
+    this.positionObserver = null;
+    this.#observeWindowPosition();
   }
 
   async #saveViewState() {
     if (this.readOnly || !this.store.canWrite || !this.canEdit) return;
     if (this.pendingViewSave) {
-      window.clearTimeout(this.pendingViewSave);
+      (this.pendingViewSaveWindow ?? this.#getWindow())?.clearTimeout(this.pendingViewSave);
       this.pendingViewSave = null;
+      this.pendingViewSaveWindow = null;
     }
     const rect = this.element?.getBoundingClientRect?.();
     const position = rect ? {
@@ -992,11 +1034,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #cancelActiveEdits() {
     for (const drag of [this.drag, this.resize, this.chapterNodeDrag, this.playerCharacterDrag, this.connectionDrag]) {
       if (!drag) continue;
-      if (drag.frame) cancelAnimationFrame(drag.frame);
-      if (drag.move) window.removeEventListener("pointermove", drag.move);
+      const dragWindow = drag.ownerWindow ?? this.#getWindow();
+      if (drag.frame) dragWindow?.cancelAnimationFrame?.(drag.frame);
+      if (drag.move) dragWindow?.removeEventListener("pointermove", drag.move);
       if (drag.end) {
-        window.removeEventListener("pointerup", drag.end);
-        window.removeEventListener("pointercancel", drag.end);
+        dragWindow?.removeEventListener("pointerup", drag.end);
+        dragWindow?.removeEventListener("pointercancel", drag.end);
       }
       drag.preview?.remove();
       drag.token?.classList.remove("is-dragging");
@@ -1013,6 +1056,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #resolveUnsavedDetails() {
     if (!this.detailsDirty) return true;
+    const document = this.#getDocument();
     const dialog = document.createElement("dialog");
     dialog.className = "mel-storyboard-unsaved-dialog";
     dialog.setAttribute("aria-labelledby", "mel-storyboard-unsaved-title");
@@ -1224,14 +1268,14 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       playlistDirectory.activate?.();
       await playlistDirectory.render({ force: true });
 
-      const escape = globalThis.CSS?.escape ?? (value => String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&"));
+      const escape = this.#getWindow()?.CSS?.escape ?? globalThis.CSS?.escape ?? (value => String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&"));
       const playlistElement = playlistDirectory.element?.querySelector(`[data-entry-id="${escape(playlist.id)}"]`);
       const soundElement = playlistElement?.querySelector(`[data-sound-id="${escape(sound.id)}"]`)
         ?? playlistDirectory.element?.querySelector(`[data-sound-id="${escape(sound.id)}"]`);
       if (!soundElement) return;
       soundElement.scrollIntoView({ block: "nearest", inline: "nearest" });
       soundElement.classList.add("mel-storyboard-foundry-track-focus");
-      window.setTimeout(() => soundElement.classList.remove("mel-storyboard-foundry-track-focus"), 1800);
+      this.#getWindow()?.setTimeout(() => soundElement.classList.remove("mel-storyboard-foundry-track-focus"), 1800);
     } catch (error) {
       console.error(`[${MODULE_ID}] Could not open Playlist track in the native Playlist sidebar`, error);
       ui.notifications.warn(localize("MEL_STORYBOARD.NOTIFICATIONS.FoundryObjectUnavailable"));
@@ -1274,6 +1318,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const editorHost = this.element.querySelector("[data-connection-description-editor]");
     if (!editorHost) return;
     const generation = ++this.connectionDescriptionEditorGeneration;
+    const document = this.#getDocument();
     const editorShell = document.createElement("div");
     editorShell.className = "editor prosemirror mel-storyboard-connection-description-editor-shell";
     const editorTarget = document.createElement("div");
@@ -1318,6 +1363,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const editorHost = this.element.querySelector("[data-scene-description-editor]");
     if (!editorHost) return;
     const generation = ++this.sceneDescriptionEditorGeneration;
+    const document = this.#getDocument();
     const editorShell = document.createElement("div");
     editorShell.className = "editor prosemirror mel-storyboard-scene-description-editor-shell";
     const editorTarget = document.createElement("div");
@@ -1362,6 +1408,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const editorHost = this.element.querySelector("[data-chapter-description-editor]");
     if (!editorHost) return;
     const generation = ++this.chapterDescriptionEditorGeneration;
+    const document = this.#getDocument();
     const editorShell = document.createElement("div");
     editorShell.className = "editor prosemirror mel-storyboard-chapter-description-editor-shell";
     const editorTarget = document.createElement("div");
@@ -1539,15 +1586,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #onContextMenu(event) {
     if (this.readOnly) {
-      const target = event.target instanceof Element
+      const target = this.#isElement(event.target)
         ? event.target.closest("[data-storyboard-canvas], [data-scene-element], [data-connection-id], [data-chapter-node], [data-chapter-id], [data-story-root], [data-archive-root]")
         : null;
       if (target) event.preventDefault();
       return;
     }
-    const target = event.target instanceof Element ? event.target : null;
+    const target = this.#isElement(event.target) ? event.target : null;
     const path = event.composedPath?.() ?? [];
-    const findTarget = selector => path.find(candidate => candidate instanceof Element && candidate.matches(selector)) ?? target?.closest(selector);
+    const findTarget = selector => path.find(candidate => this.#isElement(candidate) && candidate.matches(selector)) ?? target?.closest(selector);
     const connectionTarget = findTarget("[data-connection-id]");
     const chapterConnectionTarget = findTarget("[data-chapter-connection-id]");
     const playerCharacterTarget = findTarget("[data-player-character-token]");
@@ -1592,20 +1639,22 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const scroll = this.element.querySelector(".mel-storyboard-canvas-scroll");
     if (!scroll) return;
     event.preventDefault();
+    const ownerWindow = this.#windowForEvent(event);
     this.canvasPan = {
       scroll,
       startX: event.clientX,
       startY: event.clientY,
       startScrollLeft: scroll.scrollLeft,
       startScrollTop: scroll.scrollTop,
-      moved: false
+      moved: false,
+      ownerWindow
     };
     this.canvasPan.move = moveEvent => this.#canvasPanMove(moveEvent);
     this.canvasPan.end = () => this.#finishCanvasPan();
     scroll.classList.add("is-panning");
-    window.addEventListener("pointermove", this.canvasPan.move);
-    window.addEventListener("pointerup", this.canvasPan.end, { once: true });
-    window.addEventListener("pointercancel", this.canvasPan.end, { once: true });
+    ownerWindow.addEventListener("pointermove", this.canvasPan.move);
+    ownerWindow.addEventListener("pointerup", this.canvasPan.end, { once: true });
+    ownerWindow.addEventListener("pointercancel", this.canvasPan.end, { once: true });
   }
 
   #startConnectionDrag(event) {
@@ -1620,7 +1669,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     if (!source || !svg) return;
     event.preventDefault();
     event.stopPropagation();
-    const preview = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    const ownerWindow = this.#windowForEvent(event);
+    const preview = this.#getDocument().createElementNS("http://www.w3.org/2000/svg", "line");
     preview.classList.add("mel-storyboard-connection-preview");
     const center = sourceType === "CHAPTER_NODE" ? source.position : { x: source.position.x + source.size.width / 2, y: source.position.y + source.size.height / 2 };
     preview.setAttribute("x1", center.x);
@@ -1628,13 +1678,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     preview.setAttribute("x2", center.x);
     preview.setAttribute("y2", center.y);
     svg.append(preview);
-    this.connectionDrag = { sourceId, sourceType, source, preview, target: null };
+    this.connectionDrag = { sourceId, sourceType, source, preview, target: null, ownerWindow };
     this.connectionDrag.move = moveEvent => this.#connectionDragMove(moveEvent);
     this.connectionDrag.end = endEvent => this.#finishConnectionDrag(endEvent);
     event.currentTarget.classList.add("is-connection-drag-source");
-    window.addEventListener("pointermove", this.connectionDrag.move);
-    window.addEventListener("pointerup", this.connectionDrag.end, { once: true });
-    window.addEventListener("pointercancel", this.connectionDrag.end, { once: true });
+    ownerWindow.addEventListener("pointermove", this.connectionDrag.move);
+    ownerWindow.addEventListener("pointerup", this.connectionDrag.end, { once: true });
+    ownerWindow.addEventListener("pointercancel", this.connectionDrag.end, { once: true });
   }
 
   #connectionDragMove(event) {
@@ -1644,7 +1694,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const point = this.#svgPoint(svg, event);
     this.connectionDrag.preview.setAttribute("x2", point.x);
     this.connectionDrag.preview.setAttribute("y2", point.y);
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element], [data-chapter-node]");
+    const target = this.#getDocument().elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element], [data-chapter-node]");
     const targetType = target?.matches?.("[data-chapter-node]") ? "CHAPTER_NODE" : "SCENE";
     const targetId = targetType === "CHAPTER_NODE" ? target?.dataset.nodeId : target?.dataset.elementId;
     const validTargetId = targetId && !(targetType === this.connectionDrag.sourceType && targetId === this.connectionDrag.sourceId)
@@ -1661,16 +1711,17 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async #finishConnectionDrag(event = null) {
     const drag = this.connectionDrag;
     if (!drag) return;
-    window.removeEventListener("pointermove", drag.move);
-    window.removeEventListener("pointerup", drag.end);
-    window.removeEventListener("pointercancel", drag.end);
+    const dragWindow = drag.ownerWindow ?? this.#getWindow();
+    dragWindow?.removeEventListener("pointermove", drag.move);
+    dragWindow?.removeEventListener("pointerup", drag.end);
+    dragWindow?.removeEventListener("pointercancel", drag.end);
     drag.preview?.remove();
     this.element.querySelectorAll(".is-connection-drag-source, .is-connection-drop-target").forEach(element => {
       element.classList.remove("is-connection-drag-source", "is-connection-drop-target");
     });
     this.connectionDrag = null;
     if (this.readOnly || !this.canEdit) return;
-    const releaseTarget = event && document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element], [data-chapter-node]");
+    const releaseTarget = event && this.#getDocument().elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element], [data-chapter-node]");
     const releaseTargetType = releaseTarget?.matches?.("[data-chapter-node]") ? "CHAPTER_NODE" : "SCENE";
     const releaseTargetRawId = releaseTargetType === "CHAPTER_NODE" ? releaseTarget?.dataset.nodeId : releaseTarget?.dataset.elementId;
     const releaseTargetId = releaseTargetRawId && !(releaseTargetType === drag.sourceType && releaseTargetRawId === drag.sourceId)
@@ -1693,7 +1744,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #canvasPanMove(event) {
     if (!this.canvasPan) return;
     this.canvasPan.pendingEvent = event;
-    if (!this.canvasPan.frame) this.canvasPan.frame = requestAnimationFrame(() => this.#applyCanvasPanFrame());
+    if (!this.canvasPan.frame) this.canvasPan.frame = this.canvasPan.ownerWindow?.requestAnimationFrame?.(() => this.#applyCanvasPanFrame());
   }
 
   #applyCanvasPanFrame() {
@@ -1709,11 +1760,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #finishCanvasPan() {
     if (!this.canvasPan) return;
     const { move, end, scroll, frame } = this.canvasPan;
-    if (frame) cancelAnimationFrame(frame);
+    const ownerWindow = this.canvasPan.ownerWindow ?? this.#getWindow();
+    if (frame) ownerWindow?.cancelAnimationFrame?.(frame);
     this.#applyCanvasPanFrame();
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", end);
-    window.removeEventListener("pointercancel", end);
+    ownerWindow?.removeEventListener("pointermove", move);
+    ownerWindow?.removeEventListener("pointerup", end);
+    ownerWindow?.removeEventListener("pointercancel", end);
     scroll.classList.remove("is-panning");
     this.suppressCanvasClick = this.canvasPan.moved;
     this.canvasPan = null;
@@ -1762,7 +1814,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       scroll.scrollTop = viewport.top;
     };
     apply();
-    window.requestAnimationFrame?.(apply);
+    this.#getWindow()?.requestAnimationFrame?.(apply);
   }
 
   #applyZoom() {
@@ -1779,6 +1831,8 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #openContextMenu(event, { connectionId = null, chapterConnectionId = null, playerCharacterObjectId = null, playerCharacterElementId = null, elementId = null, chapterId = null, nodeId = null, isStoryRoot = false, isArchived = false } = {}) {
     if (this.readOnly || !this.canEdit) return;
     this.#closeContextMenu();
+    const document = this.#getDocument();
+    const appWindow = this.#getWindow();
     const sceneMenu = Boolean(elementId);
     const connectionMenu = Boolean(connectionId);
     const chapterConnectionMenu = Boolean(chapterConnectionId);
@@ -1845,11 +1899,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     }
     menu.addEventListener("contextmenu", menuEvent => menuEvent.preventDefault());
     this.element.append(menu);
-    const left = Math.min(event.clientX, window.innerWidth - menu.offsetWidth - 8);
-    const top = Math.min(event.clientY, window.innerHeight - menu.offsetHeight - 8);
+    const left = Math.min(event.clientX, appWindow.innerWidth - menu.offsetWidth - 8);
+    const top = Math.min(event.clientY, appWindow.innerHeight - menu.offsetHeight - 8);
     menu.style.left = `${Math.max(8, left)}px`;
     menu.style.top = `${Math.max(8, top)}px`;
     this.contextMenuElement = menu;
+    this.contextMenuDocument = document;
     this.contextMenuOutsideHandler = pointerEvent => {
       if (!menu.contains(pointerEvent.target)) this.#closeContextMenu();
     };
@@ -1914,11 +1969,23 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   #closeContextMenu() {
     this.contextMenuElement?.remove();
-    if (this.contextMenuOutsideHandler) document.removeEventListener("pointerdown", this.contextMenuOutsideHandler, true);
-    if (this.contextMenuKeyHandler) document.removeEventListener("keydown", this.contextMenuKeyHandler, true);
+    if (this.contextMenuOutsideHandler) this.contextMenuDocument?.removeEventListener("pointerdown", this.contextMenuOutsideHandler, true);
+    if (this.contextMenuKeyHandler) this.contextMenuDocument?.removeEventListener("keydown", this.contextMenuKeyHandler, true);
     this.contextMenuElement = null;
+    this.contextMenuDocument = null;
     this.contextMenuOutsideHandler = null;
     this.contextMenuKeyHandler = null;
+  }
+
+  #rebindContextMenuListeners() {
+    if (!this.contextMenuElement) return;
+    const previousDocument = this.contextMenuDocument;
+    previousDocument?.removeEventListener("pointerdown", this.contextMenuOutsideHandler, true);
+    previousDocument?.removeEventListener("keydown", this.contextMenuKeyHandler, true);
+    const nextDocument = this.#getDocument();
+    nextDocument?.addEventListener("pointerdown", this.contextMenuOutsideHandler, true);
+    nextDocument?.addEventListener("keydown", this.contextMenuKeyHandler, true);
+    this.contextMenuDocument = nextDocument;
   }
 
   async #createScene(event = null) {
@@ -2147,9 +2214,9 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       const target = this.element.querySelector(`[data-chapter-node][data-node-id="${targetNodeId}"]`);
       target?.scrollIntoView?.({ block: "center", inline: "center" });
       target?.classList.add("is-focused");
-      globalThis.setTimeout?.(() => target?.classList.remove("is-focused"), 700);
+      this.#getWindow()?.setTimeout?.(() => target?.classList.remove("is-focused"), 700);
     };
-    if (globalThis.requestAnimationFrame) requestAnimationFrame(focus);
+    if (this.#getWindow()?.requestAnimationFrame) this.#getWindow().requestAnimationFrame(focus);
     else focus();
   }
 
@@ -2290,14 +2357,15 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       startY: event.clientY,
       moved: false,
       dropTargetId: null,
-      token
+      token,
+      ownerWindow: this.#windowForEvent(event)
     };
     this.playerCharacterDrag.move = moveEvent => this.#playerCharacterDragMove(moveEvent);
     this.playerCharacterDrag.end = endEvent => this.#finishPlayerCharacterDrag(endEvent);
     token.classList.add("is-dragging");
-    window.addEventListener("pointermove", this.playerCharacterDrag.move);
-    window.addEventListener("pointerup", this.playerCharacterDrag.end, { once: true });
-    window.addEventListener("pointercancel", this.playerCharacterDrag.end, { once: true });
+    this.playerCharacterDrag.ownerWindow.addEventListener("pointermove", this.playerCharacterDrag.move);
+    this.playerCharacterDrag.ownerWindow.addEventListener("pointerup", this.playerCharacterDrag.end, { once: true });
+    this.playerCharacterDrag.ownerWindow.addEventListener("pointercancel", this.playerCharacterDrag.end, { once: true });
   }
 
   #playerCharacterDragMove(event) {
@@ -2305,7 +2373,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const drag = this.playerCharacterDrag;
     if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 4) return;
     drag.moved = true;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
+    const target = this.#getDocument().elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-scene-element]");
     const targetId = target?.dataset.elementId ?? null;
     drag.dropTargetId = targetId && targetId !== drag.sourceElementId ? targetId : null;
     this.element.querySelectorAll("[data-scene-element]").forEach(element => {
@@ -2316,9 +2384,10 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async #finishPlayerCharacterDrag() {
     const drag = this.playerCharacterDrag;
     if (!drag) return;
-    window.removeEventListener("pointermove", drag.move);
-    window.removeEventListener("pointerup", drag.end);
-    window.removeEventListener("pointercancel", drag.end);
+    const dragWindow = drag.ownerWindow ?? this.#getWindow();
+    dragWindow?.removeEventListener("pointermove", drag.move);
+    dragWindow?.removeEventListener("pointerup", drag.end);
+    dragWindow?.removeEventListener("pointercancel", drag.end);
     drag.token?.classList.remove("is-dragging");
     this.element.querySelectorAll(".is-player-character-drop-target").forEach(element => element.classList.remove("is-player-character-drop-target"));
     this.playerCharacterDrag = null;
@@ -2347,7 +2416,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const supportedTypes = new Set(["Actor", "Item", "JournalEntry", "JournalEntryPage", "Scene", "RollTable", "Macro", "Playlist", "PlaylistSound"]);
     if (!data?.uuid) return;
     const { uuid: documentUuid } = splitFoundryUuid(data.uuid);
-    const target = event.target instanceof Element ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
+    const target = this.#isElement(event.target) ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
     const element = this.board.elements.find(candidate => candidate.id === target?.dataset.elementId);
     const scene = this.board.scenes.find(candidate => candidate.id === element?.sceneId);
     const connection = this.board.connections.find(candidate => candidate.id === target?.dataset.connectionId);
@@ -2385,7 +2454,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #markDropTarget(event, active) {
-    const target = event.target instanceof Element ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
+    const target = this.#isElement(event.target) ? event.target.closest("[data-scene-element], [data-connection-id]") : null;
     target?.classList.toggle("is-drop-target", active);
   }
 
@@ -2681,11 +2750,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     const svg = this.element.querySelector("[data-storyboard-canvas]");
     const point = this.#svgPoint(svg, event);
     this.history.capture(this.board);
-    this.drag = { element, startX: point.x, startY: point.y, original: clone(element.position), board: this.board };
+    this.drag = { element, startX: point.x, startY: point.y, original: clone(element.position), board: this.board, ownerWindow: this.#windowForEvent(event) };
     this.drag.move = moveEvent => this.#dragMove(moveEvent);
     this.drag.end = endEvent => this.#finishDrag(endEvent);
-    window.addEventListener("pointermove", this.drag.move);
-    window.addEventListener("pointerup", this.drag.end, { once: true });
+    this.drag.ownerWindow.addEventListener("pointermove", this.drag.move);
+    this.drag.ownerWindow.addEventListener("pointerup", this.drag.end, { once: true });
+    this.drag.ownerWindow.addEventListener("pointercancel", this.drag.end, { once: true });
   }
 
   #startChapterNodeDrag(event) {
@@ -2699,19 +2769,19 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     event.stopPropagation();
     const point = this.#svgPoint(svg, event);
     this.history.capture(this.board);
-    this.chapterNodeDrag = { node, startX: point.x, startY: point.y, original: clone(node.position), target: event.currentTarget, moved: false };
+    this.chapterNodeDrag = { node, startX: point.x, startY: point.y, original: clone(node.position), target: event.currentTarget, moved: false, ownerWindow: this.#windowForEvent(event) };
     this.chapterNodeDrag.move = moveEvent => this.#chapterNodeDragMove(moveEvent);
     this.chapterNodeDrag.end = () => this.#finishChapterNodeDrag();
     event.currentTarget.classList.add("is-dragging");
-    window.addEventListener("pointermove", this.chapterNodeDrag.move);
-    window.addEventListener("pointerup", this.chapterNodeDrag.end, { once: true });
-    window.addEventListener("pointercancel", this.chapterNodeDrag.end, { once: true });
+    this.chapterNodeDrag.ownerWindow.addEventListener("pointermove", this.chapterNodeDrag.move);
+    this.chapterNodeDrag.ownerWindow.addEventListener("pointerup", this.chapterNodeDrag.end, { once: true });
+    this.chapterNodeDrag.ownerWindow.addEventListener("pointercancel", this.chapterNodeDrag.end, { once: true });
   }
 
   #chapterNodeDragMove(event) {
     if (!this.chapterNodeDrag) return;
     this.chapterNodeDrag.pendingEvent = event;
-    if (!this.chapterNodeDrag.frame) this.chapterNodeDrag.frame = requestAnimationFrame(() => this.#applyChapterNodeDragFrame());
+    if (!this.chapterNodeDrag.frame) this.chapterNodeDrag.frame = this.chapterNodeDrag.ownerWindow?.requestAnimationFrame?.(() => this.#applyChapterNodeDragFrame());
   }
 
   #applyChapterNodeDragFrame() {
@@ -2729,11 +2799,12 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   async #finishChapterNodeDrag() {
     if (!this.chapterNodeDrag) return;
     const drag = this.chapterNodeDrag;
-    if (drag.frame) cancelAnimationFrame(drag.frame);
+    const dragWindow = drag.ownerWindow ?? this.#getWindow();
+    if (drag.frame) dragWindow?.cancelAnimationFrame?.(drag.frame);
     this.#applyChapterNodeDragFrame();
-    window.removeEventListener("pointermove", drag.move);
-    window.removeEventListener("pointerup", drag.end);
-    window.removeEventListener("pointercancel", drag.end);
+    dragWindow?.removeEventListener("pointermove", drag.move);
+    dragWindow?.removeEventListener("pointerup", drag.end);
+    dragWindow?.removeEventListener("pointercancel", drag.end);
     drag.target?.classList.remove("is-dragging");
     this.chapterNodeDrag = null;
     if (!drag.moved) return;
@@ -2762,18 +2833,20 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
       element,
       startX: point.x,
       startY: point.y,
-      original: clone(element.size)
+      original: clone(element.size),
+      ownerWindow: this.#windowForEvent(event)
     };
     this.resize.move = moveEvent => this.#resizeMove(moveEvent);
     this.resize.end = () => this.#finishResize();
-    window.addEventListener("pointermove", this.resize.move);
-    window.addEventListener("pointerup", this.resize.end, { once: true });
+    this.resize.ownerWindow.addEventListener("pointermove", this.resize.move);
+    this.resize.ownerWindow.addEventListener("pointerup", this.resize.end, { once: true });
+    this.resize.ownerWindow.addEventListener("pointercancel", this.resize.end, { once: true });
   }
 
   #resizeMove(event) {
     if (!this.resize) return;
     this.resize.pendingEvent = event;
-    if (!this.resize.frame) this.resize.frame = requestAnimationFrame(() => this.#applyResizeFrame());
+    if (!this.resize.frame) this.resize.frame = this.resize.ownerWindow?.requestAnimationFrame?.(() => this.#applyResizeFrame());
   }
 
   #applyResizeFrame() {
@@ -2810,7 +2883,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
     node.setAttribute("aria-label", presentation.title);
     const namespace = "http://www.w3.org/2000/svg";
     const create = (tag, attributes = {}, text = null) => {
-      const child = document.createElementNS(namespace, tag);
+      const child = this.#getDocument().createElementNS(namespace, tag);
       for (const [name, value] of Object.entries(attributes)) child.setAttribute(name, String(value));
       if (text !== null) child.textContent = text;
       return child;
@@ -2885,7 +2958,7 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
   #dragMove(event) {
     if (!this.drag) return;
     this.drag.pendingEvent = event;
-    if (!this.drag.frame) this.drag.frame = requestAnimationFrame(() => this.#applyDragFrame());
+    if (!this.drag.frame) this.drag.frame = this.drag.ownerWindow?.requestAnimationFrame?.(() => this.#applyDragFrame());
   }
 
   #applyDragFrame() {
@@ -2941,10 +3014,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #finishDrag() {
     if (!this.drag) return;
-    const { move, element } = this.drag;
-    if (this.drag.frame) cancelAnimationFrame(this.drag.frame);
+    const { move, end, element } = this.drag;
+    const dragWindow = this.drag.ownerWindow ?? this.#getWindow();
+    if (this.drag.frame) dragWindow?.cancelAnimationFrame?.(this.drag.frame);
     this.#applyDragFrame();
-    window.removeEventListener("pointermove", move);
+    dragWindow?.removeEventListener("pointermove", move);
+    dragWindow?.removeEventListener("pointerup", end);
+    dragWindow?.removeEventListener("pointercancel", end);
     this.drag = null;
     if (this.readOnly || !this.canEdit) {
       this.board = this.store.read();
@@ -2958,10 +3034,13 @@ export class StoryboardApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #finishResize() {
     if (!this.resize) return;
-    const { move, element } = this.resize;
-    if (this.resize.frame) cancelAnimationFrame(this.resize.frame);
+    const { move, end, element } = this.resize;
+    const resizeWindow = this.resize.ownerWindow ?? this.#getWindow();
+    if (this.resize.frame) resizeWindow?.cancelAnimationFrame?.(this.resize.frame);
     this.#applyResizeFrame();
-    window.removeEventListener("pointermove", move);
+    resizeWindow?.removeEventListener("pointermove", move);
+    resizeWindow?.removeEventListener("pointerup", end);
+    resizeWindow?.removeEventListener("pointercancel", end);
     this.resize = null;
     if (this.readOnly || !this.canEdit) {
       this.board = this.store.read();

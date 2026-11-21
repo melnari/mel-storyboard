@@ -14,7 +14,7 @@ This document describes the current implementation:
 - current board schema: STORE_SCHEMA_VERSION = 5.
 - no external runtime packages and no external service.
 
-The application is designed for Foundry Desktop and one active editing full Game Master. It is a GM preparation and play-support tool, not a player-facing interface, and it cannot be detached from its Foundry window.
+The application is designed for Foundry Desktop and one active editing full Game Master. It is a GM preparation and play-support tool, not a player-facing interface. It supports Foundry's native ApplicationV2 detached-window lifecycle while retaining the same Storyboard application instance and interactions.
 
 ## 2. Permissions and session model
 
@@ -67,7 +67,9 @@ Scene, chapter, and connection details use local drafts until the corresponding 
 
 The main application is StoryboardApplication in scripts/ui/application.js. It is based on Foundry's ApplicationV2 and HandlebarsApplicationMixin APIs.
 
-The main template is templates/storyboard.hbs. The application uses the ID mel-storyboard-application, has the window title Mel-Storyboard, is resizable, and returns false from _canDetach().
+The main template is templates/storyboard.hbs. The application uses the ID mel-storyboard-application, has the window title Mel-Storyboard, is resizable, and returns true from _canDetach(). Foundry therefore exposes its native detach and attach controls. The application implements _onDetach() and _onAttach() to rebind its context-menu listeners to the current owner document.
+
+Detaching and reattaching do not create a second Storyboard instance and do not copy or migrate board data. The same application element is moved between the Foundry window and the detached window. The UI resolves its current ownerDocument and defaultView for DOM creation, timers, animation frames, MutationObserver, element checks, viewport calculations, context menus, and pointer-driven canvas, node, scene, resize, connection, and player-character interactions. Foundry links continue to use the normal Foundry document and sidebar APIs from either window.
 
 ### 3.1 Layout
 
@@ -96,6 +98,8 @@ The application is exposed through three Foundry interfaces:
 - the GM-restricted Alt+S keybinding.
 
 game.melStoryboard.toggle() opens the application when no connected application exists and closes it when it is open.
+
+The ApplicationV2 window's native detach action calls detachWindow(); its corresponding attach action calls attachWindow(). The module does not implement a second window manager. A detached window uses the same Storyboard state, and returning it to the main window uses the same application instance. Browser popup permissions can prevent detached mode even though the module supports it.
 
 The toolbar contains:
 
@@ -634,6 +638,8 @@ embedSceneIcons() embeds Scene Icon files and Player Character artwork as data U
 | game.keybindings.register() | register Alt+S toggle |
 | ApplicationV2 | native Foundry application base |
 | HandlebarsApplicationMixin | Handlebars part rendering |
+| ApplicationV2._canDetach(), detachWindow(), attachWindow() | native detached-window support |
+| ApplicationV2._onDetach(), _onAttach() | rebind Storyboard listeners after a window move |
 | fromUuid() | resolve Foundry documents from UUIDs |
 | Scene.view() | open a Foundry Scene link |
 | document.sheet.render() | open Journal, Item, Actor, and other standard sheets |
@@ -841,20 +847,21 @@ After a behavior change, at least verify:
 1. Load the module and inspect game.melStoryboard in the console.
 2. Test with the designated active full GM, another full GM, an Assistant GM, and a player.
 3. Test Settings, Scene Controls, and Alt+S for opening and closing.
-4. Close and reopen the window with position, size, zoom, active chapter, selection, and sidebars changed; then restart Foundry.
-5. Create, reorder, archive, restore, and delete chapters.
-6. Create, reorder, move, resize, duplicate, copy/paste, and delete scenes.
-7. Create, move, rename, delete, and connect Entry/Exit nodes to scenes.
-8. Test all three valid Scene Connection endpoint combinations and bilateral/deactivated types.
-9. Create Chapter Connections between different chapters and jump with a double-click.
-10. Move a scene to another chapter and verify the warning and connection cleanup.
-11. Save and discard Scene Details, Chapter Details, Connection Details, and assignment notes.
-12. Link a Journal Entry, Journal Page with a heading, Actor, Item, Scene, RollTable, Macro, Playlist, and PlaylistSound.
-13. Open a PlaylistSound link and verify that the Playlist expands without opening the track configuration.
-14. Test status coloring, neutral mode, Scene Icons, and both Scene Display modes.
-15. Test every Scene Shape on the canvas, during resize, in connections, and in SVG/PNG/PDF.
-16. Test JSON replace, add as new chapters, and merge into an existing chapter.
-17. Check statuses, shapes, icons, settings, and context menus in all five language files.
+4. Detach the Storyboard with the native window control, use canvas interactions and Foundry links in the detached window, then attach it again and verify that the same state and listeners remain active.
+5. Close and reopen the window with position, size, zoom, active chapter, selection, and sidebars changed; then restart Foundry.
+6. Create, reorder, archive, restore, and delete chapters.
+7. Create, reorder, move, resize, duplicate, copy/paste, and delete scenes.
+8. Create, move, rename, delete, and connect Entry/Exit nodes to scenes.
+9. Test all three valid Scene Connection endpoint combinations and bilateral/deactivated types.
+10. Create Chapter Connections between different chapters and jump with a double-click.
+11. Move a scene to another chapter and verify the warning and connection cleanup.
+12. Save and discard Scene Details, Chapter Details, Connection Details, and assignment notes.
+13. Link a Journal Entry, Journal Page with a heading, Actor, Item, Scene, RollTable, Macro, Playlist, and PlaylistSound.
+14. Open a PlaylistSound link and verify that the Playlist expands without opening the track configuration.
+15. Test status coloring, neutral mode, Scene Icons, and both Scene Display modes.
+16. Test every Scene Shape on the canvas, during resize, in connections, and in SVG/PNG/PDF.
+17. Test JSON replace, add as new chapters, and merge into an existing chapter.
+18. Check statuses, shapes, icons, settings, and context menus in all five language files.
 
 ## 16. Current boundaries
 
@@ -863,7 +870,7 @@ After a behavior change, at least verify:
 - Chapter Connections are only Exit-to-Entry between different chapters.
 - Only chapters can be archived; scenes have no independent archive state.
 - Foundry document links require the document to remain available to the current user.
-- The application cannot be detached.
+- Detached mode requires a browser window permission and Foundry support for the ApplicationV2 detach control.
 - Template management is not registered as an active main workflow.
 - The module does not manage users, roles, sessions, or document permissions.
 - No external media is bundled; artwork and audio come from Foundry documents.
