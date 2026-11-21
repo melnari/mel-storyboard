@@ -4,7 +4,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop module for planning branching stori
 
 ## Release and compatibility
 
-- Current version: `1.0.0`
+- Current version: `1.0.1`
 - Minimum Foundry VTT version: `14`
 - Verified Foundry VTT version: `14.370`
 - Supported languages: English, German, French, Spanish, and Dutch

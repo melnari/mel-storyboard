@@ -6,7 +6,7 @@ Mel-Storyboard is a Foundry Virtual Tabletop module for Game Masters. It provide
 
 This document describes the current implementation:
 
-- module version: 1.0.0;
+- module version: 1.0.1;
 - minimum Foundry VTT version: 14;
 - verified Foundry VTT version in module.json: 14.370;
 - English reference localization with German, French, Spanish, and Dutch translations;
